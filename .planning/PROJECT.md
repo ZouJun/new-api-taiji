@@ -37,6 +37,7 @@ Every relay request must remain stable, bounded, and traceable from customer req
 
 - Replacing the existing relay adaptor architecture — the work should integrate with current provider patterns.
 - Storing full payloads directly in `logs.other` or another database column — this would harm DB performance and complicate retention.
+- Changing existing table logic solely to support archive backend selection — local versus Azure Blob must be selected by configuration, not by new archive tables or archive-specific schema changes.
 - Making storage upload failures fail otherwise successful customer relay requests by default — archival must be isolated unless explicitly configured otherwise.
 - Removing or renaming protected project or organization identifiers — project policy forbids this.
 - Dropping support for SQLite, MySQL, or PostgreSQL — all persistence changes must remain cross-DB compatible.
@@ -81,6 +82,7 @@ Important current findings:
 | Treat this as brownfield work on the existing gateway | The repository already implements relay, billing, logging, and AWS provider paths | — Pending |
 | Use `.planning/codebase` as the source of current architecture context | Codebase mapping was generated before initialization | — Pending |
 | Keep full payload archival outside the database | DB logs are metadata-oriented and high-RPM payload storage would degrade query/write performance | — Pending |
+| Choose local versus Azure Blob archival purely through configuration | The user explicitly does not want archive backend selection to depend on existing table logic changes | — Pending |
 | Prefer async isolated archival over synchronous blob upload in the hot path | The user requires stability and performance at 8000-15000 RPM | — Pending |
 | Keep local request ID and customer Trace-Id as separate concepts | Local IDs are trusted server-generated IDs; customer IDs are external correlation IDs | — Pending |
 

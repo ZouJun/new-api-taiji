@@ -28,6 +28,7 @@ Requirements for this milestone. Each maps to exactly one roadmap phase.
 - [ ] **ARCH-02**: System can capture non-streaming upstream/client response payloads without changing client-visible responses.
 - [ ] **ARCH-03**: System can capture streaming response chunks while preserving flush timing and chunk order.
 - [ ] **ARCH-04**: System can store archived payloads in either local storage or Azure Blob based on configuration.
+- [ ] **ARCH-04A**: Archive backend selection between local storage and Azure Blob does not require changes to existing table logic.
 - [ ] **ARCH-05**: Archive object names include server request ID and sanitized customer trace ID.
 - [ ] **ARCH-06**: System writes per-request archive metadata including object names, hashes, byte counts, stream flag, provider/channel/model, status, and errors.
 - [ ] **ARCH-07**: `logs.other` stores archive references and metadata, not full request or response payloads.
@@ -91,6 +92,7 @@ Which phases cover which requirements. Updated during roadmap creation.
 | ARCH-02 | Phase 3 | Pending |
 | ARCH-03 | Phase 3 | Pending |
 | ARCH-04 | Phase 3 | Pending |
+| ARCH-04A | Phase 3 | Pending |
 | ARCH-05 | Phase 3 | Pending |
 | ARCH-06 | Phase 3 | Pending |
 | ARCH-07 | Phase 3 | Pending |
@@ -107,8 +109,8 @@ Which phases cover which requirements. Updated during roadmap creation.
 | TEST-03 | Phase 4 | Pending |
 
 **Coverage:**
-- v1 requirements: 27 total
-- Mapped to phases: 27
+- v1 requirements: 28 total
+- Mapped to phases: 28
 - Unmapped: 0
 
 ---
