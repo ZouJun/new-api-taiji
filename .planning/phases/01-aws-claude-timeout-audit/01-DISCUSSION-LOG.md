@@ -15,6 +15,7 @@
   - `relay/channel/aws/relay-aws.go`
 - User direction captured:
   - Timeout must be dynamically configured against the channel record.
+  - If `channel.setting` contains a timeout value, the request path must actually enforce it.
 - Recommended option selected for downstream planning:
   - Store the timeout in `channel.setting` JSON through `dto.ChannelSettings`, not as a new physical DB column.
 - Reasoning captured:
@@ -29,6 +30,7 @@
   - Shared/proxy HTTP clients also use global `common.RelayTimeout`
 - Locked discussion outcome:
   - Effective timeout must be resolved per request from `RelayInfo.ChannelSetting`
+  - A configured channel timeout cannot be treated as informational metadata; it must alter live timeout behavior
   - Invocation context should use `c.Request.Context()` as parent
   - Streaming and non-streaming behavior must be analyzed separately during planning
 

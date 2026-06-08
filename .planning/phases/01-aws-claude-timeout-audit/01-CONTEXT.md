@@ -18,6 +18,7 @@ This phase determines the current AWS Claude timeout behavior and locks the impl
 - **D-02:** The timeout setting should be stored in the existing `channel.setting` JSON via `dto.ChannelSettings`, not as a new physical DB column in `channels`.
 - **D-03:** Recommended field shape is a pointer scalar, for example `RelayTimeoutSeconds *int \`json:"relay_timeout_seconds,omitempty"\``, so absence means "inherit global default" and explicit values are preserved.
 - **D-04:** `0` or negative values should not mean "infinite timeout" at the channel level. Treat them as invalid or as fallback-to-global during validation to avoid ambiguous production behavior.
+- **D-04a:** Once a channel-level timeout is present in `channel.setting`, the request path must actually enforce it. This cannot be a stored-but-ignored configuration.
 
 ### Effective Timeout Resolution
 - **D-05:** Introduce a single helper to resolve effective timeout for a request in this precedence order:
@@ -25,6 +26,7 @@ This phase determines the current AWS Claude timeout behavior and locks the impl
   2. global `common.RelayTimeout`
   3. zero means "no explicit timeout configured"
 - **D-06:** The effective timeout must be derived from `relaycommon.RelayInfo.ChannelSetting`, because distribution already injects `ChannelSettings` into Gin context and then into `RelayInfo`.
+- **D-06a:** If `channel.setting.relay_timeout_seconds` is set, AWS request execution must use that effective timeout instead of silently falling back to the global timeout path.
 
 ### AWS Invocation Behavior
 - **D-07:** Replace `newAwsInvokeContext()` with a request-aware variant that uses `c.Request.Context()` as the parent, not `context.Background()`, so client cancellation and upstream timeout share the same tree.
@@ -46,6 +48,7 @@ This phase determines the current AWS Claude timeout behavior and locks the impl
   - no channel timeout configured -> falls back to global timeout behavior
   - channel timeout configured -> AWS path uses channel timeout
   - streaming path behavior is explicitly documented, including any known mismatch between desired and current semantics
+- **D-15a:** Verification must explicitly reject the failure mode where `channel.setting` contains a timeout value but the live request still behaves as if only `common.RelayTimeout` exists.
 
 ### the agent's Discretion
 - Field name can be `relay_timeout_seconds` or `request_timeout_seconds`, but it must live in `dto.ChannelSettings`, be pointer-typed, and be clearly documented as seconds.
@@ -103,6 +106,7 @@ This phase determines the current AWS Claude timeout behavior and locks the impl
 ## Specific Ideas
 
 - The user explicitly wants timeout to be dynamically controlled per channel record.
+- The user explicitly requires that any timeout configured in `channel.setting` must have a real enforcement path.
 - The recommended implementation is to store that setting in the existing `channel.setting` JSON instead of adding a new `channels.timeout` column.
 - This phase should produce a concrete explanation of current timeout behavior and a locked implementation direction for per-channel timeout resolution.
 
