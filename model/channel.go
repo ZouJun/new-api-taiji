@@ -945,6 +945,21 @@ func (channel *Channel) ValidateSettings() error {
 			return err
 		}
 	}
+	if channelParams.NonStreamTimeoutSeconds != nil && *channelParams.NonStreamTimeoutSeconds <= 0 {
+		return errors.New("channel.setting.non_stream_timeout_seconds must be greater than 0")
+	}
+	if channelParams.StreamFirstByteTimeoutSeconds != nil && *channelParams.StreamFirstByteTimeoutSeconds <= 0 {
+		return errors.New("channel.setting.stream_first_byte_timeout_seconds must be greater than 0")
+	}
+	if channelParams.AwsHTTPClientNonStreamTimeoutSeconds != nil && *channelParams.AwsHTTPClientNonStreamTimeoutSeconds <= 0 {
+		return errors.New("channel.setting.aws_http_client_non_stream_timeout_seconds must be greater than 0")
+	}
+	if channelParams.AwsHTTPClientStreamFirstByteTimeoutSeconds != nil && *channelParams.AwsHTTPClientStreamFirstByteTimeoutSeconds <= 0 {
+		return errors.New("channel.setting.aws_http_client_stream_first_byte_timeout_seconds must be greater than 0")
+	}
+	if channelParams.AwsInvokeTimeoutSeconds != nil && *channelParams.AwsInvokeTimeoutSeconds <= 0 {
+		return errors.New("channel.setting.aws_invoke_timeout_seconds must be greater than 0")
+	}
 	return nil
 }
 

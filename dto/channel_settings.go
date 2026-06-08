@@ -1,12 +1,17 @@
 package dto
 
 type ChannelSettings struct {
-	ForceFormat            bool   `json:"force_format,omitempty"`
-	ThinkingToContent      bool   `json:"thinking_to_content,omitempty"`
-	Proxy                  string `json:"proxy"`
-	PassThroughBodyEnabled bool   `json:"pass_through_body_enabled,omitempty"`
-	SystemPrompt           string `json:"system_prompt,omitempty"`
-	SystemPromptOverride   bool   `json:"system_prompt_override,omitempty"`
+	ForceFormat                                bool   `json:"force_format,omitempty"`
+	ThinkingToContent                          bool   `json:"thinking_to_content,omitempty"`
+	Proxy                                      string `json:"proxy"`
+	PassThroughBodyEnabled                     bool   `json:"pass_through_body_enabled,omitempty"`
+	SystemPrompt                               string `json:"system_prompt,omitempty"`
+	SystemPromptOverride                       bool   `json:"system_prompt_override,omitempty"`
+	NonStreamTimeoutSeconds                    *int   `json:"non_stream_timeout_seconds,omitempty"`
+	StreamFirstByteTimeoutSeconds              *int   `json:"stream_first_byte_timeout_seconds,omitempty"`
+	AwsHTTPClientNonStreamTimeoutSeconds       *int   `json:"aws_http_client_non_stream_timeout_seconds,omitempty"`
+	AwsHTTPClientStreamFirstByteTimeoutSeconds *int   `json:"aws_http_client_stream_first_byte_timeout_seconds,omitempty"`
+	AwsInvokeTimeoutSeconds                    *int   `json:"aws_invoke_timeout_seconds,omitempty"`
 }
 
 type VertexKeyType string

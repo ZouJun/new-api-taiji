@@ -170,6 +170,13 @@ var BatchUpdateInterval int
 
 var RelayTimeout int // unit is second
 
+var RelayDefaultNonStreamTimeout int       // unit is second
+var RelayDefaultStreamFirstByteTimeout int // unit is second
+
+var AWSHTTPClientNonStreamTimeoutSeconds int       // unit is second
+var AWSHTTPClientStreamFirstByteTimeoutSeconds int // unit is second
+var AWSInvokeTimeoutSeconds int                    // unit is second
+
 var RelayIdleConnTimeout int // unit is second
 var RelayMaxIdleConns int
 var RelayMaxIdleConnsPerHost int

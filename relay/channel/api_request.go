@@ -485,15 +485,54 @@ func DoRequest(c *gin.Context, req *http.Request, info *common.RelayInfo) (*http
 	return doRequest(c, req, info)
 }
 func doRequest(c *gin.Context, req *http.Request, info *common.RelayInfo) (*http.Response, error) {
-	var client *http.Client
-	var err error
-	if info.ChannelSetting.Proxy != "" {
-		client, err = service.NewProxyHttpClient(info.ChannelSetting.Proxy)
-		if err != nil {
-			return nil, fmt.Errorf("new proxy http client failed: %w", err)
+	var (
+		client                *http.Client
+		err                   error
+		clientTimeoutSeconds  int
+		requestContext        context.Context
+		cancel                context.CancelFunc
+		firstByteController   *common.FirstByteTimeoutController
+		streamFirstByteTimout int
+	)
+
+	requestContext = c.Request.Context()
+	cancel = func() {}
+	if info.IsStream {
+		// 流式请求只限制首包等待时间，首包到达后不再用总时长硬切断整条流。
+		streamFirstByteTimout, timeoutSource := common.ResolveStreamFirstByteTimeoutSeconds(info)
+		common.SetTimeoutMeta(c, common.TimeoutMeta{
+			Type:     common.TimeoutTypeStreamFirstByte,
+			Source:   timeoutSource,
+			Seconds:  streamFirstByteTimout,
+			Provider: string(info.GetFinalRequestRelayFormat()),
+			Stage:    "stream_first_byte_wait",
+			IsStream: true,
+		})
+		if streamFirstByteTimout > 0 {
+			requestContext, firstByteController = common.NewFirstByteTimeoutContext(requestContext, time.Duration(streamFirstByteTimout)*time.Second)
 		}
 	} else {
-		client = service.GetHttpClient()
+		// 非流式请求同时收敛请求级 context 和 HTTP Client 超时，避免上游长时间占住连接。
+		nonStreamTimeoutSeconds, timeoutSource := common.ResolveNonStreamTimeoutSeconds(info)
+		common.SetTimeoutMeta(c, common.TimeoutMeta{
+			Type:     common.TimeoutTypeNonStreamTotal,
+			Source:   timeoutSource,
+			Seconds:  nonStreamTimeoutSeconds,
+			Provider: string(info.GetFinalRequestRelayFormat()),
+			Stage:    "http_request",
+			IsStream: false,
+		})
+		if nonStreamTimeoutSeconds > 0 {
+			requestContext, cancel = context.WithTimeout(requestContext, time.Duration(nonStreamTimeoutSeconds)*time.Second)
+			clientTimeoutSeconds = nonStreamTimeoutSeconds
+			defer cancel()
+		}
+	}
+	req = req.WithContext(requestContext)
+
+	client, err = service.GetHttpClientWithProxyAndTimeout(info.ChannelSetting.Proxy, clientTimeoutSeconds)
+	if err != nil {
+		return nil, fmt.Errorf("new proxy http client failed: %w", err)
 	}
 
 	var stopPinger context.CancelFunc
@@ -516,11 +555,29 @@ func doRequest(c *gin.Context, req *http.Request, info *common.RelayInfo) (*http
 
 	resp, err := client.Do(req)
 	if err != nil {
+		if firstByteController != nil {
+			if firstByteController.TimeoutTriggered() {
+				err = fmt.Errorf("%w after %d seconds", common.ErrStreamFirstByteTimeout, streamFirstByteTimout)
+			}
+			firstByteController.Cancel()
+		}
 		logger.LogError(c, "do request failed: "+err.Error())
-		return nil, types.NewError(err, types.ErrorCodeDoRequestFailed, types.ErrOptionWithHideErrMsg("upstream error: do request failed"))
+		options := []types.NewAPIErrorOptions{
+			types.ErrOptionWithHideErrMsg("upstream error: do request failed"),
+		}
+		if errors.Is(err, context.DeadlineExceeded) || errors.Is(err, common.ErrStreamFirstByteTimeout) {
+			options = append(options, types.ErrOptionWithStatusCode(http.StatusGatewayTimeout))
+		}
+		return nil, types.NewError(err, types.ErrorCodeDoRequestFailed, options...)
 	}
 	if resp == nil {
+		if firstByteController != nil {
+			firstByteController.Cancel()
+		}
 		return nil, errors.New("resp is nil")
+	}
+	if info.IsStream && firstByteController != nil {
+		resp.Body = firstByteController.WrapBody(resp.Body, streamFirstByteTimout)
 	}
 
 	if upID := resp.Header.Get(common2.RequestIdKey); upID != "" {

@@ -195,6 +195,11 @@ const EditChannelModal = (props) => {
     pass_through_body_enabled: false,
     system_prompt: '',
     system_prompt_override: false,
+    non_stream_timeout_seconds: undefined,
+    stream_first_byte_timeout_seconds: undefined,
+    aws_http_client_non_stream_timeout_seconds: undefined,
+    aws_http_client_stream_first_byte_timeout_seconds: undefined,
+    aws_invoke_timeout_seconds: undefined,
     settings: '',
     // 仅 Vertex: 密钥格式（存入 settings.vertex_key_type）
     vertex_key_type: 'json',
@@ -517,6 +522,12 @@ const EditChannelModal = (props) => {
     proxy: '',
     pass_through_body_enabled: false,
     system_prompt: '',
+    system_prompt_override: false,
+    non_stream_timeout_seconds: undefined,
+    stream_first_byte_timeout_seconds: undefined,
+    aws_http_client_non_stream_timeout_seconds: undefined,
+    aws_http_client_stream_first_byte_timeout_seconds: undefined,
+    aws_invoke_timeout_seconds: undefined,
   });
   const showApiConfigCard = true; // 控制是否显示 API 配置卡片
   const getInitValues = () => ({ ...originInputs });
@@ -870,6 +881,28 @@ const EditChannelModal = (props) => {
           data.system_prompt = parsedSettings.system_prompt || '';
           data.system_prompt_override =
             parsedSettings.system_prompt_override || false;
+          data.non_stream_timeout_seconds =
+            typeof parsedSettings.non_stream_timeout_seconds === 'number'
+              ? parsedSettings.non_stream_timeout_seconds
+              : undefined;
+          data.stream_first_byte_timeout_seconds =
+            typeof parsedSettings.stream_first_byte_timeout_seconds === 'number'
+              ? parsedSettings.stream_first_byte_timeout_seconds
+              : undefined;
+          data.aws_http_client_non_stream_timeout_seconds =
+            typeof parsedSettings.aws_http_client_non_stream_timeout_seconds ===
+            'number'
+              ? parsedSettings.aws_http_client_non_stream_timeout_seconds
+              : undefined;
+          data.aws_http_client_stream_first_byte_timeout_seconds =
+            typeof parsedSettings.aws_http_client_stream_first_byte_timeout_seconds ===
+            'number'
+              ? parsedSettings.aws_http_client_stream_first_byte_timeout_seconds
+              : undefined;
+          data.aws_invoke_timeout_seconds =
+            typeof parsedSettings.aws_invoke_timeout_seconds === 'number'
+              ? parsedSettings.aws_invoke_timeout_seconds
+              : undefined;
         } catch (error) {
           console.error('解析渠道设置失败:', error);
           data.force_format = false;
@@ -878,6 +911,11 @@ const EditChannelModal = (props) => {
           data.pass_through_body_enabled = false;
           data.system_prompt = '';
           data.system_prompt_override = false;
+          data.non_stream_timeout_seconds = undefined;
+          data.stream_first_byte_timeout_seconds = undefined;
+          data.aws_http_client_non_stream_timeout_seconds = undefined;
+          data.aws_http_client_stream_first_byte_timeout_seconds = undefined;
+          data.aws_invoke_timeout_seconds = undefined;
         }
       } else {
         data.force_format = false;
@@ -886,6 +924,11 @@ const EditChannelModal = (props) => {
         data.pass_through_body_enabled = false;
         data.system_prompt = '';
         data.system_prompt_override = false;
+        data.non_stream_timeout_seconds = undefined;
+        data.stream_first_byte_timeout_seconds = undefined;
+        data.aws_http_client_non_stream_timeout_seconds = undefined;
+        data.aws_http_client_stream_first_byte_timeout_seconds = undefined;
+        data.aws_invoke_timeout_seconds = undefined;
       }
 
       if (data.settings) {
@@ -995,6 +1038,14 @@ const EditChannelModal = (props) => {
         pass_through_body_enabled: data.pass_through_body_enabled,
         system_prompt: data.system_prompt,
         system_prompt_override: data.system_prompt_override || false,
+        non_stream_timeout_seconds: data.non_stream_timeout_seconds,
+        stream_first_byte_timeout_seconds:
+          data.stream_first_byte_timeout_seconds,
+        aws_http_client_non_stream_timeout_seconds:
+          data.aws_http_client_non_stream_timeout_seconds,
+        aws_http_client_stream_first_byte_timeout_seconds:
+          data.aws_http_client_stream_first_byte_timeout_seconds,
+        aws_invoke_timeout_seconds: data.aws_invoke_timeout_seconds,
       });
       initialModelsRef.current = (data.models || [])
         .map((model) => (model || '').trim())
@@ -1033,6 +1084,11 @@ const EditChannelModal = (props) => {
         (data.weight && data.weight !== 0) ||
         (data.proxy && data.proxy.trim()) ||
         (data.system_prompt && data.system_prompt.trim()) ||
+        data.non_stream_timeout_seconds ||
+        data.stream_first_byte_timeout_seconds ||
+        data.aws_http_client_non_stream_timeout_seconds ||
+        data.aws_http_client_stream_first_byte_timeout_seconds ||
+        data.aws_invoke_timeout_seconds ||
         data.thinking_to_content ||
         data.pass_through_body_enabled ||
         data.force_format ||
@@ -1384,6 +1440,11 @@ const EditChannelModal = (props) => {
       pass_through_body_enabled: false,
       system_prompt: '',
       system_prompt_override: false,
+      non_stream_timeout_seconds: undefined,
+      stream_first_byte_timeout_seconds: undefined,
+      aws_http_client_non_stream_timeout_seconds: undefined,
+      aws_http_client_stream_first_byte_timeout_seconds: undefined,
+      aws_invoke_timeout_seconds: undefined,
     });
     // 重置密钥模式状态
     setKeyMode('append');
@@ -1754,6 +1815,14 @@ const EditChannelModal = (props) => {
       pass_through_body_enabled: localInputs.pass_through_body_enabled || false,
       system_prompt: localInputs.system_prompt || '',
       system_prompt_override: localInputs.system_prompt_override || false,
+      non_stream_timeout_seconds: localInputs.non_stream_timeout_seconds,
+      stream_first_byte_timeout_seconds:
+        localInputs.stream_first_byte_timeout_seconds,
+      aws_http_client_non_stream_timeout_seconds:
+        localInputs.aws_http_client_non_stream_timeout_seconds,
+      aws_http_client_stream_first_byte_timeout_seconds:
+        localInputs.aws_http_client_stream_first_byte_timeout_seconds,
+      aws_invoke_timeout_seconds: localInputs.aws_invoke_timeout_seconds,
     };
     localInputs.setting = JSON.stringify(channelExtraSettings);
 
@@ -1835,6 +1904,11 @@ const EditChannelModal = (props) => {
     delete localInputs.pass_through_body_enabled;
     delete localInputs.system_prompt;
     delete localInputs.system_prompt_override;
+    delete localInputs.non_stream_timeout_seconds;
+    delete localInputs.stream_first_byte_timeout_seconds;
+    delete localInputs.aws_http_client_non_stream_timeout_seconds;
+    delete localInputs.aws_http_client_stream_first_byte_timeout_seconds;
+    delete localInputs.aws_invoke_timeout_seconds;
     delete localInputs.is_enterprise_account;
     // 顶层的 vertex_key_type 不应发送给后端
     delete localInputs.vertex_key_type;
@@ -2530,6 +2604,95 @@ const EditChannelModal = (props) => {
 
                   <Form.TextArea field='system_prompt' label={t('系统提示词')} placeholder={t('输入系统提示词，用户的系统提示词将优先于此设置')} onChange={(value) => handleChannelSettingsChange('system_prompt', value)} autosize showClear extraText={t('用户优先：如果用户在请求中指定了系统提示词，将优先使用用户的设置')} />
                   <Form.Switch field='system_prompt_override' label={t('系统提示词拼接')} checkedText={t('开')} uncheckedText={t('关')} onChange={(value) => handleChannelSettingsChange('system_prompt_override', value)} extraText={t('如果用户请求中包含系统提示词，则使用此设置拼接到用户的系统提示词前面')} />
+
+                  <div className='mt-4 mb-2 text-sm font-medium text-gray-700'>
+                    {t('超时设置')}
+                  </div>
+                  <Form.InputNumber
+                    field='non_stream_timeout_seconds'
+                    label={t('非流式超时（秒）')}
+                    placeholder={t('留空使用默认值')}
+                    min={1}
+                    onChange={(value) =>
+                      handleChannelSettingsChange(
+                        'non_stream_timeout_seconds',
+                        value,
+                      )
+                    }
+                    extraText={t(
+                      '控制该渠道非流式请求的总超时预算，单位为秒',
+                    )}
+                    style={{ width: '100%' }}
+                  />
+                  <Form.InputNumber
+                    field='stream_first_byte_timeout_seconds'
+                    label={t('流式首包超时（秒）')}
+                    placeholder={t('留空使用默认值')}
+                    min={1}
+                    onChange={(value) =>
+                      handleChannelSettingsChange(
+                        'stream_first_byte_timeout_seconds',
+                        value,
+                      )
+                    }
+                    extraText={t(
+                      '只控制流式请求等待首个上游事件的时间，不控制整条流总时长',
+                    )}
+                    style={{ width: '100%' }}
+                  />
+
+                  {inputs.type === 33 && (
+                    <>
+                      <Form.InputNumber
+                        field='aws_http_client_non_stream_timeout_seconds'
+                        label={t('AWS 非流式 HTTP 超时（秒）')}
+                        placeholder={t('留空使用默认值')}
+                        min={1}
+                        onChange={(value) =>
+                          handleChannelSettingsChange(
+                            'aws_http_client_non_stream_timeout_seconds',
+                            value,
+                          )
+                        }
+                        extraText={t(
+                          '覆盖该 AWS 渠道非流式请求的 HTTP Client 超时',
+                        )}
+                        style={{ width: '100%' }}
+                      />
+                      <Form.InputNumber
+                        field='aws_http_client_stream_first_byte_timeout_seconds'
+                        label={t('AWS 流式首包 HTTP 超时（秒）')}
+                        placeholder={t('留空使用默认值')}
+                        min={1}
+                        onChange={(value) =>
+                          handleChannelSettingsChange(
+                            'aws_http_client_stream_first_byte_timeout_seconds',
+                            value,
+                          )
+                        }
+                        extraText={t(
+                          '覆盖该 AWS 渠道流式请求等待首包的 HTTP 超时',
+                        )}
+                        style={{ width: '100%' }}
+                      />
+                      <Form.InputNumber
+                        field='aws_invoke_timeout_seconds'
+                        label={t('AWS Invoke 超时（秒）')}
+                        placeholder={t('留空使用默认值')}
+                        min={1}
+                        onChange={(value) =>
+                          handleChannelSettingsChange(
+                            'aws_invoke_timeout_seconds',
+                            value,
+                          )
+                        }
+                        extraText={t(
+                          '只作用于 AWS 非流式 SDK Invoke 调用超时',
+                        )}
+                        style={{ width: '100%' }}
+                      />
+                    </>
+                  )}
                 </div>
               </div>
             );

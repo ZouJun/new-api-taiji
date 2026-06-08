@@ -2,7 +2,6 @@ package aws
 
 import (
 	"context"
-	"encoding/json"
 	"fmt"
 	"io"
 	"net/http"
@@ -31,6 +30,9 @@ import (
 
 // getAwsErrorStatusCode extracts HTTP status code from AWS SDK error
 func getAwsErrorStatusCode(err error) int {
+	if errors.Is(err, context.DeadlineExceeded) || errors.Is(err, relaycommon.ErrStreamFirstByteTimeout) {
+		return http.StatusGatewayTimeout
+	}
 	// Check for HTTP response error which contains status code
 	var httpErr interface{ HTTPStatusCode() int }
 	if errors.As(err, &httpErr) {
@@ -40,47 +42,64 @@ func getAwsErrorStatusCode(err error) int {
 	return http.StatusInternalServerError
 }
 
-func newAwsInvokeContext() (context.Context, context.CancelFunc) {
-	if common.RelayTimeout <= 0 {
-		return context.Background(), func() {}
+// newAwsInvokeContext 只负责 AWS 非流式调用的 invoke 超时。
+// 这里必须从当前请求的 Context 往下派生，这样客户端断开时可以联动取消上游请求。
+func newAwsInvokeContext(c *gin.Context, info *relaycommon.RelayInfo) (context.Context, context.CancelFunc) {
+	baseCtx := context.Background()
+	if c != nil && c.Request != nil {
+		baseCtx = c.Request.Context()
 	}
-	return context.WithTimeout(context.Background(), time.Duration(common.RelayTimeout)*time.Second)
+	timeoutSeconds, timeoutSource := relaycommon.ResolveAWSInvokeTimeoutSeconds(info)
+	relaycommon.SetTimeoutMeta(c, relaycommon.TimeoutMeta{
+		Type:     relaycommon.TimeoutTypeNonStreamTotal,
+		Source:   timeoutSource,
+		Seconds:  timeoutSeconds,
+		Provider: "aws",
+		Stage:    "aws_invoke",
+		IsStream: info != nil && info.IsStream,
+	})
+	if timeoutSeconds <= 0 {
+		return baseCtx, func() {}
+	}
+	return context.WithTimeout(baseCtx, time.Duration(timeoutSeconds)*time.Second)
 }
 
 func newAwsClient(c *gin.Context, info *relaycommon.RelayInfo) (*bedrockruntime.Client, error) {
+	_ = c
 	var (
 		httpClient *http.Client
 		err        error
 	)
-	if info.ChannelSetting.Proxy != "" {
-		httpClient, err = service.NewProxyHttpClient(info.ChannelSetting.Proxy)
-		if err != nil {
-			return nil, fmt.Errorf("new proxy http client failed: %w", err)
-		}
-	} else {
-		httpClient = service.GetHttpClient()
+	// AWS HTTP Client 的超时和 SDK invoke 超时分开控制：
+	// 非流式走 HTTP Client 非流式超时，流式首包等待不依赖 Client.Timeout，避免把整条流直接截断。
+	httpClientTimeoutSeconds, _ := relaycommon.ResolveAWSHTTPClientNonStreamTimeoutSeconds(info)
+	if info != nil && info.IsStream {
+		httpClientTimeoutSeconds = 0
+	}
+	httpClient, err = service.GetHttpClientWithProxyAndTimeout(info.ChannelSetting.Proxy, httpClientTimeoutSeconds)
+	if err != nil {
+		return nil, fmt.Errorf("new proxy http client failed: %w", err)
 	}
 
 	awsSecret := strings.Split(info.ApiKey, "|")
 	var client *bedrockruntime.Client
+	options := bedrockruntime.Options{
+		HTTPClient: httpClient,
+	}
 	switch len(awsSecret) {
 	case 2:
 		apiKey := awsSecret[0]
 		region := awsSecret[1]
-		client = bedrockruntime.New(bedrockruntime.Options{
-			Region:                  region,
-			BearerAuthTokenProvider: bearer.StaticTokenProvider{Token: bearer.Token{Value: apiKey}},
-			HTTPClient:              httpClient,
-		})
+		options.Region = region
+		options.BearerAuthTokenProvider = bearer.StaticTokenProvider{Token: bearer.Token{Value: apiKey}}
+		client = bedrockruntime.New(options)
 	case 3:
 		ak := awsSecret[0]
 		sk := awsSecret[1]
 		region := awsSecret[2]
-		client = bedrockruntime.New(bedrockruntime.Options{
-			Region:      region,
-			Credentials: aws.NewCredentialsCache(credentials.NewStaticCredentialsProvider(ak, sk, "")),
-			HTTPClient:  httpClient,
-		})
+		options.Region = region
+		options.Credentials = aws.NewCredentialsCache(credentials.NewStaticCredentialsProvider(ak, sk, ""))
+		client = bedrockruntime.New(options)
 	default:
 		return nil, errors.New("invalid aws secret key")
 	}
@@ -223,7 +242,7 @@ func getAwsModelID(requestModel string) string {
 
 func awsHandler(c *gin.Context, info *relaycommon.RelayInfo, a *Adaptor) (*types.NewAPIError, *dto.Usage) {
 
-	ctx, cancel := newAwsInvokeContext()
+	ctx, cancel := newAwsInvokeContext(c, info)
 	defer cancel()
 
 	awsResp, err := a.AwsClient.InvokeModel(ctx, a.AwsReq.(*bedrockruntime.InvokeModelInput))
@@ -253,11 +272,29 @@ func awsHandler(c *gin.Context, info *relaycommon.RelayInfo, a *Adaptor) (*types
 }
 
 func awsStreamHandler(c *gin.Context, info *relaycommon.RelayInfo, a *Adaptor) (*types.NewAPIError, *dto.Usage) {
-	ctx, cancel := newAwsInvokeContext()
-	defer cancel()
+	baseCtx := c.Request.Context()
+	streamFirstByteTimeoutSeconds, timeoutSource := relaycommon.ResolveAWSHTTPClientStreamFirstByteTimeoutSeconds(info)
+	relaycommon.SetTimeoutMeta(c, relaycommon.TimeoutMeta{
+		Type:     relaycommon.TimeoutTypeStreamFirstByte,
+		Source:   timeoutSource,
+		Seconds:  streamFirstByteTimeoutSeconds,
+		Provider: "aws",
+		Stage:    "aws_stream_first_byte_wait",
+		IsStream: true,
+	})
+	// 流式这里只控制“多久能等到第一段可转发事件”，首包到达后不再做总时长截断。
+	ctx := baseCtx
+	controller := (*relaycommon.FirstByteTimeoutController)(nil)
+	if streamFirstByteTimeoutSeconds > 0 {
+		ctx, controller = relaycommon.NewFirstByteTimeoutContext(baseCtx, time.Duration(streamFirstByteTimeoutSeconds)*time.Second)
+		defer controller.Cancel()
+	}
 
 	awsResp, err := a.AwsClient.InvokeModelWithResponseStream(ctx, a.AwsReq.(*bedrockruntime.InvokeModelWithResponseStreamInput))
 	if err != nil {
+		if controller != nil && controller.TimeoutTriggered() {
+			err = fmt.Errorf("%w after %d seconds", relaycommon.ErrStreamFirstByteTimeout, streamFirstByteTimeoutSeconds)
+		}
 		statusCode := getAwsErrorStatusCode(err)
 		return types.NewOpenAIError(errors.Wrap(err, "InvokeModelWithResponseStream"), types.ErrorCodeAwsInvokeError, statusCode), nil
 	}
@@ -275,6 +312,9 @@ func awsStreamHandler(c *gin.Context, info *relaycommon.RelayInfo, a *Adaptor) (
 	for event := range stream.Events() {
 		switch v := event.(type) {
 		case *bedrockruntimeTypes.ResponseStreamMemberChunk:
+			if controller != nil {
+				controller.StopWaiting()
+			}
 			info.SetFirstResponseTime()
 			respErr := claude.HandleStreamResponseData(c, info, claudeInfo, string(v.Value.Bytes))
 			if respErr != nil {
@@ -288,6 +328,9 @@ func awsStreamHandler(c *gin.Context, info *relaycommon.RelayInfo, a *Adaptor) (
 			return types.NewError(errors.New("nil or unknown response type"), types.ErrorCodeInvalidRequest), nil
 		}
 	}
+	if controller != nil && controller.TimeoutTriggered() && !info.HasSendResponse() {
+		return types.NewOpenAIError(fmt.Errorf("%w after %d seconds", relaycommon.ErrStreamFirstByteTimeout, streamFirstByteTimeoutSeconds), types.ErrorCodeAwsInvokeError, http.StatusGatewayTimeout), nil
+	}
 
 	claude.HandleStreamFinalResponse(c, info, claudeInfo)
 	return nil, claudeInfo.Usage
@@ -296,7 +339,7 @@ func awsStreamHandler(c *gin.Context, info *relaycommon.RelayInfo, a *Adaptor) (
 // Nova模型处理函数
 func handleNovaRequest(c *gin.Context, info *relaycommon.RelayInfo, a *Adaptor) (*types.NewAPIError, *dto.Usage) {
 
-	ctx, cancel := newAwsInvokeContext()
+	ctx, cancel := newAwsInvokeContext(c, info)
 	defer cancel()
 
 	awsResp, err := a.AwsClient.InvokeModel(ctx, a.AwsReq.(*bedrockruntime.InvokeModelInput))
@@ -321,7 +364,7 @@ func handleNovaRequest(c *gin.Context, info *relaycommon.RelayInfo, a *Adaptor) 
 		} `json:"usage"`
 	}
 
-	if err := json.Unmarshal(awsResp.Body, &novaResp); err != nil {
+	if err := common.Unmarshal(awsResp.Body, &novaResp); err != nil {
 		return types.NewError(errors.Wrap(err, "unmarshal nova response"), types.ErrorCodeBadResponseBody), nil
 	}
 

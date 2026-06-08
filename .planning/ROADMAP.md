@@ -2,7 +2,7 @@
 
 ## Overview
 
-This milestone turns the existing relay gateway into a more traceable and auditable system without destabilizing the hot path. It starts by documenting AWS Claude timeout behavior, then adds customer Trace-Id propagation, then designs and implements isolated request/response archival for local or Azure Blob storage, and finally hardens the work with beginner-readable docs and verification.
+This milestone turns the existing relay gateway into a more traceable and auditable system without destabilizing the hot path. It starts by hardening timeout behavior across channels and exposing key AWS SDK timeout controls, then adds customer Trace-Id propagation, then designs and implements isolated request/response archival for local or Azure Blob storage, and finally hardens the work with beginner-readable docs and verification.
 
 ## Phases
 
@@ -12,27 +12,32 @@ This milestone turns the existing relay gateway into a more traceable and audita
 
 Decimal phases appear between their surrounding integers in numeric order.
 
-- [ ] **Phase 1: AWS Claude Timeout Audit** - Explain and verify current timeout behavior for AWS Claude upstream calls.
+- [ ] **Phase 1: Channel Timeout Control and AWS SDK Governance** - Add channel-level timeout control, streaming/non-streaming timeout semantics, timeout observability, and AWS SDK timeout configuration management.
 - [ ] **Phase 2: Customer Trace-Id Propagation** - Extract, sanitize, propagate, log, and persist customer trace IDs.
 - [ ] **Phase 3: Request Response Archive Pipeline** - Design and implement local/Azure archival for streaming and non-streaming relay payloads.
 - [ ] **Phase 4: Verification and Operator Documentation** - Verify the chain and produce beginner-readable operational documentation.
 
 ## Phase Details
 
-### Phase 1: AWS Claude Timeout Audit
-**Goal**: Maintainers can clearly answer whether AWS Claude calls have timeout protection, how it works today, and how to verify it.
+### Phase 1: Channel Timeout Control and AWS SDK Governance
+**Goal**: Timeout behavior becomes configurable and traceable across channels, while AWS SDK timeout knobs are exposed for unified management at the New API layer.
 **Depends on**: Nothing (first phase)
-**Requirements**: [AWS-01, AWS-02, AWS-03, AWS-04]
+**Requirements**: [AWS-01, AWS-02, AWS-03, AWS-04, TIME-01, TIME-02, TIME-03, TIME-04, TIME-05, TIME-06, TIME-07, TIME-08, SDK-01, SDK-02, SDK-03, SDK-04]
 **Success Criteria** (what must be TRUE):
-  1. Maintainer can point to the exact code path that creates AWS Bedrock clients and invocation contexts.
-  2. Maintainer can explain how `common.RelayTimeout` affects non-streaming and streaming AWS Claude requests.
-  3. Maintainer can distinguish shared HTTP client timeout, proxy client timeout, and AWS SDK context timeout.
-  4. Timeout behavior is backed by tests or documented verification steps.
-**Plans**: 2 plans
+  1. Every channel can resolve effective timeout behavior from `channel.setting`, using two separate fields for non-stream total timeout and stream first-byte timeout, with documented fallback to defaults.
+  2. Streaming requests use first-byte/first-event timeout semantics that are distinct from non-streaming request timeout semantics, and once the first stream byte arrives the first version does not enforce a separate total stream timeout kill switch.
+  3. All channels honor channel-level timeout settings when configured, while preserving HTTP connection pooling and falling back to shared defaults when channel settings are absent.
+  4. Timeout failures generate structured logs and database metadata that identify effective timeout, timeout source, timeout stage, stream mode, and retry index.
+  5. Timeout failures do not bypass or break the existing retry flow.
+  6. Maintainer can point to the exact AWS Bedrock client and invocation code path and explain how globally controlled HTTP client timeout and invoke timeout are set, and which selected timeout knobs can be overridden per AWS channel.
+  7. Timeout and SDK behavior are backed by focused tests or documented verification steps.
+**Plans**: 4 plans
 
 Plans:
-- [ ] 01-01: Trace the AWS Claude request path and document current timeout behavior.
-- [ ] 01-02: Add or specify focused verification for AWS timeout behavior.
+- [ ] 01-01: Trace the current timeout path across shared HTTP client, proxy client, AWS invoke context, and retry logic.
+- [ ] 01-02: Design and implement channel-level timeout resolution for all channels, using separate `channel.setting` fields for non-stream and stream-first-byte timeout semantics.
+- [ ] 01-03: Add timeout observability, including detailed error metadata, and verify that timeout failures remain compatible with the retry flow.
+- [ ] 01-04: Expose and govern AWS HTTP client timeout and invoke timeout from the New API layer, including selected per-channel AWS Claude overrides, with focused verification.
 
 ### Phase 2: Customer Trace-Id Propagation
 **Goal**: Customer `Trace-Id` becomes a safe, separate correlation value that follows the request through context, logs, errors, and future archive metadata.
@@ -94,7 +99,7 @@ Phases execute in numeric order: 1 -> 2 -> 3 -> 4
 
 | Phase | Plans Complete | Status | Completed |
 |-------|----------------|--------|-----------|
-| 1. AWS Claude Timeout Audit | 0/2 | Not started | - |
+| 1. Channel Timeout Control and AWS SDK Governance | 0/4 | Not started | - |
 | 2. Customer Trace-Id Propagation | 0/3 | Not started | - |
 | 3. Request Response Archive Pipeline | 0/4 | Not started | - |
 | 4. Verification and Operator Documentation | 0/3 | Not started | - |

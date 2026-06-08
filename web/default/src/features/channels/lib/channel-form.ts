@@ -120,6 +120,20 @@ function addRequiredIssue(
   })
 }
 
+function optionalPositiveIntField() {
+  return z.preprocess((value) => {
+    if (value === '' || value === null || value === undefined) {
+      return undefined
+    }
+    if (typeof value === 'string') {
+      const trimmed = value.trim()
+      if (!trimmed) return undefined
+      return Number(trimmed)
+    }
+    return value
+  }, z.number().int().positive().optional())
+}
+
 export const channelFormSchema = z
   .object({
     name: z.string().min(1, ERROR_MESSAGES.REQUIRED_NAME),
@@ -182,6 +196,12 @@ export const channelFormSchema = z
     pass_through_body_enabled: z.boolean().optional(),
     system_prompt: z.string().optional(),
     system_prompt_override: z.boolean().optional(),
+    non_stream_timeout_seconds: optionalPositiveIntField(),
+    stream_first_byte_timeout_seconds: optionalPositiveIntField(),
+    aws_http_client_non_stream_timeout_seconds: optionalPositiveIntField(),
+    aws_http_client_stream_first_byte_timeout_seconds:
+      optionalPositiveIntField(),
+    aws_invoke_timeout_seconds: optionalPositiveIntField(),
     // Type-specific settings (stored in settings JSON)
     is_enterprise_account: z.boolean().optional(), // OpenRouter specific
     vertex_key_type: z.enum(['json', 'api_key']).optional(), // Vertex AI specific
@@ -300,6 +320,11 @@ export const CHANNEL_FORM_DEFAULT_VALUES: ChannelFormValues = {
   pass_through_body_enabled: false,
   system_prompt: '',
   system_prompt_override: false,
+  non_stream_timeout_seconds: undefined,
+  stream_first_byte_timeout_seconds: undefined,
+  aws_http_client_non_stream_timeout_seconds: undefined,
+  aws_http_client_stream_first_byte_timeout_seconds: undefined,
+  aws_invoke_timeout_seconds: undefined,
   // Type-specific settings
   is_enterprise_account: false,
   vertex_key_type: 'json',
@@ -336,6 +361,12 @@ export function transformChannelToFormDefaults(
     pass_through_body_enabled: false,
     system_prompt: '',
     system_prompt_override: false,
+    non_stream_timeout_seconds: undefined as number | undefined,
+    stream_first_byte_timeout_seconds: undefined as number | undefined,
+    aws_http_client_non_stream_timeout_seconds: undefined as number | undefined,
+    aws_http_client_stream_first_byte_timeout_seconds:
+      undefined as number | undefined,
+    aws_invoke_timeout_seconds: undefined as number | undefined,
   }
 
   if (channel.setting) {
@@ -348,6 +379,27 @@ export function transformChannelToFormDefaults(
         pass_through_body_enabled: parsed.pass_through_body_enabled || false,
         system_prompt: parsed.system_prompt || '',
         system_prompt_override: parsed.system_prompt_override || false,
+        non_stream_timeout_seconds:
+          typeof parsed.non_stream_timeout_seconds === 'number'
+            ? parsed.non_stream_timeout_seconds
+            : undefined,
+        stream_first_byte_timeout_seconds:
+          typeof parsed.stream_first_byte_timeout_seconds === 'number'
+            ? parsed.stream_first_byte_timeout_seconds
+            : undefined,
+        aws_http_client_non_stream_timeout_seconds:
+          typeof parsed.aws_http_client_non_stream_timeout_seconds === 'number'
+            ? parsed.aws_http_client_non_stream_timeout_seconds
+            : undefined,
+        aws_http_client_stream_first_byte_timeout_seconds:
+          typeof parsed.aws_http_client_stream_first_byte_timeout_seconds ===
+          'number'
+            ? parsed.aws_http_client_stream_first_byte_timeout_seconds
+            : undefined,
+        aws_invoke_timeout_seconds:
+          typeof parsed.aws_invoke_timeout_seconds === 'number'
+            ? parsed.aws_invoke_timeout_seconds
+            : undefined,
       }
     } catch (error) {
       // eslint-disable-next-line no-console
@@ -457,6 +509,13 @@ function buildSettingJSON(formData: ChannelFormValues): string {
     pass_through_body_enabled: formData.pass_through_body_enabled || false,
     system_prompt: formData.system_prompt || '',
     system_prompt_override: formData.system_prompt_override || false,
+    non_stream_timeout_seconds: formData.non_stream_timeout_seconds,
+    stream_first_byte_timeout_seconds: formData.stream_first_byte_timeout_seconds,
+    aws_http_client_non_stream_timeout_seconds:
+      formData.aws_http_client_non_stream_timeout_seconds,
+    aws_http_client_stream_first_byte_timeout_seconds:
+      formData.aws_http_client_stream_first_byte_timeout_seconds,
+    aws_invoke_timeout_seconds: formData.aws_invoke_timeout_seconds,
   }
   return JSON.stringify(settingObj)
 }

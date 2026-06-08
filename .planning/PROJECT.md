@@ -2,7 +2,7 @@
 
 ## What This Is
 
-This is an existing AI API gateway/proxy that aggregates many upstream AI providers behind a unified API with user management, billing, rate limiting, and an admin dashboard. The current milestone focuses on reliability and traceability for high-volume relay traffic, especially AWS Claude timeout behavior, full request/response archival, and customer Trace-Id propagation.
+This is an existing AI API gateway/proxy that aggregates many upstream AI providers behind a unified API with user management, billing, rate limiting, and an admin dashboard. The current milestone focuses on reliability and traceability for high-volume relay traffic, especially channel-level timeout control, AWS SDK timeout/retry governance, full request/response archival, and customer Trace-Id propagation.
 
 The target audience is operators and developers maintaining the gateway under 8000-15000 RPM, where stability, fault isolation, performance, and auditability matter more than adding user-visible features.
 
@@ -24,7 +24,10 @@ Every relay request must remain stable, bounded, and traceable from customer req
 
 ### Active
 
-- [ ] Analyze whether AWS Claude upstream calls have timeout protection and document the current implementation in beginner-readable detail.
+- [ ] Design and implement channel-level timeout control for all relay channels, not only AWS, with clear fallback to global defaults.
+- [ ] Separate streaming and non-streaming timeout semantics so that streaming timeout is based on first response chunk timing rather than total stream duration.
+- [ ] Ensure timeout failures emit detailed structured metadata and remain compatible with the existing retry mechanism.
+- [ ] Expose AWS SDK retry and timeout-related knobs to the New API layer for unified control and tuning.
 - [ ] Design a complete full-chain request/response archival system for both streaming and non-streaming relay calls, with a switchable local/Azure Blob backend.
 - [ ] Ensure archival design handles 8000-15000 RPM without coupling upstream latency or availability to blob/local storage failures.
 - [ ] Define object naming, metadata, compression, batching/non-batching strategy, retention, retry, dead-letter, and observability for archived payloads.
@@ -61,6 +64,7 @@ Important current findings:
 - AWS AK/SK mode creates a Bedrock SDK client with the shared or proxy HTTP client.
 - AWS SDK calls use a context created by `newAwsInvokeContext`; when `common.RelayTimeout > 0`, it applies `context.WithTimeout(..., RelayTimeout seconds)`.
 - The shared `http.Client` also uses `common.RelayTimeout` as `http.Client.Timeout` when non-zero.
+- Current timeout behavior is global-first and AWS-specific in implementation detail; it does not yet satisfy the new requirement for per-channel timeout control and separate streaming first-byte timeout semantics.
 - Local request IDs are already generated and persisted; customer `Trace-Id` is not yet a first-class field in the scanned code.
 - `logs.other` is suitable for structured metadata such as `customer_trace_id`, object names, hashes, byte counts, and storage status, but not full payloads.
 
@@ -85,6 +89,13 @@ Important current findings:
 | Choose local versus Azure Blob archival purely through configuration | The user explicitly does not want archive backend selection to depend on existing table logic changes | — Pending |
 | Prefer async isolated archival over synchronous blob upload in the hot path | The user requires stability and performance at 8000-15000 RPM | — Pending |
 | Keep local request ID and customer Trace-Id as separate concepts | Local IDs are trusted server-generated IDs; customer IDs are external correlation IDs | — Pending |
+| Put expanded timeout and AWS SDK configurability work into Phase 1 | The user wants timeout hardening done first and it is a prerequisite for safe high-volume relay behavior | Accepted |
+| Split timeout settings into non-stream and stream-first-byte fields in `channel.setting` | The user wants streaming and non-streaming timeout semantics separated and configured per channel | Accepted |
+| Apply timeout configuration to all channels through `channel.setting`, with fallback to defaults | The user wants timeout control generalized beyond AWS to channels such as Sora and future providers | Accepted |
+| Keep HTTP connection pooling while honoring per-channel timeout settings | The system must remain performant at 8000-15000 RPM and cannot regress into one-client-per-request without pooling | Accepted |
+| Treat timeout failures as compatible with the existing retry mechanism | The user explicitly requires timeout failures to participate in retries rather than bypass them | Accepted |
+| Keep AWS SDK `max_attempts` and `retry_mode` on prior behavior for now | The user clarified that this phase should only make AWS SDK timeout-related configuration dynamic, not change retry-mode governance | Accepted |
+| Allow selected AWS Claude timeout-related knobs to be overridden per channel in `channel.setting` | The user wants AWS Claude timeout behavior to remain channel-tunable without expanding retry-mode controls in this phase | Accepted |
 
 ## Evolution
 

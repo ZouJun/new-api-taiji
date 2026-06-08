@@ -7,12 +7,24 @@
 
 Requirements for this milestone. Each maps to exactly one roadmap phase.
 
-### AWS Timeout
+### Timeout and SDK Control
 
 - [ ] **AWS-01**: Maintainer can identify whether AWS Claude upstream calls have timeout protection.
 - [ ] **AWS-02**: Maintainer can see exactly how `common.RelayTimeout` affects AWS Bedrock SDK calls in streaming and non-streaming modes.
 - [ ] **AWS-03**: Maintainer can verify timeout behavior with focused tests or documented verification steps.
 - [ ] **AWS-04**: Maintainer can understand the difference between shared HTTP client timeout, proxy client timeout, and AWS invocation context timeout.
+- [ ] **TIME-01**: All channels can define independent relay timeout settings instead of relying only on a single global timeout.
+- [ ] **TIME-02**: Streaming timeout semantics are separated from non-streaming timeout semantics; streaming timeout is based on time-to-first-byte/first event rather than total stream duration.
+- [ ] **TIME-03**: Timeout failures record detailed structured metadata for later troubleshooting, including effective timeout, timeout stage, stream flag, and timeout source.
+- [ ] **TIME-04**: Timeout failures do not break or short-circuit the existing retry mechanism.
+- [ ] **TIME-05**: Timeout configuration supports provider differences such as AWS, Sora, and other slow or long-running upstream channels.
+- [ ] **TIME-06**: Per-channel timeout settings are stored in `channel.setting` as two separate fields: non-stream total timeout and stream first-byte timeout.
+- [ ] **TIME-07**: After the first stream byte/event is received, the first version does not enforce a separate total stream timeout kill switch.
+- [ ] **TIME-08**: All channels build or resolve HTTP behavior using channel-level timeout settings when configured, while preserving connection pooling and falling back to shared defaults when absent.
+- [ ] **SDK-01**: AWS SDK timeout-related knobs used by relay execution are exposed to New API configuration instead of being fully hidden inside SDK defaults.
+- [ ] **SDK-02**: Maintainers can explain which AWS timeout knobs are controlled globally, which are controlled per channel, and how they interact.
+- [ ] **SDK-03**: New API globally controls AWS HTTP client timeout defaults and AWS invoke timeout defaults with documented interaction rules against per-channel timeout settings.
+- [ ] **SDK-04**: Selected AWS Claude timeout-related knobs can be overridden per channel through `channel.setting`, with documented precedence over AWS global defaults.
 
 ### Customer Trace
 
@@ -83,6 +95,18 @@ Which phases cover which requirements. Updated during roadmap creation.
 | AWS-02 | Phase 1 | Pending |
 | AWS-03 | Phase 1 | Pending |
 | AWS-04 | Phase 1 | Pending |
+| TIME-01 | Phase 1 | Pending |
+| TIME-02 | Phase 1 | Pending |
+| TIME-03 | Phase 1 | Pending |
+| TIME-04 | Phase 1 | Pending |
+| TIME-05 | Phase 1 | Pending |
+| TIME-06 | Phase 1 | Pending |
+| TIME-07 | Phase 1 | Pending |
+| TIME-08 | Phase 1 | Pending |
+| SDK-01 | Phase 1 | Pending |
+| SDK-02 | Phase 1 | Pending |
+| SDK-03 | Phase 1 | Pending |
+| SDK-04 | Phase 1 | Pending |
 | TRAC-01 | Phase 2 | Pending |
 | TRAC-02 | Phase 2 | Pending |
 | TRAC-03 | Phase 2 | Pending |
@@ -109,8 +133,8 @@ Which phases cover which requirements. Updated during roadmap creation.
 | TEST-03 | Phase 4 | Pending |
 
 **Coverage:**
-- v1 requirements: 28 total
-- Mapped to phases: 28
+- v1 requirements: 40 total
+- Mapped to phases: 40
 - Unmapped: 0
 
 ---

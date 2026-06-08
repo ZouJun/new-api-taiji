@@ -16,9 +16,13 @@ import (
 )
 
 var (
-	httpClient      *http.Client
-	proxyClientLock sync.Mutex
-	proxyClients    = make(map[string]*http.Client)
+	httpClient          *http.Client
+	baseTransport       *http.Transport
+	defaultClientLock   sync.Mutex
+	defaultClients      = make(map[int]*http.Client)
+	proxyClientLock     sync.Mutex
+	proxyClients        = make(map[string]*http.Client)
+	proxyTransportCache = make(map[string]*http.Transport)
 )
 
 func checkRedirect(req *http.Request, via []*http.Request) error {
@@ -34,7 +38,7 @@ func checkRedirect(req *http.Request, via []*http.Request) error {
 }
 
 func InitHttpClient() {
-	transport := &http.Transport{
+	baseTransport = &http.Transport{
 		MaxIdleConns:        common.RelayMaxIdleConns,
 		MaxIdleConnsPerHost: common.RelayMaxIdleConnsPerHost,
 		IdleConnTimeout:     time.Duration(common.RelayIdleConnTimeout) * time.Second,
@@ -42,25 +46,47 @@ func InitHttpClient() {
 		Proxy:               http.ProxyFromEnvironment, // Support HTTP_PROXY, HTTPS_PROXY, NO_PROXY env vars
 	}
 	if common.TLSInsecureSkipVerify {
-		transport.TLSClientConfig = common.InsecureTLSConfig
+		baseTransport.TLSClientConfig = common.InsecureTLSConfig
 	}
 
-	if common.RelayTimeout == 0 {
-		httpClient = &http.Client{
-			Transport:     transport,
-			CheckRedirect: checkRedirect,
-		}
-	} else {
-		httpClient = &http.Client{
-			Transport:     transport,
-			Timeout:       time.Duration(common.RelayTimeout) * time.Second,
-			CheckRedirect: checkRedirect,
-		}
+	httpClient = buildHTTPClient(baseTransport, common.RelayTimeout)
+	defaultClientLock.Lock()
+	defaultClients = map[int]*http.Client{
+		common.RelayTimeout: httpClient,
 	}
+	defaultClientLock.Unlock()
 }
 
 func GetHttpClient() *http.Client {
 	return httpClient
+}
+
+func buildHTTPClient(transport http.RoundTripper, timeoutSeconds int) *http.Client {
+	client := &http.Client{
+		Transport:     transport,
+		CheckRedirect: checkRedirect,
+	}
+	if timeoutSeconds > 0 {
+		client.Timeout = time.Duration(timeoutSeconds) * time.Second
+	}
+	return client
+}
+
+func GetHttpClientByTimeout(timeoutSeconds int) *http.Client {
+	if timeoutSeconds < 0 {
+		timeoutSeconds = 0
+	}
+	if baseTransport == nil {
+		InitHttpClient()
+	}
+	defaultClientLock.Lock()
+	defer defaultClientLock.Unlock()
+	if client, ok := defaultClients[timeoutSeconds]; ok {
+		return client
+	}
+	client := buildHTTPClient(baseTransport, timeoutSeconds)
+	defaultClients[timeoutSeconds] = client
+	return client
 }
 
 // GetHttpClientWithProxy returns the default client or a proxy-enabled one when proxyURL is provided.
@@ -69,6 +95,13 @@ func GetHttpClientWithProxy(proxyURL string) (*http.Client, error) {
 		return GetHttpClient(), nil
 	}
 	return NewProxyHttpClient(proxyURL)
+}
+
+func GetHttpClientWithProxyAndTimeout(proxyURL string, timeoutSeconds int) (*http.Client, error) {
+	if proxyURL == "" {
+		return GetHttpClientByTimeout(timeoutSeconds), nil
+	}
+	return NewProxyHttpClient(proxyURL, timeoutSeconds)
 }
 
 // ResetProxyClientCache 清空代理客户端缓存，确保下次使用时重新初始化
@@ -81,19 +114,25 @@ func ResetProxyClientCache() {
 		}
 	}
 	proxyClients = make(map[string]*http.Client)
+	proxyTransportCache = make(map[string]*http.Transport)
 }
 
 // NewProxyHttpClient 创建支持代理的 HTTP 客户端
-func NewProxyHttpClient(proxyURL string) (*http.Client, error) {
+func NewProxyHttpClient(proxyURL string, timeoutSeconds ...int) (*http.Client, error) {
+	resolvedTimeout := common.RelayTimeout
+	if len(timeoutSeconds) > 0 && timeoutSeconds[0] >= 0 {
+		resolvedTimeout = timeoutSeconds[0]
+	}
 	if proxyURL == "" {
-		if client := GetHttpClient(); client != nil {
+		if client := GetHttpClientByTimeout(resolvedTimeout); client != nil {
 			return client, nil
 		}
 		return http.DefaultClient, nil
 	}
 
+	cacheKey := fmt.Sprintf("%s|%d", proxyURL, resolvedTimeout)
 	proxyClientLock.Lock()
-	if client, ok := proxyClients[proxyURL]; ok {
+	if client, ok := proxyClients[cacheKey]; ok {
 		proxyClientLock.Unlock()
 		return client, nil
 	}
@@ -106,23 +145,26 @@ func NewProxyHttpClient(proxyURL string) (*http.Client, error) {
 
 	switch parsedURL.Scheme {
 	case "http", "https":
-		transport := &http.Transport{
-			MaxIdleConns:        common.RelayMaxIdleConns,
-			MaxIdleConnsPerHost: common.RelayMaxIdleConnsPerHost,
-			IdleConnTimeout:     time.Duration(common.RelayIdleConnTimeout) * time.Second,
-			ForceAttemptHTTP2:   true,
-			Proxy:               http.ProxyURL(parsedURL),
-		}
-		if common.TLSInsecureSkipVerify {
-			transport.TLSClientConfig = common.InsecureTLSConfig
-		}
-		client := &http.Client{
-			Transport:     transport,
-			CheckRedirect: checkRedirect,
-		}
-		client.Timeout = time.Duration(common.RelayTimeout) * time.Second
 		proxyClientLock.Lock()
-		proxyClients[proxyURL] = client
+		transport, ok := proxyTransportCache[proxyURL]
+		if !ok {
+			transport = &http.Transport{
+				MaxIdleConns:        common.RelayMaxIdleConns,
+				MaxIdleConnsPerHost: common.RelayMaxIdleConnsPerHost,
+				IdleConnTimeout:     time.Duration(common.RelayIdleConnTimeout) * time.Second,
+				ForceAttemptHTTP2:   true,
+				Proxy:               http.ProxyURL(parsedURL),
+			}
+			if common.TLSInsecureSkipVerify {
+				transport.TLSClientConfig = common.InsecureTLSConfig
+			}
+			proxyTransportCache[proxyURL] = transport
+		}
+		proxyClientLock.Unlock()
+
+		client := buildHTTPClient(transport, resolvedTimeout)
+		proxyClientLock.Lock()
+		proxyClients[cacheKey] = client
 		proxyClientLock.Unlock()
 		return client, nil
 
@@ -146,23 +188,28 @@ func NewProxyHttpClient(proxyURL string) (*http.Client, error) {
 			return nil, err
 		}
 
-		transport := &http.Transport{
-			MaxIdleConns:        common.RelayMaxIdleConns,
-			MaxIdleConnsPerHost: common.RelayMaxIdleConnsPerHost,
-			IdleConnTimeout:     time.Duration(common.RelayIdleConnTimeout) * time.Second,
-			ForceAttemptHTTP2:   true,
-			DialContext: func(ctx context.Context, network, addr string) (net.Conn, error) {
-				return dialer.Dial(network, addr)
-			},
-		}
-		if common.TLSInsecureSkipVerify {
-			transport.TLSClientConfig = common.InsecureTLSConfig
-		}
-
-		client := &http.Client{Transport: transport, CheckRedirect: checkRedirect}
-		client.Timeout = time.Duration(common.RelayTimeout) * time.Second
 		proxyClientLock.Lock()
-		proxyClients[proxyURL] = client
+		transport, ok := proxyTransportCache[proxyURL]
+		if !ok {
+			transport = &http.Transport{
+				MaxIdleConns:        common.RelayMaxIdleConns,
+				MaxIdleConnsPerHost: common.RelayMaxIdleConnsPerHost,
+				IdleConnTimeout:     time.Duration(common.RelayIdleConnTimeout) * time.Second,
+				ForceAttemptHTTP2:   true,
+				DialContext: func(ctx context.Context, network, addr string) (net.Conn, error) {
+					return dialer.Dial(network, addr)
+				},
+			}
+			if common.TLSInsecureSkipVerify {
+				transport.TLSClientConfig = common.InsecureTLSConfig
+			}
+			proxyTransportCache[proxyURL] = transport
+		}
+		proxyClientLock.Unlock()
+
+		client := buildHTTPClient(transport, resolvedTimeout)
+		proxyClientLock.Lock()
+		proxyClients[cacheKey] = client
 		proxyClientLock.Unlock()
 		return client, nil
 

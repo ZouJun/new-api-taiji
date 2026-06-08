@@ -3,7 +3,7 @@ gsd_state_version: 1.0
 milestone: v1.0
 milestone_name: milestone
 status: planning
-stopped_at: Phase 1 context gathered
+stopped_at: Phase 1 timeout control scope expanded
 last_updated: "2026-06-07T06:26:46.660Z"
 last_activity: 2026-06-06 - Initialized project requirements and roadmap
 progress:
@@ -21,11 +21,11 @@ progress:
 See: .planning/PROJECT.md (updated 2026-06-06)
 
 **Core value:** Every relay request must remain stable, bounded, and traceable from customer request through upstream call, response delivery, storage/audit artifacts, and database logs.
-**Current focus:** Phase 1: AWS Claude Timeout Audit
+**Current focus:** Phase 1: Channel Timeout Control and AWS SDK Governance
 
 ## Current Position
 
-Phase: 1 of 4 (AWS Claude Timeout Audit)
+Phase: 1 of 4 (Channel Timeout Control and AWS SDK Governance)
 Plan: 0 of 2 in current phase
 Status: Ready to plan
 Last activity: 2026-06-06 - Initialized project requirements and roadmap
