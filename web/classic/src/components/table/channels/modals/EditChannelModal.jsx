@@ -2600,9 +2600,15 @@ const EditChannelModal = (props) => {
                         value,
                       )
                     }
-                    extraText={t(
-                      '控制该渠道非流式请求的总超时预算，单位为秒',
-                    )}
+                    extraText={
+                      <span>
+                        {t('控制该渠道非流式请求的总超时预算，单位为秒。')}
+                        <br />
+                        {t(
+                          '回退顺序：渠道值 -> RELAY_DEFAULT_NON_STREAM_TIMEOUT -> RELAY_TIMEOUT',
+                        )}
+                      </span>
+                    }
                     style={{ width: '100%' }}
                   />
                   <Form.InputNumber
@@ -2616,9 +2622,15 @@ const EditChannelModal = (props) => {
                         value,
                       )
                     }
-                    extraText={t(
-                      '只控制流式请求等待首个上游事件的时间，不控制整条流总时长',
-                    )}
+                    extraText={
+                      <span>
+                        {t('只控制流式请求等待首个上游事件的时间，不控制整条流总时长。')}
+                        <br />
+                        {t(
+                          '回退顺序：渠道值 -> RELAY_DEFAULT_STREAM_FIRST_BYTE_TIMEOUT -> RELAY_TIMEOUT',
+                        )}
+                      </span>
+                    }
                     style={{ width: '100%' }}
                   />
 
@@ -2635,9 +2647,15 @@ const EditChannelModal = (props) => {
                             value,
                           )
                         }
-                        extraText={t(
-                          '只作用于该 AWS 渠道的非流式 SDK Invoke 调用超时',
-                        )}
+                        extraText={
+                          <span>
+                            {t('只作用于该 AWS 渠道的非流式 SDK Invoke 调用超时。')}
+                            <br />
+                            {t(
+                              '回退顺序：渠道值 -> AWS_INVOKE_TIMEOUT_SECONDS -> RELAY_DEFAULT_NON_STREAM_TIMEOUT -> RELAY_TIMEOUT',
+                            )}
+                          </span>
+                        }
                         style={{ width: '100%' }}
                       />
                       <Form.InputNumber
@@ -2651,9 +2669,13 @@ const EditChannelModal = (props) => {
                             value,
                           )
                         }
-                        extraText={t(
-                          '控制该 AWS 渠道 AWS SDK 的总尝试次数，包含重试',
-                        )}
+                        extraText={
+                          <span>
+                            {t('控制该 AWS 渠道 AWS SDK 的总尝试次数，包含重试。')}
+                            <br />
+                            {t('回退顺序：渠道值 -> AWS_SDK_MAX_ATTEMPTS')}
+                          </span>
+                        }
                         style={{ width: '100%' }}
                       />
                     </>

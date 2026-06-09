@@ -3294,9 +3294,15 @@ export function ChannelMutateDrawer({
                                   />
                                 </FormControl>
                                 <FormDescription>
-                                  {t(
-                                    'Applies to the total timeout budget for non-stream requests on this channel.'
-                                  )}
+                                  <span>
+                                    {t(
+                                      'Applies to the total timeout budget for non-stream requests on this channel.'
+                                    )}
+                                    <br />
+                                    {t(
+                                      'Fallback order: channel -> RELAY_DEFAULT_NON_STREAM_TIMEOUT -> RELAY_TIMEOUT.'
+                                    )}
+                                  </span>
                                 </FormDescription>
                                 <FormMessage />
                               </FormItem>
@@ -3325,9 +3331,15 @@ export function ChannelMutateDrawer({
                                   />
                                 </FormControl>
                                 <FormDescription>
-                                  {t(
-                                    'Only controls how long to wait for the first upstream event in stream mode.'
-                                  )}
+                                  <span>
+                                    {t(
+                                      'Only controls how long to wait for the first upstream event in stream mode.'
+                                    )}
+                                    <br />
+                                    {t(
+                                      'Fallback order: channel -> RELAY_DEFAULT_STREAM_FIRST_BYTE_TIMEOUT -> RELAY_TIMEOUT.'
+                                    )}
+                                  </span>
                                 </FormDescription>
                                 <FormMessage />
                               </FormItem>
@@ -3346,22 +3358,28 @@ export function ChannelMutateDrawer({
                                     {t('AWS invoke timeout (seconds)')}
                                   </FormLabel>
                                   <FormControl>
-                                    <Input
-                                      type='number'
-                                      min={1}
-                                      placeholder={t(
-                                        'Leave empty to use default'
-                                      )}
-                                      value={field.value ?? ''}
-                                      onChange={(event) =>
-                                        field.onChange(event.target.value)
-                                      }
-                                    />
+                                  <Input
+                                    type='number'
+                                    min={1}
+                                    placeholder={t(
+                                      'Leave empty to use default'
+                                    )}
+                                    value={field.value ?? ''}
+                                    onChange={(event) =>
+                                      field.onChange(event.target.value)
+                                    }
+                                  />
                                   </FormControl>
                                   <FormDescription>
-                                    {t(
-                                      'Only applies to AWS non-stream SDK invoke timeout for this channel.'
-                                    )}
+                                    <span>
+                                      {t(
+                                        'Only applies to AWS non-stream SDK invoke timeout for this channel.'
+                                      )}
+                                      <br />
+                                      {t(
+                                        'Fallback order: channel -> AWS_INVOKE_TIMEOUT_SECONDS -> RELAY_DEFAULT_NON_STREAM_TIMEOUT -> RELAY_TIMEOUT.'
+                                      )}
+                                    </span>
                                   </FormDescription>
                                   <FormMessage />
                                 </FormItem>
@@ -3377,22 +3395,28 @@ export function ChannelMutateDrawer({
                                     {t('AWS SDK max attempts')}
                                   </FormLabel>
                                   <FormControl>
-                                    <Input
-                                      type='number'
-                                      min={1}
-                                      placeholder={t(
-                                        'Leave empty to use default'
-                                      )}
-                                      value={field.value ?? ''}
-                                      onChange={(event) =>
-                                        field.onChange(event.target.value)
-                                      }
-                                    />
+                                  <Input
+                                    type='number'
+                                    min={1}
+                                    placeholder={t(
+                                      'Leave empty to use default'
+                                    )}
+                                    value={field.value ?? ''}
+                                    onChange={(event) =>
+                                      field.onChange(event.target.value)
+                                    }
+                                  />
                                   </FormControl>
                                   <FormDescription>
-                                    {t(
-                                      'Controls the total number of AWS SDK attempts for this channel, including retries.'
-                                    )}
+                                    <span>
+                                      {t(
+                                        'Controls the total number of AWS SDK attempts for this channel, including retries.'
+                                      )}
+                                      <br />
+                                      {t(
+                                        'Fallback order: channel -> AWS_SDK_MAX_ATTEMPTS.'
+                                      )}
+                                    </span>
                                   </FormDescription>
                                   <FormMessage />
                                 </FormItem>
