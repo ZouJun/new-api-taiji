@@ -28,11 +28,11 @@ Requirements for this milestone. Each maps to exactly one roadmap phase.
 
 ### Customer Trace
 
-- [ ] **TRAC-01**: System extracts customer `Trace-Id` from request headers using a documented, configurable header policy.
-- [ ] **TRAC-02**: System sanitizes and length-limits customer trace IDs before logging, context propagation, or object naming.
-- [ ] **TRAC-03**: System carries customer trace ID through Gin context and request context alongside the existing server request ID.
-- [ ] **TRAC-04**: Error logs and consume logs persist customer trace ID in `logs.other`.
-- [ ] **TRAC-05**: Error log messages include customer trace ID wherever it is available.
+- [x] **TRAC-01**: System extracts customer `Trace-Id` from request headers using the documented fixed-header policy.
+- [x] **TRAC-02**: System strictly validates and length-limits customer trace IDs before logging, context propagation, or object naming reuse.
+- [x] **TRAC-03**: System carries customer trace ID through Gin context and request context alongside the existing server request ID.
+- [x] **TRAC-04**: Error logs and consume logs persist customer trace ID in `logs.other`.
+- [x] **TRAC-05**: Error log messages include customer trace ID wherever it is available.
 
 ### Payload Archival
 
@@ -107,11 +107,11 @@ Which phases cover which requirements. Updated during roadmap creation.
 | SDK-02 | Phase 1 | Completed |
 | SDK-03 | Phase 1 | Completed |
 | SDK-04 | Phase 1 | Completed |
-| TRAC-01 | Phase 2 | Pending |
-| TRAC-02 | Phase 2 | Pending |
-| TRAC-03 | Phase 2 | Pending |
-| TRAC-04 | Phase 2 | Pending |
-| TRAC-05 | Phase 2 | Pending |
+| TRAC-01 | Phase 2 | Completed |
+| TRAC-02 | Phase 2 | Completed |
+| TRAC-03 | Phase 2 | Completed |
+| TRAC-04 | Phase 2 | Completed |
+| TRAC-05 | Phase 2 | Completed |
 | ARCH-01 | Phase 3 | Pending |
 | ARCH-02 | Phase 3 | Pending |
 | ARCH-03 | Phase 3 | Pending |
@@ -139,4 +139,4 @@ Which phases cover which requirements. Updated during roadmap creation.
 
 ---
 *Requirements defined: 2026-06-06*
-*Last updated: 2026-06-09 after Phase 1 closeout*
+*Last updated: 2026-06-09 after Phase 2 closeout*

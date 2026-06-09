@@ -96,9 +96,13 @@ func LogDebug(ctx context.Context, msg string, args ...any) {
 
 func logHelper(ctx context.Context, level string, msg string) {
 	var id any = "SYSTEM"
+	var traceID any = ""
 	if ctx != nil {
 		if requestID := ctx.Value(common.RequestIdKey); requestID != nil {
 			id = requestID
+		}
+		if requestTraceID := ctx.Value(common.TraceIDKey); requestTraceID != nil {
+			traceID = requestTraceID
 		}
 	}
 	now := time.Now()
@@ -107,7 +111,7 @@ func logHelper(ctx context.Context, level string, msg string) {
 	if level == loggerINFO {
 		writer = gin.DefaultWriter
 	}
-	_, _ = fmt.Fprintf(writer, "[%s] %v | %s | %s \n", level, now.Format("2006/01/02 - 15:04:05"), id, msg)
+	_, _ = fmt.Fprintf(writer, "[%s] %v | request_id=%v trace_id=%v | %s \n", level, now.Format("2006/01/02 - 15:04:05"), id, traceID, msg)
 	common.LogWriterMu.RUnlock()
 	logCount++ // we don't need accurate count, so no lock here
 	if logCount > maxLogCount && !setupLogWorking {

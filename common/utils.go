@@ -279,6 +279,10 @@ func MessageWithRequestId(message string, id string) string {
 	return fmt.Sprintf("%s (request id: %s)", message, id)
 }
 
+func MessageWithRequestIdAndTraceId(message string, requestID string, traceID string) string {
+	return fmt.Sprintf("%s (request id: %s, trace id: %s)", message, requestID, traceID)
+}
+
 func RandomSleep() {
 	// Sleep for 0-3000 ms
 	time.Sleep(time.Duration(rand.Intn(3000)) * time.Millisecond)

@@ -165,6 +165,7 @@ func RecordErrorLog(c *gin.Context, userId int, channelId int, modelName string,
 	username := c.GetString("username")
 	requestId := c.GetString(common.RequestIdKey)
 	upstreamRequestId := c.GetString(common.UpstreamRequestIdKey)
+	other = appendTraceID(other, c)
 	other = relaycommon.AppendTimeoutMeta(other, c)
 	otherStr := common.MapToJsonStr(other)
 	// 判断是否需要记录 IP
@@ -229,6 +230,7 @@ func RecordConsumeLog(c *gin.Context, userId int, params RecordConsumeLogParams)
 	username := c.GetString("username")
 	requestId := c.GetString(common.RequestIdKey)
 	upstreamRequestId := c.GetString(common.UpstreamRequestIdKey)
+	params.Other = appendTraceID(params.Other, c)
 	params.Other = relaycommon.AppendTimeoutMeta(params.Other, c)
 	otherStr := common.MapToJsonStr(params.Other)
 	// 判断是否需要记录 IP
@@ -273,6 +275,18 @@ func RecordConsumeLog(c *gin.Context, userId int, params RecordConsumeLogParams)
 			LogQuotaData(userId, username, params.ModelName, params.Quota, common.GetTimestamp(), params.PromptTokens+params.CompletionTokens)
 		})
 	}
+}
+
+func appendTraceID(other map[string]interface{}, c *gin.Context) map[string]interface{} {
+	if other == nil {
+		other = make(map[string]interface{})
+	}
+	if c == nil {
+		other["trace_id"] = ""
+		return other
+	}
+	other["trace_id"] = c.GetString(common.TraceIDKey)
+	return other
 }
 
 type RecordTaskBillingLogParams struct {

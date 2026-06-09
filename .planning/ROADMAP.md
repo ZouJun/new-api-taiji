@@ -13,7 +13,7 @@ This milestone turns the existing relay gateway into a more traceable and audita
 Decimal phases appear between their surrounding integers in numeric order.
 
 - [x] **Phase 1: Channel Timeout Control and AWS SDK Governance** - Add channel-level timeout control, streaming/non-streaming timeout semantics, timeout observability, and AWS SDK timeout configuration management.
-- [ ] **Phase 2: Customer Trace-Id Propagation** - Extract, sanitize, propagate, log, and persist customer trace IDs.
+- [x] **Phase 2: Customer Trace-Id Propagation** - Extract, strictly validate, propagate, log, and persist customer trace IDs.
 - [ ] **Phase 3: Request Response Archive Pipeline** - Design and implement local/Azure archival for streaming and non-streaming relay payloads.
 - [ ] **Phase 4: Verification and Operator Documentation** - Verify the chain and produce beginner-readable operational documentation.
 
@@ -44,17 +44,17 @@ Plans:
 **Depends on**: Phase 1
 **Requirements**: [TRAC-01, TRAC-02, TRAC-03, TRAC-04, TRAC-05]
 **Success Criteria** (what must be TRUE):
-  1. System extracts a customer trace ID from the configured request header.
-  2. Unsafe or oversized trace IDs are sanitized and bounded before use.
+  1. System extracts a customer trace ID from the fixed `Trace-Id` request header.
+  2. Unsafe, empty, duplicate, whitespace-containing, non-alphanumeric, or oversized trace IDs are rejected before relay handling.
   3. Trace ID is available from Gin context and request context wherever relay code can access it.
   4. Consume and error logs include trace metadata in `logs.other`.
   5. Error log messages include customer trace ID when present, without replacing server request ID.
 **Plans**: 3 plans
 
 Plans:
-- [ ] 02-01: Add trace ID extraction, sanitization, constants, and context propagation.
-- [ ] 02-02: Persist trace metadata into consume/error logs and `logs.other`.
-- [ ] 02-03: Add tests for trace extraction, sanitization, logging, and error output.
+- [x] 02-01: Add trace ID extraction, strict validation, constants, and context propagation.
+- [x] 02-02: Persist trace metadata into consume/error logs and `logs.other`.
+- [x] 02-03: Add tests for trace extraction, validation, logging, and error output.
 
 ### Phase 3: Request Response Archive Pipeline
 **Goal**: Relay requests and responses can be archived to local storage or Azure Blob with bounded, observable, non-blocking behavior suitable for 8000-15000 RPM.
@@ -100,6 +100,6 @@ Phases execute in numeric order: 1 -> 2 -> 3 -> 4
 | Phase | Plans Complete | Status | Completed |
 |-------|----------------|--------|-----------|
 | 1. Channel Timeout Control and AWS SDK Governance | 4/4 | Completed | 2026-06-09 |
-| 2. Customer Trace-Id Propagation | 0/3 | Not started | - |
+| 2. Customer Trace-Id Propagation | 3/3 | Completed | 2026-06-09 |
 | 3. Request Response Archive Pipeline | 0/4 | Not started | - |
 | 4. Verification and Operator Documentation | 0/3 | Not started | - |
