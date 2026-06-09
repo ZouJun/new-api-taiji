@@ -50,52 +50,31 @@ func TestResolveNonStreamTimeoutSeconds(t *testing.T) {
 	}
 }
 
-func TestResolveAWSHTTPClientTimeouts(t *testing.T) {
-	oldNonStream := rootcommon.AWSHTTPClientNonStreamTimeoutSeconds
-	oldStream := rootcommon.AWSHTTPClientStreamFirstByteTimeoutSeconds
-	oldDefaultNonStream := rootcommon.RelayDefaultNonStreamTimeout
-	oldDefaultStream := rootcommon.RelayDefaultStreamFirstByteTimeout
+func TestResolveAWSSDKMaxAttempts(t *testing.T) {
+	oldMaxAttempts := rootcommon.AWSSDKMaxAttempts
 	t.Cleanup(func() {
-		rootcommon.AWSHTTPClientNonStreamTimeoutSeconds = oldNonStream
-		rootcommon.AWSHTTPClientStreamFirstByteTimeoutSeconds = oldStream
-		rootcommon.RelayDefaultNonStreamTimeout = oldDefaultNonStream
-		rootcommon.RelayDefaultStreamFirstByteTimeout = oldDefaultStream
+		rootcommon.AWSSDKMaxAttempts = oldMaxAttempts
 	})
 
-	channelNonStream := 19
-	channelStream := 9
+	channelMaxAttempts := 4
 	info := &RelayInfo{
 		ChannelMeta: &ChannelMeta{
 			ChannelSetting: dto.ChannelSettings{
-				AwsHTTPClientNonStreamTimeoutSeconds:       &channelNonStream,
-				AwsHTTPClientStreamFirstByteTimeoutSeconds: &channelStream,
+				AwsSDKMaxAttempts: &channelMaxAttempts,
 			},
 		},
 	}
-	rootcommon.AWSHTTPClientNonStreamTimeoutSeconds = 33
-	rootcommon.AWSHTTPClientStreamFirstByteTimeoutSeconds = 17
+	rootcommon.AWSSDKMaxAttempts = 7
 
-	timeout, source := ResolveAWSHTTPClientNonStreamTimeoutSeconds(info)
-	if timeout != 19 || source != TimeoutSourceChannelSetting {
-		t.Fatalf("expected channel aws non-stream timeout to win, got timeout=%d source=%s", timeout, source)
+	attempts, source := ResolveAWSSDKMaxAttempts(info)
+	if attempts != 4 || source != TimeoutSourceChannelSetting {
+		t.Fatalf("expected channel aws sdk max attempts to win, got attempts=%d source=%s", attempts, source)
 	}
 
-	timeout, source = ResolveAWSHTTPClientStreamFirstByteTimeoutSeconds(info)
-	if timeout != 9 || source != TimeoutSourceChannelSetting {
-		t.Fatalf("expected channel aws stream timeout to win, got timeout=%d source=%s", timeout, source)
-	}
-
-	info.ChannelSetting.AwsHTTPClientNonStreamTimeoutSeconds = nil
-	info.ChannelSetting.AwsHTTPClientStreamFirstByteTimeoutSeconds = nil
-
-	timeout, source = ResolveAWSHTTPClientNonStreamTimeoutSeconds(info)
-	if timeout != 33 || source != TimeoutSourceProviderGlobal {
-		t.Fatalf("expected global aws non-stream timeout to win, got timeout=%d source=%s", timeout, source)
-	}
-
-	timeout, source = ResolveAWSHTTPClientStreamFirstByteTimeoutSeconds(info)
-	if timeout != 17 || source != TimeoutSourceProviderGlobal {
-		t.Fatalf("expected global aws stream timeout to win, got timeout=%d source=%s", timeout, source)
+	info.ChannelSetting.AwsSDKMaxAttempts = nil
+	attempts, source = ResolveAWSSDKMaxAttempts(info)
+	if attempts != 7 || source != TimeoutSourceProviderGlobal {
+		t.Fatalf("expected global aws sdk max attempts to win, got attempts=%d source=%s", attempts, source)
 	}
 }
 

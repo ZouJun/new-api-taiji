@@ -216,9 +216,8 @@ function hasAdvancedSettingsValues(values: ChannelFormValues): boolean {
     values.system_prompt?.trim() ||
     values.non_stream_timeout_seconds ||
     values.stream_first_byte_timeout_seconds ||
-    values.aws_http_client_non_stream_timeout_seconds ||
-    values.aws_http_client_stream_first_byte_timeout_seconds ||
     values.aws_invoke_timeout_seconds ||
+    values.aws_sdk_max_attempts ||
     values.force_format ||
     values.thinking_to_content ||
     values.pass_through_body_enabled ||
@@ -3340,75 +3339,9 @@ export function ChannelMutateDrawer({
                           <div className='grid gap-4 md:grid-cols-2'>
                             <FormField
                               control={form.control}
-                              name='aws_http_client_non_stream_timeout_seconds'
-                              render={({ field }) => (
-                                <FormItem>
-                                  <FormLabel>
-                                    {t(
-                                      'AWS HTTP client non-stream timeout (seconds)'
-                                    )}
-                                  </FormLabel>
-                                  <FormControl>
-                                    <Input
-                                      type='number'
-                                      min={1}
-                                      placeholder={t(
-                                        'Leave empty to use default'
-                                      )}
-                                      value={field.value ?? ''}
-                                      onChange={(event) =>
-                                        field.onChange(event.target.value)
-                                      }
-                                    />
-                                  </FormControl>
-                                  <FormDescription>
-                                    {t(
-                                      'Overrides the AWS HTTP client timeout for non-stream requests on this channel.'
-                                    )}
-                                  </FormDescription>
-                                  <FormMessage />
-                                </FormItem>
-                              )}
-                            />
-
-                            <FormField
-                              control={form.control}
-                              name='aws_http_client_stream_first_byte_timeout_seconds'
-                              render={({ field }) => (
-                                <FormItem>
-                                  <FormLabel>
-                                    {t(
-                                      'AWS HTTP client stream first-byte timeout (seconds)'
-                                    )}
-                                  </FormLabel>
-                                  <FormControl>
-                                    <Input
-                                      type='number'
-                                      min={1}
-                                      placeholder={t(
-                                        'Leave empty to use default'
-                                      )}
-                                      value={field.value ?? ''}
-                                      onChange={(event) =>
-                                        field.onChange(event.target.value)
-                                      }
-                                    />
-                                  </FormControl>
-                                  <FormDescription>
-                                    {t(
-                                      'Overrides the AWS HTTP client first-byte wait timeout for AWS streaming requests on this channel.'
-                                    )}
-                                  </FormDescription>
-                                  <FormMessage />
-                                </FormItem>
-                              )}
-                            />
-
-                            <FormField
-                              control={form.control}
                               name='aws_invoke_timeout_seconds'
                               render={({ field }) => (
-                                <FormItem className='md:col-span-2'>
+                                <FormItem>
                                   <FormLabel>
                                     {t('AWS invoke timeout (seconds)')}
                                   </FormLabel>
@@ -3427,13 +3360,45 @@ export function ChannelMutateDrawer({
                                   </FormControl>
                                   <FormDescription>
                                     {t(
-                                      'Overrides the AWS SDK invoke timeout for AWS non-stream requests on this channel.'
+                                      'Only applies to AWS non-stream SDK invoke timeout for this channel.'
                                     )}
                                   </FormDescription>
                                   <FormMessage />
                                 </FormItem>
                               )}
                             />
+
+                            <FormField
+                              control={form.control}
+                              name='aws_sdk_max_attempts'
+                              render={({ field }) => (
+                                <FormItem>
+                                  <FormLabel>
+                                    {t('AWS SDK max attempts')}
+                                  </FormLabel>
+                                  <FormControl>
+                                    <Input
+                                      type='number'
+                                      min={1}
+                                      placeholder={t(
+                                        'Leave empty to use default'
+                                      )}
+                                      value={field.value ?? ''}
+                                      onChange={(event) =>
+                                        field.onChange(event.target.value)
+                                      }
+                                    />
+                                  </FormControl>
+                                  <FormDescription>
+                                    {t(
+                                      'Controls the total number of AWS SDK attempts for this channel, including retries.'
+                                    )}
+                                  </FormDescription>
+                                  <FormMessage />
+                                </FormItem>
+                              )}
+                            />
+
                           </div>
                         )}
                       </div>

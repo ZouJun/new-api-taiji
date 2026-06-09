@@ -7,6 +7,7 @@ import (
 	"testing"
 
 	"github.com/QuantumNous/new-api/common"
+	"github.com/QuantumNous/new-api/dto"
 	relaycommon "github.com/QuantumNous/new-api/relay/common"
 	"github.com/aws/aws-sdk-go-v2/service/bedrockruntime"
 	"github.com/gin-gonic/gin"
@@ -52,4 +53,52 @@ func TestDoAwsClientRequest_AppliesRuntimeHeaderOverrideToAnthropicBeta(t *testi
 	values, ok := anthropicBeta.([]any)
 	require.True(t, ok)
 	require.Equal(t, []any{"computer-use-2025-01-24"}, values)
+}
+
+func TestNewAwsClient_AppliesRetryMaxAttemptsFromChannelSetting(t *testing.T) {
+	t.Parallel()
+
+	gin.SetMode(gin.TestMode)
+	recorder := httptest.NewRecorder()
+	ctx, _ := gin.CreateTestContext(recorder)
+
+	maxAttempts := 6
+	info := &relaycommon.RelayInfo{
+		IsStream: false,
+		ChannelMeta: &relaycommon.ChannelMeta{
+			ApiKey: "access-key|secret-key|us-east-1",
+			ChannelSetting: dto.ChannelSettings{
+				AwsSDKMaxAttempts: &maxAttempts,
+			},
+		},
+	}
+
+	client, err := newAwsClient(ctx, info)
+	require.NoError(t, err)
+	require.Equal(t, maxAttempts, client.Options().RetryMaxAttempts)
+}
+
+func TestNewAwsClient_AppliesRetryMaxAttemptsFromGlobalConfig(t *testing.T) {
+	t.Parallel()
+
+	oldMaxAttempts := common.AWSSDKMaxAttempts
+	common.AWSSDKMaxAttempts = 5
+	defer func() {
+		common.AWSSDKMaxAttempts = oldMaxAttempts
+	}()
+
+	gin.SetMode(gin.TestMode)
+	recorder := httptest.NewRecorder()
+	ctx, _ := gin.CreateTestContext(recorder)
+
+	info := &relaycommon.RelayInfo{
+		IsStream: false,
+		ChannelMeta: &relaycommon.ChannelMeta{
+			ApiKey: "access-key|secret-key|us-east-1",
+		},
+	}
+
+	client, err := newAwsClient(ctx, info)
+	require.NoError(t, err)
+	require.Equal(t, 5, client.Options().RetryMaxAttempts)
 }

@@ -75,28 +75,16 @@ func ResolveStreamFirstByteTimeoutSeconds(info *RelayInfo) (int, string) {
 	return 0, TimeoutSourceNone
 }
 
-func ResolveAWSHTTPClientNonStreamTimeoutSeconds(info *RelayInfo) (int, string) {
+func ResolveAWSSDKMaxAttempts(info *RelayInfo) (int, string) {
 	if info != nil {
-		if timeout, ok := normalizePositiveTimeout(info.ChannelSetting.AwsHTTPClientNonStreamTimeoutSeconds); ok {
-			return timeout, TimeoutSourceChannelSetting
+		if attempts, ok := normalizePositiveTimeout(info.ChannelSetting.AwsSDKMaxAttempts); ok {
+			return attempts, TimeoutSourceChannelSetting
 		}
 	}
-	if rootcommon.AWSHTTPClientNonStreamTimeoutSeconds > 0 {
-		return rootcommon.AWSHTTPClientNonStreamTimeoutSeconds, TimeoutSourceProviderGlobal
+	if rootcommon.AWSSDKMaxAttempts > 0 {
+		return rootcommon.AWSSDKMaxAttempts, TimeoutSourceProviderGlobal
 	}
-	return ResolveNonStreamTimeoutSeconds(info)
-}
-
-func ResolveAWSHTTPClientStreamFirstByteTimeoutSeconds(info *RelayInfo) (int, string) {
-	if info != nil {
-		if timeout, ok := normalizePositiveTimeout(info.ChannelSetting.AwsHTTPClientStreamFirstByteTimeoutSeconds); ok {
-			return timeout, TimeoutSourceChannelSetting
-		}
-	}
-	if rootcommon.AWSHTTPClientStreamFirstByteTimeoutSeconds > 0 {
-		return rootcommon.AWSHTTPClientStreamFirstByteTimeoutSeconds, TimeoutSourceProviderGlobal
-	}
-	return ResolveStreamFirstByteTimeoutSeconds(info)
+	return 0, TimeoutSourceNone
 }
 
 func ResolveAWSInvokeTimeoutSeconds(info *RelayInfo) (int, string) {

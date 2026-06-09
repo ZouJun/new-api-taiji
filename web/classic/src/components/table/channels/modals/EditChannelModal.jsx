@@ -197,9 +197,8 @@ const EditChannelModal = (props) => {
     system_prompt_override: false,
     non_stream_timeout_seconds: undefined,
     stream_first_byte_timeout_seconds: undefined,
-    aws_http_client_non_stream_timeout_seconds: undefined,
-    aws_http_client_stream_first_byte_timeout_seconds: undefined,
     aws_invoke_timeout_seconds: undefined,
+    aws_sdk_max_attempts: undefined,
     settings: '',
     // 仅 Vertex: 密钥格式（存入 settings.vertex_key_type）
     vertex_key_type: 'json',
@@ -525,9 +524,8 @@ const EditChannelModal = (props) => {
     system_prompt_override: false,
     non_stream_timeout_seconds: undefined,
     stream_first_byte_timeout_seconds: undefined,
-    aws_http_client_non_stream_timeout_seconds: undefined,
-    aws_http_client_stream_first_byte_timeout_seconds: undefined,
     aws_invoke_timeout_seconds: undefined,
+    aws_sdk_max_attempts: undefined,
   });
   const showApiConfigCard = true; // 控制是否显示 API 配置卡片
   const getInitValues = () => ({ ...originInputs });
@@ -889,19 +887,13 @@ const EditChannelModal = (props) => {
             typeof parsedSettings.stream_first_byte_timeout_seconds === 'number'
               ? parsedSettings.stream_first_byte_timeout_seconds
               : undefined;
-          data.aws_http_client_non_stream_timeout_seconds =
-            typeof parsedSettings.aws_http_client_non_stream_timeout_seconds ===
-            'number'
-              ? parsedSettings.aws_http_client_non_stream_timeout_seconds
-              : undefined;
-          data.aws_http_client_stream_first_byte_timeout_seconds =
-            typeof parsedSettings.aws_http_client_stream_first_byte_timeout_seconds ===
-            'number'
-              ? parsedSettings.aws_http_client_stream_first_byte_timeout_seconds
-              : undefined;
           data.aws_invoke_timeout_seconds =
             typeof parsedSettings.aws_invoke_timeout_seconds === 'number'
               ? parsedSettings.aws_invoke_timeout_seconds
+              : undefined;
+          data.aws_sdk_max_attempts =
+            typeof parsedSettings.aws_sdk_max_attempts === 'number'
+              ? parsedSettings.aws_sdk_max_attempts
               : undefined;
         } catch (error) {
           console.error('解析渠道设置失败:', error);
@@ -913,9 +905,8 @@ const EditChannelModal = (props) => {
           data.system_prompt_override = false;
           data.non_stream_timeout_seconds = undefined;
           data.stream_first_byte_timeout_seconds = undefined;
-          data.aws_http_client_non_stream_timeout_seconds = undefined;
-          data.aws_http_client_stream_first_byte_timeout_seconds = undefined;
           data.aws_invoke_timeout_seconds = undefined;
+          data.aws_sdk_max_attempts = undefined;
         }
       } else {
         data.force_format = false;
@@ -926,9 +917,8 @@ const EditChannelModal = (props) => {
         data.system_prompt_override = false;
         data.non_stream_timeout_seconds = undefined;
         data.stream_first_byte_timeout_seconds = undefined;
-        data.aws_http_client_non_stream_timeout_seconds = undefined;
-        data.aws_http_client_stream_first_byte_timeout_seconds = undefined;
         data.aws_invoke_timeout_seconds = undefined;
+        data.aws_sdk_max_attempts = undefined;
       }
 
       if (data.settings) {
@@ -1041,11 +1031,8 @@ const EditChannelModal = (props) => {
         non_stream_timeout_seconds: data.non_stream_timeout_seconds,
         stream_first_byte_timeout_seconds:
           data.stream_first_byte_timeout_seconds,
-        aws_http_client_non_stream_timeout_seconds:
-          data.aws_http_client_non_stream_timeout_seconds,
-        aws_http_client_stream_first_byte_timeout_seconds:
-          data.aws_http_client_stream_first_byte_timeout_seconds,
         aws_invoke_timeout_seconds: data.aws_invoke_timeout_seconds,
+        aws_sdk_max_attempts: data.aws_sdk_max_attempts,
       });
       initialModelsRef.current = (data.models || [])
         .map((model) => (model || '').trim())
@@ -1086,9 +1073,8 @@ const EditChannelModal = (props) => {
         (data.system_prompt && data.system_prompt.trim()) ||
         data.non_stream_timeout_seconds ||
         data.stream_first_byte_timeout_seconds ||
-        data.aws_http_client_non_stream_timeout_seconds ||
-        data.aws_http_client_stream_first_byte_timeout_seconds ||
         data.aws_invoke_timeout_seconds ||
+        data.aws_sdk_max_attempts ||
         data.thinking_to_content ||
         data.pass_through_body_enabled ||
         data.force_format ||
@@ -1442,9 +1428,8 @@ const EditChannelModal = (props) => {
       system_prompt_override: false,
       non_stream_timeout_seconds: undefined,
       stream_first_byte_timeout_seconds: undefined,
-      aws_http_client_non_stream_timeout_seconds: undefined,
-      aws_http_client_stream_first_byte_timeout_seconds: undefined,
       aws_invoke_timeout_seconds: undefined,
+      aws_sdk_max_attempts: undefined,
     });
     // 重置密钥模式状态
     setKeyMode('append');
@@ -1818,11 +1803,8 @@ const EditChannelModal = (props) => {
       non_stream_timeout_seconds: localInputs.non_stream_timeout_seconds,
       stream_first_byte_timeout_seconds:
         localInputs.stream_first_byte_timeout_seconds,
-      aws_http_client_non_stream_timeout_seconds:
-        localInputs.aws_http_client_non_stream_timeout_seconds,
-      aws_http_client_stream_first_byte_timeout_seconds:
-        localInputs.aws_http_client_stream_first_byte_timeout_seconds,
       aws_invoke_timeout_seconds: localInputs.aws_invoke_timeout_seconds,
+      aws_sdk_max_attempts: localInputs.aws_sdk_max_attempts,
     };
     localInputs.setting = JSON.stringify(channelExtraSettings);
 
@@ -1906,9 +1888,8 @@ const EditChannelModal = (props) => {
     delete localInputs.system_prompt_override;
     delete localInputs.non_stream_timeout_seconds;
     delete localInputs.stream_first_byte_timeout_seconds;
-    delete localInputs.aws_http_client_non_stream_timeout_seconds;
-    delete localInputs.aws_http_client_stream_first_byte_timeout_seconds;
     delete localInputs.aws_invoke_timeout_seconds;
+    delete localInputs.aws_sdk_max_attempts;
     delete localInputs.is_enterprise_account;
     // 顶层的 vertex_key_type 不应发送给后端
     delete localInputs.vertex_key_type;
@@ -2644,38 +2625,6 @@ const EditChannelModal = (props) => {
                   {inputs.type === 33 && (
                     <>
                       <Form.InputNumber
-                        field='aws_http_client_non_stream_timeout_seconds'
-                        label={t('AWS 非流式 HTTP 超时（秒）')}
-                        placeholder={t('留空使用默认值')}
-                        min={1}
-                        onChange={(value) =>
-                          handleChannelSettingsChange(
-                            'aws_http_client_non_stream_timeout_seconds',
-                            value,
-                          )
-                        }
-                        extraText={t(
-                          '覆盖该 AWS 渠道非流式请求的 HTTP Client 超时',
-                        )}
-                        style={{ width: '100%' }}
-                      />
-                      <Form.InputNumber
-                        field='aws_http_client_stream_first_byte_timeout_seconds'
-                        label={t('AWS 流式首包 HTTP 超时（秒）')}
-                        placeholder={t('留空使用默认值')}
-                        min={1}
-                        onChange={(value) =>
-                          handleChannelSettingsChange(
-                            'aws_http_client_stream_first_byte_timeout_seconds',
-                            value,
-                          )
-                        }
-                        extraText={t(
-                          '覆盖该 AWS 渠道流式请求等待首包的 HTTP 超时',
-                        )}
-                        style={{ width: '100%' }}
-                      />
-                      <Form.InputNumber
                         field='aws_invoke_timeout_seconds'
                         label={t('AWS Invoke 超时（秒）')}
                         placeholder={t('留空使用默认值')}
@@ -2687,7 +2636,23 @@ const EditChannelModal = (props) => {
                           )
                         }
                         extraText={t(
-                          '只作用于 AWS 非流式 SDK Invoke 调用超时',
+                          '只作用于该 AWS 渠道的非流式 SDK Invoke 调用超时',
+                        )}
+                        style={{ width: '100%' }}
+                      />
+                      <Form.InputNumber
+                        field='aws_sdk_max_attempts'
+                        label={t('AWS SDK 最大尝试次数')}
+                        placeholder={t('留空使用默认值')}
+                        min={1}
+                        onChange={(value) =>
+                          handleChannelSettingsChange(
+                            'aws_sdk_max_attempts',
+                            value,
+                          )
+                        }
+                        extraText={t(
+                          '控制该 AWS 渠道 AWS SDK 的总尝试次数，包含重试',
                         )}
                         style={{ width: '100%' }}
                       />

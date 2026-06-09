@@ -88,9 +88,8 @@ export interface ChannelSettings {
   system_prompt_override?: boolean
   non_stream_timeout_seconds?: number
   stream_first_byte_timeout_seconds?: number
-  aws_http_client_non_stream_timeout_seconds?: number
-  aws_http_client_stream_first_byte_timeout_seconds?: number
   aws_invoke_timeout_seconds?: number
+  aws_sdk_max_attempts?: number
 }
 
 export interface ChannelOtherSettings {

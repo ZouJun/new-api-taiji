@@ -70,9 +70,9 @@ func newAwsClient(c *gin.Context, info *relaycommon.RelayInfo) (*bedrockruntime.
 		httpClient *http.Client
 		err        error
 	)
-	// AWS HTTP Client 的超时和 SDK invoke 超时分开控制：
-	// 非流式走 HTTP Client 非流式超时，流式首包等待不依赖 Client.Timeout，避免把整条流直接截断。
-	httpClientTimeoutSeconds, _ := relaycommon.ResolveAWSHTTPClientNonStreamTimeoutSeconds(info)
+	// AWS 复用通用 HTTP Client 超时链路：
+	// 非流式走普通非流式超时；流式请求不设置 Client.Timeout，避免整条流被总超时直接截断。
+	httpClientTimeoutSeconds, _ := relaycommon.ResolveNonStreamTimeoutSeconds(info)
 	if info != nil && info.IsStream {
 		httpClientTimeoutSeconds = 0
 	}
@@ -85,6 +85,9 @@ func newAwsClient(c *gin.Context, info *relaycommon.RelayInfo) (*bedrockruntime.
 	var client *bedrockruntime.Client
 	options := bedrockruntime.Options{
 		HTTPClient: httpClient,
+	}
+	if maxAttempts, _ := relaycommon.ResolveAWSSDKMaxAttempts(info); maxAttempts > 0 {
+		options.RetryMaxAttempts = maxAttempts
 	}
 	switch len(awsSecret) {
 	case 2:
@@ -273,7 +276,7 @@ func awsHandler(c *gin.Context, info *relaycommon.RelayInfo, a *Adaptor) (*types
 
 func awsStreamHandler(c *gin.Context, info *relaycommon.RelayInfo, a *Adaptor) (*types.NewAPIError, *dto.Usage) {
 	baseCtx := c.Request.Context()
-	streamFirstByteTimeoutSeconds, timeoutSource := relaycommon.ResolveAWSHTTPClientStreamFirstByteTimeoutSeconds(info)
+	streamFirstByteTimeoutSeconds, timeoutSource := relaycommon.ResolveStreamFirstByteTimeoutSeconds(info)
 	relaycommon.SetTimeoutMeta(c, relaycommon.TimeoutMeta{
 		Type:     relaycommon.TimeoutTypeStreamFirstByte,
 		Source:   timeoutSource,
