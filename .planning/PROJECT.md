@@ -27,7 +27,7 @@ Every relay request must remain stable, bounded, and traceable from customer req
 - [ ] Design and implement channel-level timeout control for all relay channels, not only AWS, with clear fallback to global defaults.
 - [ ] Separate streaming and non-streaming timeout semantics so that streaming timeout is based on first response chunk timing rather than total stream duration.
 - [ ] Ensure timeout failures emit detailed structured metadata and remain compatible with the existing retry mechanism.
-- [ ] Expose AWS SDK retry and timeout-related knobs to the New API layer for unified control and tuning.
+- [ ] Expose retained AWS invoke-timeout and retry-attempt knobs to the New API layer for unified control and tuning.
 - [ ] Design a complete full-chain request/response archival system for both streaming and non-streaming relay calls, with a switchable local/Azure Blob backend.
 - [ ] Ensure archival design handles 8000-15000 RPM without coupling upstream latency or availability to blob/local storage failures.
 - [ ] Define object naming, metadata, compression, batching/non-batching strategy, retention, retry, dead-letter, and observability for archived payloads.
@@ -94,7 +94,8 @@ Important current findings:
 | Apply timeout configuration to all channels through `channel.setting`, with fallback to defaults | The user wants timeout control generalized beyond AWS to channels such as Sora and future providers | Accepted |
 | Keep HTTP connection pooling while honoring per-channel timeout settings | The system must remain performant at 8000-15000 RPM and cannot regress into one-client-per-request without pooling | Accepted |
 | Treat timeout failures as compatible with the existing retry mechanism | The user explicitly requires timeout failures to participate in retries rather than bypass them | Accepted |
-| Keep AWS SDK `max_attempts` and `retry_mode` on prior behavior for now | The user clarified that this phase should only make AWS SDK timeout-related configuration dynamic, not change retry-mode governance | Accepted |
+| Keep AWS SDK `max_attempts` as a documented retained control | The current project still exposes `AWS_SDK_MAX_ATTEMPTS` and `aws_sdk_max_attempts` in code | Accepted |
+| Remove AWS HTTP client timeout configuration from the Phase 1 plan surface | The user clarified that AWS HTTP client timeout-related configuration has been fully removed | Accepted |
 | Allow selected AWS Claude timeout-related knobs to be overridden per channel in `channel.setting` | The user wants AWS Claude timeout behavior to remain channel-tunable without expanding retry-mode controls in this phase | Accepted |
 
 ## Evolution

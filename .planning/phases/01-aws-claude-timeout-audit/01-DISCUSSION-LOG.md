@@ -57,19 +57,16 @@
 
 ### AWS SDK controls
 - User direction captured:
-  - Keep AWS SDK retry count and retry mode on prior behavior for now
+  - Keep the retained AWS retry-attempt behavior aligned with the existing code surface
   - Only make AWS SDK timeout-related configuration dynamically configurable in this phase
   - Some AWS Claude timeout-related configuration must also be channel-configurable
 - Recommended direction selected:
   - Global controls:
-    - `aws_http_client_non_stream_timeout_seconds`
-    - `aws_http_client_stream_first_byte_timeout_seconds`
     - `aws_invoke_timeout_seconds`
+    - `aws_sdk_max_attempts`
   - First-version channel overrides:
-    - `aws_http_client_non_stream_timeout_seconds`
-    - `aws_http_client_stream_first_byte_timeout_seconds`
     - `aws_invoke_timeout_seconds`
-  - `AWS_SDK_MAX_ATTEMPTS` and `AWS_SDK_RETRY_MODE` stay unchanged in this phase
+    - `aws_sdk_max_attempts`
 
 ## Deferred Ideas
 
@@ -79,7 +76,7 @@
 ## the agent's Discretion
 
 - Final field name for the timeout setting may be `relay_timeout_seconds` or `request_timeout_seconds`.
-- Client-level timeout override may use a keyed cache or safe clone path if planning concludes that context-only timeout is insufficient for some request modes.
+- Client-level timeout behavior remains a shared transport/client concern; this phase does not add an AWS-specific HTTP client timeout configuration surface.
 
 ---
 

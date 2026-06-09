@@ -21,10 +21,10 @@ Requirements for this milestone. Each maps to exactly one roadmap phase.
 - [ ] **TIME-06**: Per-channel timeout settings are stored in `channel.setting` as two separate fields: non-stream total timeout and stream first-byte timeout.
 - [ ] **TIME-07**: After the first stream byte/event is received, the first version does not enforce a separate total stream timeout kill switch.
 - [ ] **TIME-08**: All channels build or resolve HTTP behavior using channel-level timeout settings when configured, while preserving connection pooling and falling back to shared defaults when absent.
-- [ ] **SDK-01**: AWS SDK timeout-related knobs used by relay execution are exposed to New API configuration instead of being fully hidden inside SDK defaults.
-- [ ] **SDK-02**: Maintainers can explain which AWS timeout knobs are controlled globally, which are controlled per channel, and how they interact.
-- [ ] **SDK-03**: New API globally controls AWS HTTP client timeout defaults and AWS invoke timeout defaults with documented interaction rules against per-channel timeout settings.
-- [ ] **SDK-04**: Selected AWS Claude timeout-related knobs can be overridden per channel through `channel.setting`, with documented precedence over AWS global defaults.
+- [ ] **SDK-01**: AWS relay invoke-timeout and retry-attempt knobs used by execution are exposed to New API configuration instead of being fully hidden inside SDK defaults.
+- [ ] **SDK-02**: Maintainers can explain which AWS knobs are controlled globally, which are controlled per channel, and how they interact.
+- [ ] **SDK-03**: New API globally controls `AWS_INVOKE_TIMEOUT_SECONDS` and `AWS_SDK_MAX_ATTEMPTS` with documented interaction rules against per-channel timeout settings.
+- [ ] **SDK-04**: `aws_invoke_timeout_seconds` and `aws_sdk_max_attempts` can be overridden per channel through `channel.setting`, with documented precedence over AWS global defaults.
 
 ### Customer Trace
 
@@ -91,22 +91,22 @@ Which phases cover which requirements. Updated during roadmap creation.
 
 | Requirement | Phase | Status |
 |-------------|-------|--------|
-| AWS-01 | Phase 1 | Pending |
-| AWS-02 | Phase 1 | Pending |
-| AWS-03 | Phase 1 | Pending |
-| AWS-04 | Phase 1 | Pending |
-| TIME-01 | Phase 1 | Pending |
-| TIME-02 | Phase 1 | Pending |
-| TIME-03 | Phase 1 | Pending |
-| TIME-04 | Phase 1 | Pending |
-| TIME-05 | Phase 1 | Pending |
-| TIME-06 | Phase 1 | Pending |
-| TIME-07 | Phase 1 | Pending |
-| TIME-08 | Phase 1 | Pending |
-| SDK-01 | Phase 1 | Pending |
-| SDK-02 | Phase 1 | Pending |
-| SDK-03 | Phase 1 | Pending |
-| SDK-04 | Phase 1 | Pending |
+| AWS-01 | Phase 1 | Completed |
+| AWS-02 | Phase 1 | Completed |
+| AWS-03 | Phase 1 | Completed |
+| AWS-04 | Phase 1 | Completed |
+| TIME-01 | Phase 1 | Completed |
+| TIME-02 | Phase 1 | Completed |
+| TIME-03 | Phase 1 | Completed |
+| TIME-04 | Phase 1 | Completed |
+| TIME-05 | Phase 1 | Completed |
+| TIME-06 | Phase 1 | Completed |
+| TIME-07 | Phase 1 | Completed |
+| TIME-08 | Phase 1 | Completed |
+| SDK-01 | Phase 1 | Completed |
+| SDK-02 | Phase 1 | Completed |
+| SDK-03 | Phase 1 | Completed |
+| SDK-04 | Phase 1 | Completed |
 | TRAC-01 | Phase 2 | Pending |
 | TRAC-02 | Phase 2 | Pending |
 | TRAC-03 | Phase 2 | Pending |
@@ -139,4 +139,4 @@ Which phases cover which requirements. Updated during roadmap creation.
 
 ---
 *Requirements defined: 2026-06-06*
-*Last updated: 2026-06-06 after initial definition*
+*Last updated: 2026-06-09 after Phase 1 closeout*

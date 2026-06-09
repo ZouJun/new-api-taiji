@@ -1,12 +1,12 @@
 # Phase 1 Plan: Channel Timeout Control and AWS SDK Governance
 
 **Phase:** 1  
-**Status:** Drafted for execution  
-**Updated:** 2026-06-08
+**Status:** Completed  
+**Updated:** 2026-06-09
 
 ## 1. Goal
 
-Build a timeout control system that works across channels, separates non-stream and stream-first-byte behavior, preserves retry compatibility, keeps HTTP connection pooling, and exposes AWS SDK timeout controls with selected per-channel AWS Claude overrides.
+Build a timeout control system that works across channels, separates non-stream and stream-first-byte behavior, preserves retry compatibility, keeps HTTP connection pooling, and exposes the retained AWS invoke-timeout and retry-attempt controls with selected per-channel AWS Claude overrides.
 
 This phase is no longer only an AWS audit. It is the foundation for bounded upstream behavior under 8000-15000 RPM.
 
@@ -24,8 +24,8 @@ These points are already confirmed and should not be reopened during implementat
 6. All channels should honor channel timeout configuration when present; otherwise they fall back to defaults.
 7. HTTP connection pooling must be preserved.
 8. AWS global timeout controls must expose:
-   - `http client timeout`
    - `invoke timeout`
+   - `retry max attempts`
 9. Selected AWS Claude timeout-related knobs must also support channel-level override.
 
 ## 3. Proposed Configuration Model
@@ -36,9 +36,8 @@ Add to `dto.ChannelSettings`:
 
 - `NonStreamTimeoutSeconds *int    json:"non_stream_timeout_seconds,omitempty"`
 - `StreamFirstByteTimeoutSeconds *int    json:"stream_first_byte_timeout_seconds,omitempty"`
-- `AwsHTTPClientNonStreamTimeoutSeconds *int    json:"aws_http_client_non_stream_timeout_seconds,omitempty"`
-- `AwsHTTPClientStreamFirstByteTimeoutSeconds *int    json:"aws_http_client_stream_first_byte_timeout_seconds,omitempty"`
 - `AwsInvokeTimeoutSeconds *int    json:"aws_invoke_timeout_seconds,omitempty"`
+- `AwsSDKMaxAttempts *int    json:"aws_sdk_max_attempts,omitempty"`
 
 Why pointer fields:
 
@@ -53,15 +52,14 @@ Recommended global settings:
 
 - `RELAY_DEFAULT_NON_STREAM_TIMEOUT`
 - `RELAY_DEFAULT_STREAM_FIRST_BYTE_TIMEOUT`
-- `AWS_HTTP_CLIENT_NON_STREAM_TIMEOUT_SECONDS`
-- `AWS_HTTP_CLIENT_STREAM_FIRST_BYTE_TIMEOUT_SECONDS`
 - `AWS_INVOKE_TIMEOUT_SECONDS`
+- `AWS_SDK_MAX_ATTEMPTS`
 
 Notes:
 
 - `common.RelayTimeout` remains a legacy fallback, not the preferred new control point.
 - `constant.StreamingTimeout` remains existing infrastructure and should not be silently repurposed as the new per-channel stream-first-byte control.
-- `AWS_SDK_MAX_ATTEMPTS` and `AWS_SDK_RETRY_MODE` stay on prior behavior in this phase.
+- The retained AWS SDK governance surface in this phase is `AWS_SDK_MAX_ATTEMPTS`.
 
 ## 3.3 Precedence
 
@@ -74,9 +72,15 @@ Timeout precedence:
 
 AWS timeout precedence:
 
-1. channel-level AWS override
-2. global AWS config
-3. legacy/common fallback where applicable
+1. channel-level `aws_invoke_timeout_seconds`
+2. global `AWS_INVOKE_TIMEOUT_SECONDS`
+3. resolved common non-stream timeout fallback where applicable
+
+AWS retry-attempt precedence:
+
+1. channel-level `aws_sdk_max_attempts`
+2. global `AWS_SDK_MAX_ATTEMPTS`
+3. SDK default behavior when unset
 
 ## 4. Architecture Strategy
 
@@ -137,9 +141,8 @@ Recommended helpers:
 
 - `ResolveNonStreamTimeoutSeconds(info *relaycommon.RelayInfo, provider string) int`
 - `ResolveStreamFirstByteTimeoutSeconds(info *relaycommon.RelayInfo, provider string) int`
-- `ResolveAwsHTTPClientNonStreamTimeoutSeconds(info *relaycommon.RelayInfo) int`
-- `ResolveAwsHTTPClientStreamFirstByteTimeoutSeconds(info *relaycommon.RelayInfo) int`
 - `ResolveAwsInvokeTimeoutSeconds(info *relaycommon.RelayInfo) int`
+- `ResolveAWSSDKMaxAttempts(info *relaycommon.RelayInfo) int`
 
 These helpers must:
 
@@ -182,7 +185,7 @@ Required changes:
 2. Parent context must be `c.Request.Context()`
 3. Non-stream path uses effective invoke timeout
 4. Stream path uses stream-first-byte timeout for stream establishment
-5. AWS client creation must honor global AWS timeout settings and selected channel overrides
+5. AWS invoke path and retry-attempt settings must honor the retained global AWS controls and selected channel overrides
 
 Recommended function split:
 
@@ -327,7 +330,7 @@ Files:
 Deliverables:
 
 - request-aware invoke context
-- global AWS timeout controls
+- global AWS invoke-timeout and retry-attempt controls
 - selected channel-level AWS overrides
 
 ## Wave 4: Logging and retry verification
@@ -421,3 +424,32 @@ Implement in this order:
 5. logging metadata and retry tests
 
 This gives the fastest path to bounded behavior without taking unnecessary risk across all channels at once.
+
+## 10. Verification Results
+
+Completed on 2026-06-09:
+
+- `channel.setting` timeout fields are live in request execution, not stored-only.
+- Common HTTP relay path enforces non-stream and stream-first-byte timeout behavior.
+- AWS path honors `AWS_INVOKE_TIMEOUT_SECONDS`, `AWS_SDK_MAX_ATTEMPTS`, `aws_invoke_timeout_seconds`, and `aws_sdk_max_attempts`.
+- Timeout metadata is appended into log `other` fields.
+- Retry logic now treats `context.DeadlineExceeded` and `ErrStreamFirstByteTimeout` as retry-eligible timeout failures.
+
+Targeted tests run with `GOROOT=/Users/zf/.gvm/gos/go1.25.1`:
+
+- `go test ./relay/channel/aws -run 'Test(NewAwsClient|NewAwsInvokeContext|DoAwsClientRequest)'`
+- `go test ./controller -run 'TestShouldRetry_'`
+- `go test ./relay/common ./relay/channel -run 'Test(ResolveAWSInvokeTimeoutSeconds|ResolveAWSSDKMaxAttempts|DoRequest_NonStreamTimeoutCancelsUpstreamConnection|DoRequest_StreamFirstByteTimeoutCancelsUpstreamConnection|AppendTimeoutMeta)'`
+
+## 11. Scope Audit
+
+Covered by Phase 1 completion:
+
+- Provider relay requests using the shared HTTP request path in `relay/channel/api_request.go`
+- Task submission adaptors that delegate through `channel.DoTaskApiRequest(...)`
+- AWS Bedrock direct relay path in `relay/channel/aws/relay-aws.go`
+
+Explicitly not counted as Phase 1 hot-path coverage:
+
+- Model discovery, polling, and helper requests implemented through separate direct HTTP helpers such as Gemini model listing, Coze chat detail reads, and task status polling fetchers
+- Archive and Trace-Id work deferred to later phases

@@ -2,9 +2,11 @@ package aws
 
 import (
 	"bytes"
+	"context"
 	"net/http"
 	"net/http/httptest"
 	"testing"
+	"time"
 
 	"github.com/QuantumNous/new-api/common"
 	"github.com/QuantumNous/new-api/dto"
@@ -101,4 +103,49 @@ func TestNewAwsClient_AppliesRetryMaxAttemptsFromGlobalConfig(t *testing.T) {
 	client, err := newAwsClient(ctx, info)
 	require.NoError(t, err)
 	require.Equal(t, 5, client.Options().RetryMaxAttempts)
+}
+
+func TestNewAwsInvokeContext_UsesRequestContextAndChannelOverride(t *testing.T) {
+	t.Parallel()
+
+	gin.SetMode(gin.TestMode)
+	recorder := httptest.NewRecorder()
+	ctx, _ := gin.CreateTestContext(recorder)
+
+	requestCtx, requestCancel := context.WithCancel(context.Background())
+	defer requestCancel()
+	ctx.Request = httptest.NewRequest(http.MethodPost, "/v1/messages", nil).WithContext(requestCtx)
+	ctx.Set("retry", 1)
+
+	timeoutSeconds := 2
+	info := &relaycommon.RelayInfo{
+		IsStream: false,
+		ChannelMeta: &relaycommon.ChannelMeta{
+			ChannelSetting: dto.ChannelSettings{
+				AwsInvokeTimeoutSeconds: &timeoutSeconds,
+			},
+		},
+	}
+
+	invokeCtx, cancel := newAwsInvokeContext(ctx, info)
+	defer cancel()
+
+	deadline, ok := invokeCtx.Deadline()
+	require.True(t, ok, "expected invoke context deadline")
+	require.WithinDuration(t, time.Now().Add(2*time.Second), deadline, 1200*time.Millisecond)
+
+	timeoutMeta := relaycommon.AppendTimeoutMeta(map[string]interface{}{}, ctx)
+	require.Equal(t, relaycommon.TimeoutTypeNonStreamTotal, timeoutMeta["timeout_type"])
+	require.Equal(t, relaycommon.TimeoutSourceChannelSetting, timeoutMeta["timeout_source"])
+	require.Equal(t, timeoutSeconds, timeoutMeta["timeout_seconds"])
+	require.Equal(t, "aws_invoke", timeoutMeta["timeout_stage"])
+	require.Equal(t, "aws", timeoutMeta["timeout_provider"])
+
+	requestCancel()
+	select {
+	case <-invokeCtx.Done():
+		require.ErrorIs(t, invokeCtx.Err(), context.Canceled)
+	case <-time.After(200 * time.Millisecond):
+		t.Fatal("expected invoke context to be canceled when request context is canceled")
+	}
 }

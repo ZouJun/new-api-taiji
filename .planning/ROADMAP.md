@@ -12,7 +12,7 @@ This milestone turns the existing relay gateway into a more traceable and audita
 
 Decimal phases appear between their surrounding integers in numeric order.
 
-- [ ] **Phase 1: Channel Timeout Control and AWS SDK Governance** - Add channel-level timeout control, streaming/non-streaming timeout semantics, timeout observability, and AWS SDK timeout configuration management.
+- [x] **Phase 1: Channel Timeout Control and AWS SDK Governance** - Add channel-level timeout control, streaming/non-streaming timeout semantics, timeout observability, and AWS SDK timeout configuration management.
 - [ ] **Phase 2: Customer Trace-Id Propagation** - Extract, sanitize, propagate, log, and persist customer trace IDs.
 - [ ] **Phase 3: Request Response Archive Pipeline** - Design and implement local/Azure archival for streaming and non-streaming relay payloads.
 - [ ] **Phase 4: Verification and Operator Documentation** - Verify the chain and produce beginner-readable operational documentation.
@@ -20,7 +20,7 @@ Decimal phases appear between their surrounding integers in numeric order.
 ## Phase Details
 
 ### Phase 1: Channel Timeout Control and AWS SDK Governance
-**Goal**: Timeout behavior becomes configurable and traceable across channels, while AWS SDK timeout knobs are exposed for unified management at the New API layer.
+**Goal**: Timeout behavior becomes configurable and traceable across channels, while retained AWS relay knobs are exposed for unified management at the New API layer.
 **Depends on**: Nothing (first phase)
 **Requirements**: [AWS-01, AWS-02, AWS-03, AWS-04, TIME-01, TIME-02, TIME-03, TIME-04, TIME-05, TIME-06, TIME-07, TIME-08, SDK-01, SDK-02, SDK-03, SDK-04]
 **Success Criteria** (what must be TRUE):
@@ -29,15 +29,15 @@ Decimal phases appear between their surrounding integers in numeric order.
   3. All channels honor channel-level timeout settings when configured, while preserving HTTP connection pooling and falling back to shared defaults when channel settings are absent.
   4. Timeout failures generate structured logs and database metadata that identify effective timeout, timeout source, timeout stage, stream mode, and retry index.
   5. Timeout failures do not bypass or break the existing retry flow.
-  6. Maintainer can point to the exact AWS Bedrock client and invocation code path and explain how globally controlled HTTP client timeout and invoke timeout are set, and which selected timeout knobs can be overridden per AWS channel.
+  6. Maintainer can point to the exact AWS Bedrock client and invocation code path and explain how global `AWS_INVOKE_TIMEOUT_SECONDS` / `AWS_SDK_MAX_ATTEMPTS` and per-channel `aws_invoke_timeout_seconds` / `aws_sdk_max_attempts` are applied.
   7. Timeout and SDK behavior are backed by focused tests or documented verification steps.
 **Plans**: 4 plans
 
 Plans:
-- [ ] 01-01: Trace the current timeout path across shared HTTP client, proxy client, AWS invoke context, and retry logic.
-- [ ] 01-02: Design and implement channel-level timeout resolution for all channels, using separate `channel.setting` fields for non-stream and stream-first-byte timeout semantics.
-- [ ] 01-03: Add timeout observability, including detailed error metadata, and verify that timeout failures remain compatible with the retry flow.
-- [ ] 01-04: Expose and govern AWS HTTP client timeout and invoke timeout from the New API layer, including selected per-channel AWS Claude overrides, with focused verification.
+- [x] 01-01: Trace the current timeout path across shared HTTP client, proxy client, AWS invoke context, and retry logic.
+- [x] 01-02: Design and implement channel-level timeout resolution for all channels, using separate `channel.setting` fields for non-stream and stream-first-byte timeout semantics.
+- [x] 01-03: Add timeout observability, including detailed error metadata, and verify that timeout failures remain compatible with the retry flow.
+- [x] 01-04: Expose and govern retained AWS invoke-timeout and retry-attempt controls from the New API layer, including selected per-channel AWS Claude overrides, with focused verification.
 
 ### Phase 2: Customer Trace-Id Propagation
 **Goal**: Customer `Trace-Id` becomes a safe, separate correlation value that follows the request through context, logs, errors, and future archive metadata.
@@ -99,7 +99,7 @@ Phases execute in numeric order: 1 -> 2 -> 3 -> 4
 
 | Phase | Plans Complete | Status | Completed |
 |-------|----------------|--------|-----------|
-| 1. Channel Timeout Control and AWS SDK Governance | 0/4 | Not started | - |
+| 1. Channel Timeout Control and AWS SDK Governance | 4/4 | Completed | 2026-06-09 |
 | 2. Customer Trace-Id Propagation | 0/3 | Not started | - |
 | 3. Request Response Archive Pipeline | 0/4 | Not started | - |
 | 4. Verification and Operator Documentation | 0/3 | Not started | - |

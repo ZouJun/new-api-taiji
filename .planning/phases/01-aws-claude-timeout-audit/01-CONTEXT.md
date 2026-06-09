@@ -51,15 +51,11 @@ This phase determines the current timeout behavior across relay paths and locks 
 - **D-15:** Timeout failures must emit structured metadata for troubleshooting, including timeout type, timeout source, effective timeout seconds, stream flag, and retry index.
 
 ### AWS SDK Governance
-- **D-16:** Expose AWS timeout-related controls globally from New API layer:
-  - `aws_http_client_non_stream_timeout_seconds`
-  - `aws_http_client_stream_first_byte_timeout_seconds`
+- **D-16:** Expose the retained AWS global controls from the New API layer through `AWS_INVOKE_TIMEOUT_SECONDS` and `AWS_SDK_MAX_ATTEMPTS`.
+- **D-17:** Allow the retained AWS per-channel controls to be overridden through `channel.setting`, with higher precedence than global AWS defaults.
+- **D-18:** Recommended first-version per-channel AWS override:
   - `aws_invoke_timeout_seconds`
-- **D-17:** Allow selected AWS Claude-related knobs to be overridden per channel through `channel.setting`, with higher precedence than global AWS defaults.
-- **D-18:** Recommended first-version per-channel AWS overrides:
-  - `aws_http_client_non_stream_timeout_seconds`
-  - `aws_http_client_stream_first_byte_timeout_seconds`
-  - `aws_invoke_timeout_seconds`
+  - `aws_sdk_max_attempts`
 
 ### Verification Scope
 - **D-19:** Phase 1 must prove current behavior with focused tests or documented verification, not just static code reading.
@@ -73,7 +69,7 @@ This phase determines the current timeout behavior across relay paths and locks 
 
 ### the agent's Discretion
 - Validation location can be in channel setting validation, request-time resolver, or both, as long as invalid values are rejected consistently.
-- `AWS_SDK_MAX_ATTEMPTS` and `AWS_SDK_RETRY_MODE` remain on prior behavior in this phase; this phase only adds dynamic timeout-related control.
+- This phase should align documentation and implementation to the AWS controls that actually exist in the codebase: `AWS_INVOKE_TIMEOUT_SECONDS`, `AWS_SDK_MAX_ATTEMPTS`, `aws_invoke_timeout_seconds`, and `aws_sdk_max_attempts`.
 
 </decisions>
 
