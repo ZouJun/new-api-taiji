@@ -92,7 +92,11 @@ func Relay(c *gin.Context, relayFormat types.RelayFormat) {
 	defer func() {
 		if newAPIError != nil {
 			logger.LogError(c, fmt.Sprintf("relay error: %s", common.LocalLogPreview(newAPIError.Error())))
-			newAPIError.SetMessage(common.MessageWithRequestIdAndTraceId(newAPIError.Error(), requestId, traceId))
+			clientMessage := newAPIError.Error()
+			if shouldHideInternalRelayError(c, newAPIError) {
+				clientMessage = "upstream error: do request failed"
+			}
+			newAPIError.SetMessage(common.MessageWithRequestIdAndTraceId(clientMessage, requestId, traceId))
 			switch relayFormat {
 			case types.RelayFormatOpenAIRealtime:
 				helper.WssError(c, ws, newAPIError.ToOpenAIError())
@@ -253,6 +257,27 @@ func Relay(c *gin.Context, relayFormat types.RelayFormat) {
 			perfmetrics.RecordRelaySample(relayInfo, false, 0)
 		})
 	}
+}
+
+func shouldHideInternalRelayError(c *gin.Context, err *types.NewAPIError) bool {
+	if err == nil {
+		return false
+	}
+	if errors.Is(err, relaycommon.ErrStreamFirstByteTimeout) {
+		return true
+	}
+	if !errors.Is(err, context.DeadlineExceeded) {
+		return false
+	}
+	raw, ok := c.Get(string(constant.ContextKeyTimeoutMeta))
+	if !ok {
+		return false
+	}
+	meta, ok := raw.(relaycommon.TimeoutMeta)
+	if !ok {
+		return false
+	}
+	return meta.Type == relaycommon.TimeoutTypeNonStreamTotal || meta.Type == relaycommon.TimeoutTypeStreamFirstByte
 }
 
 var upgrader = websocket.Upgrader{
