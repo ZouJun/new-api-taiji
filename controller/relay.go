@@ -22,6 +22,7 @@ import (
 	relayconstant "github.com/QuantumNous/new-api/relay/constant"
 	"github.com/QuantumNous/new-api/relay/helper"
 	"github.com/QuantumNous/new-api/service"
+	"github.com/QuantumNous/new-api/service/archive"
 	"github.com/QuantumNous/new-api/setting"
 	"github.com/QuantumNous/new-api/setting/operation_setting"
 	"github.com/QuantumNous/new-api/types"
@@ -192,10 +193,12 @@ func Relay(c *gin.Context, relayFormat types.RelayFormat) {
 	for ; retryParam.GetRetry() <= common.RetryTimes; retryParam.IncreaseRetry() {
 		relayInfo.RetryIndex = retryParam.GetRetry()
 		c.Set("retry", relayInfo.RetryIndex)
+		attemptStartedAt := time.Now()
 		channel, channelErr := getChannel(c, relayInfo, retryParam)
 		if channelErr != nil {
 			logger.LogError(c, channelErr.Error())
 			newAPIError = channelErr
+			addArchiveRelayAttempt(c, relayInfo.RetryIndex, nil, "failed", attemptStartedAt, channelErr)
 			break
 		}
 
@@ -225,11 +228,13 @@ func Relay(c *gin.Context, relayFormat types.RelayFormat) {
 
 		if newAPIError == nil {
 			relayInfo.LastError = nil
+			addArchiveRelayAttempt(c, relayInfo.RetryIndex, channel, "success", attemptStartedAt, nil)
 			return
 		}
 
 		newAPIError = service.NormalizeViolationFeeError(newAPIError)
 		relayInfo.LastError = newAPIError
+		addArchiveRelayAttempt(c, relayInfo.RetryIndex, channel, "failed", attemptStartedAt, newAPIError)
 
 		processChannelError(c, *types.NewChannelError(channel.Id, channel.Type, channel.Name, channel.ChannelInfo.IsMultiKey, common.GetContextKeyString(c, constant.ContextKeyChannelKey), channel.GetAutoBan()), newAPIError)
 
@@ -523,6 +528,7 @@ func RelayTask(c *gin.Context) {
 
 	for ; retryParam.GetRetry() <= common.RetryTimes; retryParam.IncreaseRetry() {
 		c.Set("retry", retryParam.GetRetry())
+		attemptStartedAt := time.Now()
 		var channel *model.Channel
 
 		if lockedCh, ok := relayInfo.LockedChannel.(*model.Channel); ok && lockedCh != nil {
@@ -530,6 +536,7 @@ func RelayTask(c *gin.Context) {
 			if retryParam.GetRetry() > 0 {
 				if setupErr := middleware.SetupContextForSelectedChannel(c, channel, relayInfo.OriginModelName); setupErr != nil {
 					taskErr = service.TaskErrorWrapperLocal(setupErr.Err, "setup_locked_channel_failed", http.StatusInternalServerError)
+					addArchiveTaskAttempt(c, retryParam.GetRetry(), channel, "failed", attemptStartedAt, taskErr)
 					break
 				}
 			}
@@ -539,6 +546,7 @@ func RelayTask(c *gin.Context) {
 			if channelErr != nil {
 				logger.LogError(c, channelErr.Error())
 				taskErr = service.TaskErrorWrapperLocal(channelErr.Err, "get_channel_failed", http.StatusInternalServerError)
+				addArchiveTaskAttempt(c, retryParam.GetRetry(), nil, "failed", attemptStartedAt, taskErr)
 				break
 			}
 		}
@@ -557,8 +565,10 @@ func RelayTask(c *gin.Context) {
 
 		result, taskErr = relay.RelayTaskSubmit(c, relayInfo)
 		if taskErr == nil {
+			addArchiveTaskAttempt(c, retryParam.GetRetry(), channel, "success", attemptStartedAt, nil)
 			break
 		}
+		addArchiveTaskAttempt(c, retryParam.GetRetry(), channel, "failed", attemptStartedAt, taskErr)
 
 		if !taskErr.LocalError {
 			processChannelError(c,
@@ -659,4 +669,83 @@ func shouldRetryTaskRelay(c *gin.Context, channelId int, taskErr *dto.TaskError,
 		return false
 	}
 	return true
+}
+
+func addArchiveRelayAttempt(c *gin.Context, index int, channel *model.Channel, outcome string, startedAt time.Time, err *types.NewAPIError) {
+	state, ok := archive.FromContext(c)
+	if !ok || state == nil {
+		return
+	}
+	attempt := archive.AttemptSummary{
+		Index:      index,
+		Outcome:    outcome,
+		StartedAt:  startedAt.UTC().UnixMilli(),
+		DurationMs: time.Since(startedAt).Milliseconds(),
+	}
+	if channel != nil {
+		attempt.ChannelID = channel.Id
+		attempt.ChannelName = channel.Name
+		attempt.ChannelType = channel.Type
+	}
+	if err != nil {
+		attempt.HTTPStatus = err.StatusCode
+		attempt.ErrorCode = string(err.GetErrorCode())
+		attempt.ErrorMessage = common.LocalLogPreview(err.Error())
+	}
+	attempt.TimeoutReason = archiveTimeoutReason(c)
+	state.AddAttempt(attempt)
+}
+
+func addArchiveTaskAttempt(c *gin.Context, index int, channel *model.Channel, outcome string, startedAt time.Time, taskErr *dto.TaskError) {
+	state, ok := archive.FromContext(c)
+	if !ok || state == nil {
+		return
+	}
+	attempt := archive.AttemptSummary{
+		Index:      index,
+		Outcome:    outcome,
+		StartedAt:  startedAt.UTC().UnixMilli(),
+		DurationMs: time.Since(startedAt).Milliseconds(),
+	}
+	if channel != nil {
+		attempt.ChannelID = channel.Id
+		attempt.ChannelName = channel.Name
+		attempt.ChannelType = channel.Type
+	}
+	if taskErr != nil {
+		attempt.HTTPStatus = taskErr.StatusCode
+		attempt.ErrorCode = taskErr.Code
+		if taskErr.Error != nil {
+			attempt.ErrorMessage = common.LocalLogPreview(taskErr.Error.Error())
+		} else {
+			attempt.ErrorMessage = common.LocalLogPreview(taskErr.Message)
+		}
+	}
+	attempt.TimeoutReason = archiveTimeoutReason(c)
+	state.AddAttempt(attempt)
+}
+
+func archiveTimeoutReason(c *gin.Context) string {
+	raw, ok := c.Get(string(constant.ContextKeyTimeoutMeta))
+	if !ok {
+		return ""
+	}
+	meta, ok := raw.(relaycommon.TimeoutMeta)
+	if !ok {
+		return ""
+	}
+	parts := []string{}
+	if meta.Type != "" {
+		parts = append(parts, meta.Type)
+	}
+	if meta.Stage != "" {
+		parts = append(parts, meta.Stage)
+	}
+	if meta.Source != "" {
+		parts = append(parts, meta.Source)
+	}
+	if meta.Seconds > 0 {
+		parts = append(parts, fmt.Sprintf("%ds", meta.Seconds))
+	}
+	return strings.Join(parts, ":")
 }

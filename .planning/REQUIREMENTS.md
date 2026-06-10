@@ -9,22 +9,22 @@ Requirements for this milestone. Each maps to exactly one roadmap phase.
 
 ### Timeout and SDK Control
 
-- [ ] **AWS-01**: Maintainer can identify whether AWS Claude upstream calls have timeout protection.
-- [ ] **AWS-02**: Maintainer can see exactly how `common.RelayTimeout` affects AWS Bedrock SDK calls in streaming and non-streaming modes.
-- [ ] **AWS-03**: Maintainer can verify timeout behavior with focused tests or documented verification steps.
-- [ ] **AWS-04**: Maintainer can understand the difference between shared HTTP client timeout, proxy client timeout, and AWS invocation context timeout.
-- [ ] **TIME-01**: All channels can define independent relay timeout settings instead of relying only on a single global timeout.
-- [ ] **TIME-02**: Streaming timeout semantics are separated from non-streaming timeout semantics; streaming timeout is based on time-to-first-byte/first event rather than total stream duration.
-- [ ] **TIME-03**: Timeout failures record detailed structured metadata for later troubleshooting, including effective timeout, timeout stage, stream flag, and timeout source.
-- [ ] **TIME-04**: Timeout failures do not break or short-circuit the existing retry mechanism.
-- [ ] **TIME-05**: Timeout configuration supports provider differences such as AWS, Sora, and other slow or long-running upstream channels.
-- [ ] **TIME-06**: Per-channel timeout settings are stored in `channel.setting` as two separate fields: non-stream total timeout and stream first-byte timeout.
-- [ ] **TIME-07**: After the first stream byte/event is received, the first version does not enforce a separate total stream timeout kill switch.
-- [ ] **TIME-08**: All channels build or resolve HTTP behavior using channel-level timeout settings when configured, while preserving connection pooling and falling back to shared defaults when absent.
-- [ ] **SDK-01**: AWS relay invoke-timeout and retry-attempt knobs used by execution are exposed to New API configuration instead of being fully hidden inside SDK defaults.
-- [ ] **SDK-02**: Maintainers can explain which AWS knobs are controlled globally, which are controlled per channel, and how they interact.
-- [ ] **SDK-03**: New API globally controls `AWS_INVOKE_TIMEOUT_SECONDS` and `AWS_SDK_MAX_ATTEMPTS` with documented interaction rules against per-channel timeout settings.
-- [ ] **SDK-04**: `aws_invoke_timeout_seconds` and `aws_sdk_max_attempts` can be overridden per channel through `channel.setting`, with documented precedence over AWS global defaults.
+- [x] **AWS-01**: Maintainer can identify whether AWS Claude upstream calls have timeout protection.
+- [x] **AWS-02**: Maintainer can see exactly how `common.RelayTimeout` affects AWS Bedrock SDK calls in streaming and non-streaming modes.
+- [x] **AWS-03**: Maintainer can verify timeout behavior with focused tests or documented verification steps.
+- [x] **AWS-04**: Maintainer can understand the difference between shared HTTP client timeout, proxy client timeout, and AWS invocation context timeout.
+- [x] **TIME-01**: All channels can define independent relay timeout settings instead of relying only on a single global timeout.
+- [x] **TIME-02**: Streaming timeout semantics are separated from non-streaming timeout semantics; streaming timeout is based on time-to-first-byte/first event rather than total stream duration.
+- [x] **TIME-03**: Timeout failures record detailed structured metadata for later troubleshooting, including effective timeout, timeout stage, stream flag, and timeout source.
+- [x] **TIME-04**: Timeout failures do not break or short-circuit the existing retry mechanism.
+- [x] **TIME-05**: Timeout configuration supports provider differences such as AWS, Sora, and other slow or long-running upstream channels.
+- [x] **TIME-06**: Per-channel timeout settings are stored in `channel.setting` as two separate fields: non-stream total timeout and stream first-byte timeout.
+- [x] **TIME-07**: After the first stream byte/event is received, the first version does not enforce a separate total stream timeout kill switch.
+- [x] **TIME-08**: All channels build or resolve HTTP behavior using channel-level timeout settings when configured, while preserving connection pooling and falling back to shared defaults when absent.
+- [x] **SDK-01**: AWS relay invoke-timeout and retry-attempt knobs used by execution are exposed to New API configuration instead of being fully hidden inside SDK defaults.
+- [x] **SDK-02**: Maintainers can explain which AWS knobs are controlled globally, which are controlled per channel, and how they interact.
+- [x] **SDK-03**: New API globally controls `AWS_INVOKE_TIMEOUT_SECONDS` and `AWS_SDK_MAX_ATTEMPTS` with documented interaction rules against per-channel timeout settings.
+- [x] **SDK-04**: `aws_invoke_timeout_seconds` and `aws_sdk_max_attempts` can be overridden per channel through `channel.setting`, with documented precedence over AWS global defaults.
 
 ### Customer Trace
 
@@ -36,31 +36,31 @@ Requirements for this milestone. Each maps to exactly one roadmap phase.
 
 ### Payload Archival
 
-- [ ] **ARCH-01**: System can capture client request payloads for relay calls without rereading or corrupting request bodies.
-- [ ] **ARCH-02**: System can capture non-streaming upstream/client response payloads without changing client-visible responses.
-- [ ] **ARCH-03**: System can capture streaming response chunks while preserving flush timing and chunk order.
-- [ ] **ARCH-04**: System can store archived payloads in either local storage or Azure Blob based on configuration.
-- [ ] **ARCH-04A**: Archive backend selection between local storage and Azure Blob does not require changes to existing table logic.
-- [ ] **ARCH-05**: Archive object names include server request ID and sanitized customer trace ID.
-- [ ] **ARCH-06**: System writes per-request archive metadata including object names, hashes, byte counts, stream flag, provider/channel/model, status, and errors.
-- [ ] **ARCH-07**: `logs.other` stores archive references and metadata, not full request or response payloads.
+- [x] **ARCH-01**: System can capture client request payloads for relay calls without rereading or corrupting request bodies.
+- [x] **ARCH-02**: System can capture non-streaming upstream/client response payloads without changing client-visible responses.
+- [x] **ARCH-03**: System can capture streaming response chunks while preserving flush timing and chunk order.
+- [x] **ARCH-04**: System can store archived payloads in either local storage or Azure Blob based on configuration.
+- [x] **ARCH-04A**: Archive backend selection between local storage and Azure Blob does not require changes to existing table logic.
+- [x] **ARCH-05**: Archive object paths are keyed by server request ID, and sanitized customer trace ID is stored in manifest and metadata.
+- [x] **ARCH-06**: System writes per-request archive metadata including object names, hashes, byte counts, stream flag, provider/channel/model, status, and errors.
+- [x] **ARCH-07**: `logs.other` stores archive references and metadata, not full request or response payloads.
 
 ### Reliability and Operations
 
-- [ ] **OPS-01**: Archival does not block successful customer responses on local disk or Azure Blob availability by default.
-- [ ] **OPS-02**: Archival uses bounded queues, worker limits, retries, and explicit overflow behavior suitable for 8000-15000 RPM.
-- [ ] **OPS-03**: Storage failures are observable through logs/metadata/metrics without hiding the original relay outcome.
-- [ ] **OPS-04**: Design includes retention, compression, size limits, redaction hooks, and security/access-control guidance.
-- [ ] **OPS-05**: All database-related changes remain compatible with SQLite, MySQL, and PostgreSQL.
+- [x] **OPS-01**: Archival does not block successful customer responses on local disk or Azure Blob availability by default.
+- [x] **OPS-02**: Archival uses bounded queues, worker limits, retries, and explicit overflow behavior suitable for 8000-15000 RPM.
+- [x] **OPS-03**: Storage failures are observable through logs/metadata/metrics without hiding the original relay outcome.
+- [x] **OPS-04**: Design includes retention, compression, size limits, redaction hooks, and security/access-control guidance.
+- [x] **OPS-05**: All database-related changes remain compatible with SQLite, MySQL, and PostgreSQL.
 
 ### Documentation and Verification
 
-- [ ] **DOC-01**: Design documentation explains the current AWS timeout implementation in beginner-readable detail.
-- [ ] **DOC-02**: Design documentation explains the full archival architecture, object naming, local/Azure behavior, batching decision, compression, failure modes, and operational tuning.
-- [ ] **DOC-03**: Design documentation explains customer Trace-Id propagation and where it appears in logs, archive objects, and errors.
-- [ ] **TEST-01**: Tests cover Trace-Id extraction, sanitization, context propagation, and `logs.other` persistence.
-- [ ] **TEST-02**: Tests cover archival capture for non-streaming and streaming relay paths.
-- [ ] **TEST-03**: Tests cover storage failure behavior and queue overflow policy.
+- [x] **DOC-01**: Design documentation explains the current AWS timeout implementation in beginner-readable detail.
+- [x] **DOC-02**: Design documentation explains the full archival architecture, object naming, local/Azure behavior, batching decision, compression, failure modes, and operational tuning.
+- [x] **DOC-03**: Design documentation explains customer Trace-Id propagation and where it appears in logs, archive objects, and errors.
+- [x] **TEST-01**: Tests cover Trace-Id extraction, sanitization, context propagation, and `logs.other` persistence.
+- [x] **TEST-02**: Tests cover archival capture for non-streaming and streaming relay paths.
+- [x] **TEST-03**: Tests cover storage failure behavior and queue overflow policy.
 
 ## v2 Requirements
 
@@ -112,25 +112,25 @@ Which phases cover which requirements. Updated during roadmap creation.
 | TRAC-03 | Phase 2 | Completed |
 | TRAC-04 | Phase 2 | Completed |
 | TRAC-05 | Phase 2 | Completed |
-| ARCH-01 | Phase 3 | Pending |
-| ARCH-02 | Phase 3 | Pending |
-| ARCH-03 | Phase 3 | Pending |
-| ARCH-04 | Phase 3 | Pending |
-| ARCH-04A | Phase 3 | Pending |
-| ARCH-05 | Phase 3 | Pending |
-| ARCH-06 | Phase 3 | Pending |
-| ARCH-07 | Phase 3 | Pending |
-| OPS-01 | Phase 3 | Pending |
-| OPS-02 | Phase 3 | Pending |
-| OPS-03 | Phase 3 | Pending |
-| OPS-04 | Phase 3 | Pending |
-| OPS-05 | Phase 3 | Pending |
-| DOC-01 | Phase 4 | Pending |
-| DOC-02 | Phase 4 | Pending |
-| DOC-03 | Phase 4 | Pending |
-| TEST-01 | Phase 4 | Pending |
-| TEST-02 | Phase 4 | Pending |
-| TEST-03 | Phase 4 | Pending |
+| ARCH-01 | Phase 3 | Completed |
+| ARCH-02 | Phase 3 | Completed |
+| ARCH-03 | Phase 3 | Completed |
+| ARCH-04 | Phase 3 | Completed |
+| ARCH-04A | Phase 3 | Completed |
+| ARCH-05 | Phase 3 | Completed |
+| ARCH-06 | Phase 3 | Completed |
+| ARCH-07 | Phase 3 | Completed |
+| OPS-01 | Phase 3 | Completed |
+| OPS-02 | Phase 3 | Completed |
+| OPS-03 | Phase 3 | Completed |
+| OPS-04 | Phase 3 | Completed |
+| OPS-05 | Phase 3 | Completed |
+| DOC-01 | Phase 4 | Completed |
+| DOC-02 | Phase 4 | Completed |
+| DOC-03 | Phase 4 | Completed |
+| TEST-01 | Phase 4 | Completed |
+| TEST-02 | Phase 4 | Completed |
+| TEST-03 | Phase 4 | Completed |
 
 **Coverage:**
 - v1 requirements: 40 total
@@ -139,4 +139,4 @@ Which phases cover which requirements. Updated during roadmap creation.
 
 ---
 *Requirements defined: 2026-06-06*
-*Last updated: 2026-06-09 after Phase 2 closeout*
+*Last updated: 2026-06-10 after Phase 3 implementation and Phase 4 documentation update*

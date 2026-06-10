@@ -14,7 +14,7 @@ Decimal phases appear between their surrounding integers in numeric order.
 
 - [x] **Phase 1: Channel Timeout Control and AWS SDK Governance** - Add channel-level timeout control, streaming/non-streaming timeout semantics, timeout observability, and AWS SDK timeout configuration management.
 - [x] **Phase 2: Customer Trace-Id Propagation** - Extract, strictly validate, propagate, log, and persist customer trace IDs.
-- [ ] **Phase 3: Request Response Archive Pipeline** - Design and implement local/Azure archival for streaming and non-streaming relay payloads.
+- [x] **Phase 3: Request Response Archive Pipeline** - Design and implement local/Azure archival for streaming and non-streaming relay payloads.
 - [ ] **Phase 4: Verification and Operator Documentation** - Verify the chain and produce beginner-readable operational documentation.
 
 ## Phase Details
@@ -64,16 +64,16 @@ Plans:
   1. System captures request bodies and non-streaming responses without corrupting replay, retry, billing, or client output.
   2. System captures streaming response chunks while preserving chunk order and client flush behavior.
   3. Archive storage can switch between local and Azure Blob through configuration.
-  4. Archive object names include server request ID and sanitized customer trace ID.
+  4. Archive object paths are keyed by server request ID, while sanitized customer trace ID is stored in manifest and metadata.
   5. Archive failures are isolated from successful customer responses by default and recorded as metadata.
   6. Queue limits, worker limits, retries, overflow behavior, compression, retention, and security controls are documented in code-facing design.
 **Plans**: 4 plans
 
 Plans:
-- [ ] 03-01: Design archive interfaces, object naming, manifests, metadata, and configuration.
-- [ ] 03-02: Implement local archive backend and non-streaming capture path.
-- [ ] 03-03: Implement streaming capture, bounded queue, worker pool, and failure metadata.
-- [ ] 03-04: Implement Azure Blob backend and storage-mode switching.
+- [x] 03-01: Design archive interfaces, object naming, manifests, metadata, and configuration.
+- [x] 03-02: Implement local archive backend and non-streaming capture path.
+- [x] 03-03: Implement streaming capture, bounded queue, worker pool, and failure metadata.
+- [x] 03-04: Implement Azure Blob backend and storage-mode switching.
 
 ### Phase 4: Verification and Operator Documentation
 **Goal**: Maintainers have clear proof and documentation for timeout behavior, Trace-Id propagation, and archival operation under high load assumptions.
@@ -88,9 +88,9 @@ Plans:
 **Plans**: 3 plans
 
 Plans:
-- [ ] 04-01: Add end-to-end and failure-mode tests for trace and archival.
-- [ ] 04-02: Write operator and maintainer documentation.
-- [ ] 04-03: Run final verification and update planning artifacts.
+- [x] 04-01: Add end-to-end and failure-mode tests for trace and archival.
+- [x] 04-02: Write operator and maintainer documentation.
+- [x] 04-03: Run final verification and update planning artifacts.
 
 ## Progress
 
@@ -101,5 +101,5 @@ Phases execute in numeric order: 1 -> 2 -> 3 -> 4
 |-------|----------------|--------|-----------|
 | 1. Channel Timeout Control and AWS SDK Governance | 4/4 | Completed | 2026-06-09 |
 | 2. Customer Trace-Id Propagation | 3/3 | Completed | 2026-06-09 |
-| 3. Request Response Archive Pipeline | 0/4 | Not started | - |
-| 4. Verification and Operator Documentation | 0/3 | Not started | - |
+| 3. Request Response Archive Pipeline | 4/4 | Completed | 2026-06-10 |
+| 4. Verification and Operator Documentation | 3/3 | Completed | 2026-06-10 |

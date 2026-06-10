@@ -180,6 +180,20 @@ var RelayIdleConnTimeout int // unit is second
 var RelayMaxIdleConns int
 var RelayMaxIdleConnsPerHost int
 
+var ArchiveEnabled bool            // 是否启用请求/响应归档
+var ArchiveBackend string          // 归档后端类型：local 或 azure_blob
+var ArchiveLocalDir string         // 本地归档根目录，包含 spool 和 objects 子目录
+var ArchiveSpoolDir string         // 归档临时 spool 目录；为空时使用 ArchiveLocalDir/spool
+var ArchiveQueueSize int           // 归档异步队列大小
+var ArchiveWorkerCount int         // 归档后台 worker 数量
+var ArchiveMaxRequestBytes int64   // 单个请求归档对象最大字节数，超限跳过
+var ArchiveMaxResponseBytes int64  // 单个响应归档对象最大字节数，超限跳过
+var ArchiveSpoolTTLHours int       // 失败 spool 文件保留小时数
+var ArchiveAzureAccountURL string  // Azure Blob 服务地址或带 SAS 的地址
+var ArchiveAzureContainer string   // Azure Blob 容器名称
+var ArchiveAzureAccountName string // Azure Blob Shared Key 认证账号名
+var ArchiveAzureAccountKey string  // Azure Blob Shared Key 认证账号密钥
+
 var GeminiSafetySetting string
 
 // https://docs.cohere.com/docs/safety-modes Type; NONE/CONTEXTUAL/STRICT

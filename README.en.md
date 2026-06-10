@@ -312,6 +312,13 @@ docker run --name new-api -d --restart always \
 | `STREAMING_TIMEOUT` | Streaming timeout (seconds) | `300` |
 | `STREAM_SCANNER_MAX_BUFFER_MB` | Max per-line buffer (MB) for the stream scanner; increase when upstream sends huge image/base64 payloads | `64` |
 | `MAX_REQUEST_BODY_MB` | Max request body size (MB, counted **after decompression**; prevents huge requests/zip bombs from exhausting memory). Exceeding it returns `413` | `32` |
+| `ARCHIVE_ENABLED` | Enables request/response archive capture for relay/task/video routes | `false` |
+| `ARCHIVE_BACKEND` | Archive backend: `local` or `azure_blob` | `local` |
+| `ARCHIVE_LOCAL_DIR` | Local archive root; contains separate `spool/` and `objects/` trees | `./data/archive` |
+| `ARCHIVE_QUEUE_SIZE` | Bounded archive queue size | `50000` |
+| `ARCHIVE_WORKER_COUNT` | Archive worker count | `32` |
+| `ARCHIVE_MAX_REQUEST_MB` | Max request archive object size; oversized objects are skipped, not truncated | `128` |
+| `ARCHIVE_MAX_RESPONSE_MB` | Max response archive object size; oversized objects are skipped, not truncated | `128` |
 | `AZURE_DEFAULT_API_VERSION` | Azure API version | `2025-04-01-preview` |
 | `ERROR_LOG_ENABLED` | Error log switch | `false` |
 | `PYROSCOPE_URL` | Pyroscope server address | - |
@@ -323,6 +330,8 @@ docker run --name new-api -d --restart always \
 | `HOSTNAME` | Hostname tag for Pyroscope | `new-api` |
 
 📖 **Complete configuration:** [Environment Variables Documentation](https://docs.newapi.pro/en/docs/installation/config-maintenance/environment-variables)
+
+📖 **Reliability, Trace, and Archive Operations:** [docs/reliability-trace-archive.md](docs/reliability-trace-archive.md)
 
 </details>
 

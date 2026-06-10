@@ -1,0 +1,100 @@
+===== request_id=20260610013042188070008268d9d6lrWztRy9 group=10s =====
+[INFO] 2026/06/10 - 09:30:43 | request_id=20260610013042188070008268d9d6lrWztRy9 trace_id= | 用户 1 额度充足, 信任且不需要预扣费 (funding=wallet) 
+[ERR] 2026/06/10 - 09:30:53 | request_id=20260610013042188070008268d9d6lrWztRy9 trace_id= | do request failed: stream first byte timeout after 0 seconds 
+[ERR] 2026/06/10 - 09:30:53 | request_id=20260610013042188070008268d9d6lrWztRy9 trace_id= | channel error (channel #2, status code: 504): stream first byte timeout after 0 seconds 
+[INFO] 2026/06/10 - 09:30:53 | request_id=20260610013042188070008268d9d6lrWztRy9 trace_id= | record error log: userId=1, channelId=2, modelName=mock-gpt, tokenName=timeout-test-token, content=status_code=504, stream first byte timeout after 0 seconds 
+[INFO] 2026/06/10 - 09:30:55 | request_id=20260610013042188070008268d9d6lrWztRy9 trace_id= | stream ended: reason=done 
+[INFO] 2026/06/10 - 09:30:55 | request_id=20260610013042188070008268d9d6lrWztRy9 trace_id= | 预扣费后补扣费：＄0.000084（实际消耗：＄0.000084，预扣费：＄0.000000） 
+[INFO] 2026/06/10 - 09:30:55 | request_id=20260610013042188070008268d9d6lrWztRy9 trace_id= | record consume log: userId=1, params={"channel_id":3,"prompt_tokens":20,"completion_tokens":64,"model_name":"mock-gpt","token_name":"timeout-test-token","quota":42,"content":"","token_id":1,"use_time_seconds":13,"is_stream":true,"group":"default","other":{"admin_info":{"local_count_tokens":true,"use_channel":["2","3"]},"billing_source":"wallet","cache_ratio":1,"cache_tokens":0,"completion_ratio":1,"frt":12126,"group_ratio":1,"model_price":-1,"model_ratio":0.5,"request_conversion":["OpenAI Compatible"],"request_path":"/v1/chat/completions","stream_status":{"end_reason":"done","status":"ok"},"user_group_ratio":-1}} 
+[GIN] 2026/06/10 - 09:30:56 | relay | request_id=20260610013042188070008268d9d6lrWztRy9 trace_id= | 200 | 14.277987476s |       127.0.0.1 |    POST /v1/chat/completions
+
+===== request_id=20260610013042190650008268d9d6LgOrgYIH group=10s =====
+[INFO] 2026/06/10 - 09:30:44 | request_id=20260610013042190650008268d9d6LgOrgYIH trace_id= | 用户 1 额度充足, 信任且不需要预扣费 (funding=wallet) 
+[ERR] 2026/06/10 - 09:30:54 | request_id=20260610013042190650008268d9d6LgOrgYIH trace_id= | do request failed: stream first byte timeout after 0 seconds 
+[ERR] 2026/06/10 - 09:30:54 | request_id=20260610013042190650008268d9d6LgOrgYIH trace_id= | channel error (channel #2, status code: 504): stream first byte timeout after 0 seconds 
+[INFO] 2026/06/10 - 09:30:54 | request_id=20260610013042190650008268d9d6LgOrgYIH trace_id= | record error log: userId=1, channelId=2, modelName=mock-gpt, tokenName=timeout-test-token, content=status_code=504, stream first byte timeout after 0 seconds 
+[INFO] 2026/06/10 - 09:30:56 | request_id=20260610013042190650008268d9d6LgOrgYIH trace_id= | stream ended: reason=done 
+[INFO] 2026/06/10 - 09:30:56 | request_id=20260610013042190650008268d9d6LgOrgYIH trace_id= | 预扣费后补扣费：＄0.000084（实际消耗：＄0.000084，预扣费：＄0.000000） 
+[INFO] 2026/06/10 - 09:30:56 | request_id=20260610013042190650008268d9d6LgOrgYIH trace_id= | record consume log: userId=1, params={"channel_id":3,"prompt_tokens":20,"completion_tokens":64,"model_name":"mock-gpt","token_name":"timeout-test-token","quota":42,"content":"","token_id":1,"use_time_seconds":13,"is_stream":true,"group":"default","other":{"admin_info":{"local_count_tokens":true,"use_channel":["2","3"]},"billing_source":"wallet","cache_ratio":1,"cache_tokens":0,"completion_ratio":1,"frt":11748,"group_ratio":1,"model_price":-1,"model_ratio":0.5,"request_conversion":["OpenAI Compatible"],"request_path":"/v1/chat/completions","stream_status":{"end_reason":"done","status":"ok"},"user_group_ratio":-1}} 
+[GIN] 2026/06/10 - 09:30:56 | relay | request_id=20260610013042190650008268d9d6LgOrgYIH trace_id= | 200 | 14.977244182s |       127.0.0.1 |    POST /v1/chat/completions
+
+===== request_id=20260610013042215230008268d9d6A6bmUtSO group=10s =====
+[INFO] 2026/06/10 - 09:30:44 | request_id=20260610013042215230008268d9d6A6bmUtSO trace_id= | 用户 1 额度充足, 信任且不需要预扣费 (funding=wallet) 
+[ERR] 2026/06/10 - 09:30:54 | request_id=20260610013042215230008268d9d6A6bmUtSO trace_id= | do request failed: stream first byte timeout after 0 seconds 
+[ERR] 2026/06/10 - 09:30:54 | request_id=20260610013042215230008268d9d6A6bmUtSO trace_id= | channel error (channel #2, status code: 504): stream first byte timeout after 0 seconds 
+[INFO] 2026/06/10 - 09:30:54 | request_id=20260610013042215230008268d9d6A6bmUtSO trace_id= | record error log: userId=1, channelId=2, modelName=mock-gpt, tokenName=timeout-test-token, content=status_code=504, stream first byte timeout after 0 seconds 
+[INFO] 2026/06/10 - 09:30:57 | request_id=20260610013042215230008268d9d6A6bmUtSO trace_id= | stream ended: reason=done 
+[INFO] 2026/06/10 - 09:30:57 | request_id=20260610013042215230008268d9d6A6bmUtSO trace_id= | 预扣费后补扣费：＄0.000084（实际消耗：＄0.000084，预扣费：＄0.000000） 
+[INFO] 2026/06/10 - 09:30:57 | request_id=20260610013042215230008268d9d6A6bmUtSO trace_id= | record consume log: userId=1, params={"channel_id":3,"prompt_tokens":20,"completion_tokens":64,"model_name":"mock-gpt","token_name":"timeout-test-token","quota":42,"content":"","token_id":1,"use_time_seconds":13,"is_stream":true,"group":"default","other":{"admin_info":{"local_count_tokens":true,"use_channel":["2","3"]},"billing_source":"wallet","cache_ratio":1,"cache_tokens":0,"completion_ratio":1,"frt":11820,"group_ratio":1,"model_price":-1,"model_ratio":0.5,"request_conversion":["OpenAI Compatible"],"request_path":"/v1/chat/completions","stream_status":{"end_reason":"done","status":"ok"},"user_group_ratio":-1}} 
+[GIN] 2026/06/10 - 09:30:58 | relay | request_id=20260610013042215230008268d9d6A6bmUtSO trace_id= | 200 | 16.106525429s |       127.0.0.1 |    POST /v1/chat/completions
+
+===== request_id=20260610013042254790008268d9d6O1NDluU3 group=10s =====
+[INFO] 2026/06/10 - 09:30:44 | request_id=20260610013042254790008268d9d6O1NDluU3 trace_id= | 用户 1 额度充足, 信任且不需要预扣费 (funding=wallet) 
+[ERR] 2026/06/10 - 09:30:54 | request_id=20260610013042254790008268d9d6O1NDluU3 trace_id= | do request failed: stream first byte timeout after 0 seconds 
+[ERR] 2026/06/10 - 09:30:54 | request_id=20260610013042254790008268d9d6O1NDluU3 trace_id= | channel error (channel #2, status code: 504): stream first byte timeout after 0 seconds 
+[INFO] 2026/06/10 - 09:30:54 | request_id=20260610013042254790008268d9d6O1NDluU3 trace_id= | record error log: userId=1, channelId=2, modelName=mock-gpt, tokenName=timeout-test-token, content=status_code=504, stream first byte timeout after 0 seconds 
+[INFO] 2026/06/10 - 09:30:56 | request_id=20260610013042254790008268d9d6O1NDluU3 trace_id= | stream ended: reason=done 
+[INFO] 2026/06/10 - 09:30:56 | request_id=20260610013042254790008268d9d6O1NDluU3 trace_id= | 预扣费后补扣费：＄0.000084（实际消耗：＄0.000084，预扣费：＄0.000000） 
+[INFO] 2026/06/10 - 09:30:56 | request_id=20260610013042254790008268d9d6O1NDluU3 trace_id= | record consume log: userId=1, params={"channel_id":3,"prompt_tokens":20,"completion_tokens":64,"model_name":"mock-gpt","token_name":"timeout-test-token","quota":42,"content":"","token_id":1,"use_time_seconds":13,"is_stream":true,"group":"default","other":{"admin_info":{"local_count_tokens":true,"use_channel":["2","3"]},"billing_source":"wallet","cache_ratio":1,"cache_tokens":0,"completion_ratio":1,"frt":11748,"group_ratio":1,"model_price":-1,"model_ratio":0.5,"request_conversion":["OpenAI Compatible"],"request_path":"/v1/chat/completions","stream_status":{"end_reason":"done","status":"ok"},"user_group_ratio":-1}} 
+[GIN] 2026/06/10 - 09:30:57 | relay | request_id=20260610013042254790008268d9d6O1NDluU3 trace_id= | 200 | 14.998392958s |       127.0.0.1 |    POST /v1/chat/completions
+
+===== request_id=20260610013042272730008268d9d6qcX0uWry group=10s =====
+[INFO] 2026/06/10 - 09:30:44 | request_id=20260610013042272730008268d9d6qcX0uWry trace_id= | 用户 1 额度充足, 信任且不需要预扣费 (funding=wallet) 
+[ERR] 2026/06/10 - 09:30:54 | request_id=20260610013042272730008268d9d6qcX0uWry trace_id= | do request failed: stream first byte timeout after 0 seconds 
+[ERR] 2026/06/10 - 09:30:54 | request_id=20260610013042272730008268d9d6qcX0uWry trace_id= | channel error (channel #2, status code: 504): stream first byte timeout after 0 seconds 
+[INFO] 2026/06/10 - 09:30:54 | request_id=20260610013042272730008268d9d6qcX0uWry trace_id= | record error log: userId=1, channelId=2, modelName=mock-gpt, tokenName=timeout-test-token, content=status_code=504, stream first byte timeout after 0 seconds 
+[INFO] 2026/06/10 - 09:30:57 | request_id=20260610013042272730008268d9d6qcX0uWry trace_id= | stream ended: reason=done 
+[INFO] 2026/06/10 - 09:30:57 | request_id=20260610013042272730008268d9d6qcX0uWry trace_id= | 预扣费后补扣费：＄0.000084（实际消耗：＄0.000084，预扣费：＄0.000000） 
+[INFO] 2026/06/10 - 09:30:57 | request_id=20260610013042272730008268d9d6qcX0uWry trace_id= | record consume log: userId=1, params={"channel_id":3,"prompt_tokens":20,"completion_tokens":64,"model_name":"mock-gpt","token_name":"timeout-test-token","quota":42,"content":"","token_id":1,"use_time_seconds":14,"is_stream":true,"group":"default","other":{"admin_info":{"local_count_tokens":true,"use_channel":["2","3"]},"billing_source":"wallet","cache_ratio":1,"cache_tokens":0,"completion_ratio":1,"frt":12337,"group_ratio":1,"model_price":-1,"model_ratio":0.5,"request_conversion":["OpenAI Compatible"],"request_path":"/v1/chat/completions","stream_status":{"end_reason":"done","status":"ok"},"user_group_ratio":-1}} 
+[GIN] 2026/06/10 - 09:30:57 | relay | request_id=20260610013042272730008268d9d6qcX0uWry trace_id= | 200 | 15.907731508s |       127.0.0.1 |    POST /v1/chat/completions
+
+===== request_id=20260610013042279770008268d9d6HXGv1UI8 group=10s =====
+[INFO] 2026/06/10 - 09:30:44 | request_id=20260610013042279770008268d9d6HXGv1UI8 trace_id= | 用户 1 额度充足, 信任且不需要预扣费 (funding=wallet) 
+[ERR] 2026/06/10 - 09:30:54 | request_id=20260610013042279770008268d9d6HXGv1UI8 trace_id= | do request failed: stream first byte timeout after 0 seconds 
+[ERR] 2026/06/10 - 09:30:54 | request_id=20260610013042279770008268d9d6HXGv1UI8 trace_id= | channel error (channel #2, status code: 504): stream first byte timeout after 0 seconds 
+[INFO] 2026/06/10 - 09:30:54 | request_id=20260610013042279770008268d9d6HXGv1UI8 trace_id= | record error log: userId=1, channelId=2, modelName=mock-gpt, tokenName=timeout-test-token, content=status_code=504, stream first byte timeout after 0 seconds 
+[INFO] 2026/06/10 - 09:30:56 | request_id=20260610013042279770008268d9d6HXGv1UI8 trace_id= | stream ended: reason=done 
+[INFO] 2026/06/10 - 09:30:56 | request_id=20260610013042279770008268d9d6HXGv1UI8 trace_id= | 预扣费后补扣费：＄0.000084（实际消耗：＄0.000084，预扣费：＄0.000000） 
+[INFO] 2026/06/10 - 09:30:56 | request_id=20260610013042279770008268d9d6HXGv1UI8 trace_id= | record consume log: userId=1, params={"channel_id":3,"prompt_tokens":20,"completion_tokens":64,"model_name":"mock-gpt","token_name":"timeout-test-token","quota":42,"content":"","token_id":1,"use_time_seconds":13,"is_stream":true,"group":"default","other":{"admin_info":{"local_count_tokens":true,"use_channel":["2","3"]},"billing_source":"wallet","cache_ratio":1,"cache_tokens":0,"completion_ratio":1,"frt":11889,"group_ratio":1,"model_price":-1,"model_ratio":0.5,"request_conversion":["OpenAI Compatible"],"request_path":"/v1/chat/completions","stream_status":{"end_reason":"done","status":"ok"},"user_group_ratio":-1}} 
+[GIN] 2026/06/10 - 09:30:57 | relay | request_id=20260610013042279770008268d9d6HXGv1UI8 trace_id= | 200 | 15.355888545s |       127.0.0.1 |    POST /v1/chat/completions
+
+===== request_id=20260610013042285080008268d9d68F0umpqy group=10s =====
+[INFO] 2026/06/10 - 09:30:44 | request_id=20260610013042285080008268d9d68F0umpqy trace_id= | 用户 1 额度充足, 信任且不需要预扣费 (funding=wallet) 
+[ERR] 2026/06/10 - 09:30:54 | request_id=20260610013042285080008268d9d68F0umpqy trace_id= | do request failed: stream first byte timeout after 0 seconds 
+[ERR] 2026/06/10 - 09:30:54 | request_id=20260610013042285080008268d9d68F0umpqy trace_id= | channel error (channel #2, status code: 504): stream first byte timeout after 0 seconds 
+[INFO] 2026/06/10 - 09:30:54 | request_id=20260610013042285080008268d9d68F0umpqy trace_id= | record error log: userId=1, channelId=2, modelName=mock-gpt, tokenName=timeout-test-token, content=status_code=504, stream first byte timeout after 0 seconds 
+[INFO] 2026/06/10 - 09:30:56 | request_id=20260610013042285080008268d9d68F0umpqy trace_id= | stream ended: reason=done 
+[INFO] 2026/06/10 - 09:30:56 | request_id=20260610013042285080008268d9d68F0umpqy trace_id= | 预扣费后补扣费：＄0.000084（实际消耗：＄0.000084，预扣费：＄0.000000） 
+[INFO] 2026/06/10 - 09:30:56 | request_id=20260610013042285080008268d9d68F0umpqy trace_id= | record consume log: userId=1, params={"channel_id":3,"prompt_tokens":20,"completion_tokens":64,"model_name":"mock-gpt","token_name":"timeout-test-token","quota":42,"content":"","token_id":1,"use_time_seconds":13,"is_stream":true,"group":"default","other":{"admin_info":{"local_count_tokens":true,"use_channel":["2","3"]},"billing_source":"wallet","cache_ratio":1,"cache_tokens":0,"completion_ratio":1,"frt":11742,"group_ratio":1,"model_price":-1,"model_ratio":0.5,"request_conversion":["OpenAI Compatible"],"request_path":"/v1/chat/completions","stream_status":{"end_reason":"done","status":"ok"},"user_group_ratio":-1}} 
+[GIN] 2026/06/10 - 09:30:56 | relay | request_id=20260610013042285080008268d9d68F0umpqy trace_id= | 200 | 14.863874598s |       127.0.0.1 |    POST /v1/chat/completions
+
+===== request_id=20260610013042325710008268d9d6KHSnSIOG group=10s =====
+[INFO] 2026/06/10 - 09:30:44 | request_id=20260610013042325710008268d9d6KHSnSIOG trace_id= | 用户 1 额度充足, 信任且不需要预扣费 (funding=wallet) 
+[ERR] 2026/06/10 - 09:30:54 | request_id=20260610013042325710008268d9d6KHSnSIOG trace_id= | do request failed: stream first byte timeout after 0 seconds 
+[ERR] 2026/06/10 - 09:30:54 | request_id=20260610013042325710008268d9d6KHSnSIOG trace_id= | channel error (channel #2, status code: 504): stream first byte timeout after 0 seconds 
+[INFO] 2026/06/10 - 09:30:54 | request_id=20260610013042325710008268d9d6KHSnSIOG trace_id= | record error log: userId=1, channelId=2, modelName=mock-gpt, tokenName=timeout-test-token, content=status_code=504, stream first byte timeout after 0 seconds 
+[INFO] 2026/06/10 - 09:30:56 | request_id=20260610013042325710008268d9d6KHSnSIOG trace_id= | stream ended: reason=done 
+[INFO] 2026/06/10 - 09:30:56 | request_id=20260610013042325710008268d9d6KHSnSIOG trace_id= | 预扣费后补扣费：＄0.000084（实际消耗：＄0.000084，预扣费：＄0.000000） 
+[INFO] 2026/06/10 - 09:30:56 | request_id=20260610013042325710008268d9d6KHSnSIOG trace_id= | record consume log: userId=1, params={"channel_id":3,"prompt_tokens":20,"completion_tokens":64,"model_name":"mock-gpt","token_name":"timeout-test-token","quota":42,"content":"","token_id":1,"use_time_seconds":13,"is_stream":true,"group":"default","other":{"admin_info":{"local_count_tokens":true,"use_channel":["2","3"]},"billing_source":"wallet","cache_ratio":1,"cache_tokens":0,"completion_ratio":1,"frt":11882,"group_ratio":1,"model_price":-1,"model_ratio":0.5,"request_conversion":["OpenAI Compatible"],"request_path":"/v1/chat/completions","stream_status":{"end_reason":"done","status":"ok"},"user_group_ratio":-1}} 
+[GIN] 2026/06/10 - 09:30:57 | relay | request_id=20260610013042325710008268d9d6KHSnSIOG trace_id= | 200 | 15.341220281s |       127.0.0.1 |    POST /v1/chat/completions
+
+===== request_id=20260610013042330890008268d9d6usxkRUGP group=10s =====
+[INFO] 2026/06/10 - 09:30:44 | request_id=20260610013042330890008268d9d6usxkRUGP trace_id= | 用户 1 额度充足, 信任且不需要预扣费 (funding=wallet) 
+[ERR] 2026/06/10 - 09:30:54 | request_id=20260610013042330890008268d9d6usxkRUGP trace_id= | do request failed: stream first byte timeout after 0 seconds 
+[ERR] 2026/06/10 - 09:30:54 | request_id=20260610013042330890008268d9d6usxkRUGP trace_id= | channel error (channel #2, status code: 504): stream first byte timeout after 0 seconds 
+[INFO] 2026/06/10 - 09:30:54 | request_id=20260610013042330890008268d9d6usxkRUGP trace_id= | record error log: userId=1, channelId=2, modelName=mock-gpt, tokenName=timeout-test-token, content=status_code=504, stream first byte timeout after 0 seconds 
+[INFO] 2026/06/10 - 09:30:56 | request_id=20260610013042330890008268d9d6usxkRUGP trace_id= | stream ended: reason=done 
+[INFO] 2026/06/10 - 09:30:56 | request_id=20260610013042330890008268d9d6usxkRUGP trace_id= | 预扣费后补扣费：＄0.000084（实际消耗：＄0.000084，预扣费：＄0.000000） 
+[INFO] 2026/06/10 - 09:30:56 | request_id=20260610013042330890008268d9d6usxkRUGP trace_id= | record consume log: userId=1, params={"channel_id":3,"prompt_tokens":20,"completion_tokens":64,"model_name":"mock-gpt","token_name":"timeout-test-token","quota":42,"content":"","token_id":1,"use_time_seconds":13,"is_stream":true,"group":"default","other":{"admin_info":{"local_count_tokens":true,"use_channel":["2","3"]},"billing_source":"wallet","cache_ratio":1,"cache_tokens":0,"completion_ratio":1,"frt":11787,"group_ratio":1,"model_price":-1,"model_ratio":0.5,"request_conversion":["OpenAI Compatible"],"request_path":"/v1/chat/completions","stream_status":{"end_reason":"done","status":"ok"},"user_group_ratio":-1}} 
+[GIN] 2026/06/10 - 09:30:57 | relay | request_id=20260610013042330890008268d9d6usxkRUGP trace_id= | 200 | 15.209186683s |       127.0.0.1 |    POST /v1/chat/completions
+
+===== request_id=20260610013042352930008268d9d6bEiSx3J8 group=10s =====
+[INFO] 2026/06/10 - 09:30:44 | request_id=20260610013042352930008268d9d6bEiSx3J8 trace_id= | 用户 1 额度充足, 信任且不需要预扣费 (funding=wallet) 
+[ERR] 2026/06/10 - 09:30:54 | request_id=20260610013042352930008268d9d6bEiSx3J8 trace_id= | do request failed: stream first byte timeout after 0 seconds 
+[ERR] 2026/06/10 - 09:30:54 | request_id=20260610013042352930008268d9d6bEiSx3J8 trace_id= | channel error (channel #2, status code: 504): stream first byte timeout after 0 seconds 
+[INFO] 2026/06/10 - 09:30:54 | request_id=20260610013042352930008268d9d6bEiSx3J8 trace_id= | record error log: userId=1, channelId=2, modelName=mock-gpt, tokenName=timeout-test-token, content=status_code=504, stream first byte timeout after 0 seconds 
+[INFO] 2026/06/10 - 09:30:57 | request_id=20260610013042352930008268d9d6bEiSx3J8 trace_id= | stream ended: reason=done 
+[INFO] 2026/06/10 - 09:30:57 | request_id=20260610013042352930008268d9d6bEiSx3J8 trace_id= | 预扣费后补扣费：＄0.000084（实际消耗：＄0.000084，预扣费：＄0.000000） 
+[INFO] 2026/06/10 - 09:30:57 | request_id=20260610013042352930008268d9d6bEiSx3J8 trace_id= | record consume log: userId=1, params={"channel_id":3,"prompt_tokens":20,"completion_tokens":64,"model_name":"mock-gpt","token_name":"timeout-test-token","quota":42,"content":"","token_id":1,"use_time_seconds":13,"is_stream":true,"group":"default","other":{"admin_info":{"local_count_tokens":true,"use_channel":["2","3"]},"billing_source":"wallet","cache_ratio":1,"cache_tokens":0,"completion_ratio":1,"frt":11915,"group_ratio":1,"model_price":-1,"model_ratio":0.5,"request_conversion":["OpenAI Compatible"],"request_path":"/v1/chat/completions","stream_status":{"end_reason":"done","status":"ok"},"user_group_ratio":-1}} 
+[GIN] 2026/06/10 - 09:30:58 | relay | request_id=20260610013042352930008268d9d6bEiSx3J8 trace_id= | 200 | 16.577785913s |       127.0.0.1 |    POST /v1/chat/completions
+

@@ -1,0 +1,144 @@
+[SYS] 2026/06/10 - 10:15:21 | initializing token encoders 
+[SYS] 2026/06/10 - 10:15:21 | token encoders initialized 
+[SYS] 2026/06/10 - 10:15:21 | using MySQL as database 
+[SYS] 2026/06/10 - 10:15:21 | database migration started 
+[SYS] 2026/06/10 - 10:15:22 | system is already initialized at: 2026-06-08 15:48:31 +0800 CST 
+[SYS] 2026/06/10 - 10:15:22 | using MySQL as database 
+[SYS] 2026/06/10 - 10:15:22 | database migration started 
+[SYS] 2026/06/10 - 10:15:22 | Redis is enabled 
+[SYS] 2026/06/10 - 10:15:22 | archive initialized: backend=azure_blob queue_size=50000 worker_count=32 spool=data/archive/spool 
+[SYS] 2026/06/10 - 10:15:22 | i18n initialized with languages: zh-CN, zh-TW, en 
+[SYS] 2026/06/10 - 10:15:22 | Loaded 0 custom OAuth providers 
+[SYS] 2026/06/10 - 10:15:22 | New API v0.0.0 started 
+[SYS] 2026/06/10 - 10:15:22 | memory cache enabled 
+[SYS] 2026/06/10 - 10:15:22 | sync frequency: 60 seconds 
+[SYS] 2026/06/10 - 10:15:22 | channels synced from database 
+[SYS] 2026/06/10 - 10:15:22 | 正在更新数据看板数据... 
+[SYS] 2026/06/10 - 10:15:22 | batch update enabled with interval 5s 
+[SYS] 2026/06/10 - 10:15:22 | 保存数据看板数据成功，共保存0条数据 
+[INFO] 2026/06/10 - 10:15:22 | request_id=SYSTEM trace_id= | subscription quota reset task started: tick=1m0s 
+[INFO] 2026/06/10 - 10:15:22 | request_id=SYSTEM trace_id= | codex credential auto-refresh task started: tick=10m0s threshold=24h0m0s 
+[SYS] 2026/06/10 - 10:15:22 | upstream model update task started: interval=30m0s 
+
+  [32mNew API v0.0.0[0m  ready in 681 ms
+
+  ➜  [1mLocal:[0m   http://localhost:3000/
+  ➜  [1mNetwork:[0m http://192.168.31.231:3000/
+  ➜  [1mNetwork:[0m http://10.242.179.142:3000/
+  ➜  [1mNetwork:[0m http://10.244.179.142:3000/
+
+[SYS] 2026/06/10 - 10:15:37 | 任务进度轮询开始 
+[SYS] 2026/06/10 - 10:15:37 | 任务进度轮询完成 
+[SYS] 2026/06/10 - 10:15:52 | 任务进度轮询开始 
+[SYS] 2026/06/10 - 10:15:52 | 任务进度轮询完成 
+[SYS] 2026/06/10 - 10:16:07 | 任务进度轮询开始 
+[SYS] 2026/06/10 - 10:16:07 | 任务进度轮询完成 
+[SYS] 2026/06/10 - 10:16:22 | syncing options from database 
+[SYS] 2026/06/10 - 10:16:22 | syncing channels from database 
+[SYS] 2026/06/10 - 10:16:22 | 任务进度轮询开始 
+[SYS] 2026/06/10 - 10:16:22 | channels synced from database 
+[SYS] 2026/06/10 - 10:16:22 | 任务进度轮询完成 
+[SYS] 2026/06/10 - 10:16:37 | 任务进度轮询开始 
+[SYS] 2026/06/10 - 10:16:37 | 任务进度轮询完成 
+[INFO] 2026/06/10 - 10:16:50 | request_id=202606100216504688150008268d9d6ZsfKHSHL trace_id= | 用户 1 额度充足, 信任且不需要预扣费 (funding=wallet) 
+[INFO] 2026/06/10 - 10:16:51 | request_id=202606100216504673210008268d9d6gIo6de9S trace_id= | 用户 1 额度充足, 信任且不需要预扣费 (funding=wallet) 
+[INFO] 2026/06/10 - 10:16:51 | request_id=202606100216504807350008268d9d69mcrMwL5 trace_id= | 用户 1 额度充足, 信任且不需要预扣费 (funding=wallet) 
+[INFO] 2026/06/10 - 10:16:51 | request_id=202606100216504791890008268d9d6LNRA3Zcx trace_id= | 用户 1 额度充足, 信任且不需要预扣费 (funding=wallet) 
+[INFO] 2026/06/10 - 10:16:51 | request_id=202606100216504800850008268d9d6zp4n5lkN trace_id= | 用户 1 额度充足, 信任且不需要预扣费 (funding=wallet) 
+[INFO] 2026/06/10 - 10:16:51 | request_id=202606100216504676550008268d9d6Px08YNRZ trace_id= | 用户 1 额度充足, 信任且不需要预扣费 (funding=wallet) 
+[INFO] 2026/06/10 - 10:16:51 | request_id=202606100216504670720008268d9d6CYzx3oyq trace_id= | 用户 1 额度充足, 信任且不需要预扣费 (funding=wallet) 
+[INFO] 2026/06/10 - 10:16:51 | request_id=202606100216504785310008268d9d6jGtB9Ntn trace_id= | 用户 1 额度充足, 信任且不需要预扣费 (funding=wallet) 
+[INFO] 2026/06/10 - 10:16:51 | request_id=202606100216504792000008268d9d6Rniwi8iJ trace_id= | 用户 1 额度充足, 信任且不需要预扣费 (funding=wallet) 
+[INFO] 2026/06/10 - 10:16:51 | request_id=202606100216504800800008268d9d6YWKzUtqF trace_id= | 用户 1 额度充足, 信任且不需要预扣费 (funding=wallet) 
+[SYS] 2026/06/10 - 10:16:52 | 任务进度轮询开始 
+[SYS] 2026/06/10 - 10:16:52 | 任务进度轮询完成 
+[ERR] 2026/06/10 - 10:17:00 | request_id=202606100216504688150008268d9d6ZsfKHSHL trace_id= | do request failed: stream first byte timeout after 10 seconds 
+[ERR] 2026/06/10 - 10:17:00 | request_id=202606100216504688150008268d9d6ZsfKHSHL trace_id= | channel error (channel #2, status code: 504): stream first byte timeout after 10 seconds 
+[INFO] 2026/06/10 - 10:17:00 | request_id=202606100216504688150008268d9d6ZsfKHSHL trace_id= | record error log: userId=1, channelId=2, modelName=mock-gpt, tokenName=timeout-test-token, content=status_code=504, stream first byte timeout after 10 seconds 
+[ERR] 2026/06/10 - 10:17:01 | request_id=202606100216504673210008268d9d6gIo6de9S trace_id= | do request failed: stream first byte timeout after 10 seconds 
+[ERR] 2026/06/10 - 10:17:01 | request_id=202606100216504673210008268d9d6gIo6de9S trace_id= | channel error (channel #2, status code: 504): stream first byte timeout after 10 seconds 
+[INFO] 2026/06/10 - 10:17:01 | request_id=202606100216504673210008268d9d6gIo6de9S trace_id= | record error log: userId=1, channelId=2, modelName=mock-gpt, tokenName=timeout-test-token, content=status_code=504, stream first byte timeout after 10 seconds 
+[ERR] 2026/06/10 - 10:17:01 | request_id=202606100216504807350008268d9d69mcrMwL5 trace_id= | do request failed: stream first byte timeout after 10 seconds 
+[ERR] 2026/06/10 - 10:17:01 | request_id=202606100216504807350008268d9d69mcrMwL5 trace_id= | channel error (channel #2, status code: 504): stream first byte timeout after 10 seconds 
+[INFO] 2026/06/10 - 10:17:01 | request_id=202606100216504807350008268d9d69mcrMwL5 trace_id= | record error log: userId=1, channelId=2, modelName=mock-gpt, tokenName=timeout-test-token, content=status_code=504, stream first byte timeout after 10 seconds 
+[ERR] 2026/06/10 - 10:17:01 | request_id=202606100216504791890008268d9d6LNRA3Zcx trace_id= | do request failed: stream first byte timeout after 10 seconds 
+[ERR] 2026/06/10 - 10:17:01 | request_id=202606100216504791890008268d9d6LNRA3Zcx trace_id= | channel error (channel #2, status code: 504): stream first byte timeout after 10 seconds 
+[INFO] 2026/06/10 - 10:17:01 | request_id=202606100216504791890008268d9d6LNRA3Zcx trace_id= | record error log: userId=1, channelId=2, modelName=mock-gpt, tokenName=timeout-test-token, content=status_code=504, stream first byte timeout after 10 seconds 
+[ERR] 2026/06/10 - 10:17:01 | request_id=202606100216504800850008268d9d6zp4n5lkN trace_id= | do request failed: stream first byte timeout after 10 seconds 
+[ERR] 2026/06/10 - 10:17:01 | request_id=202606100216504800850008268d9d6zp4n5lkN trace_id= | channel error (channel #2, status code: 504): stream first byte timeout after 10 seconds 
+[INFO] 2026/06/10 - 10:17:01 | request_id=202606100216504800850008268d9d6zp4n5lkN trace_id= | record error log: userId=1, channelId=2, modelName=mock-gpt, tokenName=timeout-test-token, content=status_code=504, stream first byte timeout after 10 seconds 
+[ERR] 2026/06/10 - 10:17:01 | request_id=202606100216504676550008268d9d6Px08YNRZ trace_id= | do request failed: stream first byte timeout after 10 seconds 
+[ERR] 2026/06/10 - 10:17:01 | request_id=202606100216504676550008268d9d6Px08YNRZ trace_id= | channel error (channel #2, status code: 504): stream first byte timeout after 10 seconds 
+[INFO] 2026/06/10 - 10:17:01 | request_id=202606100216504676550008268d9d6Px08YNRZ trace_id= | record error log: userId=1, channelId=2, modelName=mock-gpt, tokenName=timeout-test-token, content=status_code=504, stream first byte timeout after 10 seconds 
+[ERR] 2026/06/10 - 10:17:01 | request_id=202606100216504670720008268d9d6CYzx3oyq trace_id= | do request failed: stream first byte timeout after 10 seconds 
+[ERR] 2026/06/10 - 10:17:01 | request_id=202606100216504670720008268d9d6CYzx3oyq trace_id= | channel error (channel #2, status code: 504): stream first byte timeout after 10 seconds 
+[INFO] 2026/06/10 - 10:17:01 | request_id=202606100216504670720008268d9d6CYzx3oyq trace_id= | record error log: userId=1, channelId=2, modelName=mock-gpt, tokenName=timeout-test-token, content=status_code=504, stream first byte timeout after 10 seconds 
+[ERR] 2026/06/10 - 10:17:01 | request_id=202606100216504792000008268d9d6Rniwi8iJ trace_id= | do request failed: stream first byte timeout after 10 seconds 
+[ERR] 2026/06/10 - 10:17:01 | request_id=202606100216504792000008268d9d6Rniwi8iJ trace_id= | channel error (channel #2, status code: 504): stream first byte timeout after 10 seconds 
+[INFO] 2026/06/10 - 10:17:01 | request_id=202606100216504792000008268d9d6Rniwi8iJ trace_id= | record error log: userId=1, channelId=2, modelName=mock-gpt, tokenName=timeout-test-token, content=status_code=504, stream first byte timeout after 10 seconds 
+[ERR] 2026/06/10 - 10:17:01 | request_id=202606100216504785310008268d9d6jGtB9Ntn trace_id= | do request failed: stream first byte timeout after 10 seconds 
+[ERR] 2026/06/10 - 10:17:01 | request_id=202606100216504785310008268d9d6jGtB9Ntn trace_id= | channel error (channel #2, status code: 504): stream first byte timeout after 10 seconds 
+[INFO] 2026/06/10 - 10:17:01 | request_id=202606100216504785310008268d9d6jGtB9Ntn trace_id= | record error log: userId=1, channelId=2, modelName=mock-gpt, tokenName=timeout-test-token, content=status_code=504, stream first byte timeout after 10 seconds 
+[ERR] 2026/06/10 - 10:17:01 | request_id=202606100216504800800008268d9d6YWKzUtqF trace_id= | do request failed: stream first byte timeout after 10 seconds 
+[ERR] 2026/06/10 - 10:17:01 | request_id=202606100216504800800008268d9d6YWKzUtqF trace_id= | channel error (channel #2, status code: 504): stream first byte timeout after 10 seconds 
+[INFO] 2026/06/10 - 10:17:01 | request_id=202606100216504800800008268d9d6YWKzUtqF trace_id= | record error log: userId=1, channelId=2, modelName=mock-gpt, tokenName=timeout-test-token, content=status_code=504, stream first byte timeout after 10 seconds 
+[INFO] 2026/06/10 - 10:17:03 | request_id=202606100216504688150008268d9d6ZsfKHSHL trace_id= | stream ended: reason=done 
+[INFO] 2026/06/10 - 10:17:03 | request_id=202606100216504688150008268d9d6ZsfKHSHL trace_id= | 预扣费后补扣费：＄0.000084（实际消耗：＄0.000084，预扣费：＄0.000000） 
+[INFO] 2026/06/10 - 10:17:03 | request_id=202606100216504688150008268d9d6ZsfKHSHL trace_id= | record consume log: userId=1, params={"channel_id":3,"prompt_tokens":20,"completion_tokens":64,"model_name":"mock-gpt","token_name":"timeout-test-token","quota":42,"content":"","token_id":1,"use_time_seconds":13,"is_stream":true,"group":"default","other":{"admin_info":{"local_count_tokens":true,"use_channel":["2","3"]},"billing_source":"wallet","cache_ratio":1,"cache_tokens":0,"completion_ratio":1,"frt":11147,"group_ratio":1,"model_price":-1,"model_ratio":0.5,"request_conversion":["OpenAI Compatible"],"request_path":"/v1/chat/completions","stream_status":{"end_reason":"done","status":"ok"},"user_group_ratio":-1}} 
+[GIN] 2026/06/10 - 10:17:03 | relay | request_id=202606100216504688150008268d9d6ZsfKHSHL trace_id= | 200 | 12.694712522s |       127.0.0.1 |    POST /v1/chat/completions
+[INFO] 2026/06/10 - 10:17:03 | request_id=202606100216504673210008268d9d6gIo6de9S trace_id= | stream ended: reason=done 
+[INFO] 2026/06/10 - 10:17:03 | request_id=202606100216504676550008268d9d6Px08YNRZ trace_id= | stream ended: reason=done 
+[INFO] 2026/06/10 - 10:17:03 | request_id=202606100216504800850008268d9d6zp4n5lkN trace_id= | stream ended: reason=done 
+[INFO] 2026/06/10 - 10:17:03 | request_id=202606100216504673210008268d9d6gIo6de9S trace_id= | 预扣费后补扣费：＄0.000084（实际消耗：＄0.000084，预扣费：＄0.000000） 
+[INFO] 2026/06/10 - 10:17:03 | request_id=202606100216504673210008268d9d6gIo6de9S trace_id= | record consume log: userId=1, params={"channel_id":3,"prompt_tokens":20,"completion_tokens":64,"model_name":"mock-gpt","token_name":"timeout-test-token","quota":42,"content":"","token_id":1,"use_time_seconds":13,"is_stream":true,"group":"default","other":{"admin_info":{"local_count_tokens":true,"use_channel":["2","3"]},"billing_source":"wallet","cache_ratio":1,"cache_tokens":0,"completion_ratio":1,"frt":11198,"group_ratio":1,"model_price":-1,"model_ratio":0.5,"request_conversion":["OpenAI Compatible"],"request_path":"/v1/chat/completions","stream_status":{"end_reason":"done","status":"ok"},"user_group_ratio":-1}} 
+[INFO] 2026/06/10 - 10:17:03 | request_id=202606100216504676550008268d9d6Px08YNRZ trace_id= | 预扣费后补扣费：＄0.000084（实际消耗：＄0.000084，预扣费：＄0.000000） 
+[INFO] 2026/06/10 - 10:17:03 | request_id=202606100216504676550008268d9d6Px08YNRZ trace_id= | record consume log: userId=1, params={"channel_id":3,"prompt_tokens":20,"completion_tokens":64,"model_name":"mock-gpt","token_name":"timeout-test-token","quota":42,"content":"","token_id":1,"use_time_seconds":13,"is_stream":true,"group":"default","other":{"admin_info":{"local_count_tokens":true,"use_channel":["2","3"]},"billing_source":"wallet","cache_ratio":1,"cache_tokens":0,"completion_ratio":1,"frt":11198,"group_ratio":1,"model_price":-1,"model_ratio":0.5,"request_conversion":["OpenAI Compatible"],"request_path":"/v1/chat/completions","stream_status":{"end_reason":"done","status":"ok"},"user_group_ratio":-1}} 
+[INFO] 2026/06/10 - 10:17:03 | request_id=202606100216504800850008268d9d6zp4n5lkN trace_id= | 预扣费后补扣费：＄0.000084（实际消耗：＄0.000084，预扣费：＄0.000000） 
+[INFO] 2026/06/10 - 10:17:03 | request_id=202606100216504800850008268d9d6zp4n5lkN trace_id= | record consume log: userId=1, params={"channel_id":3,"prompt_tokens":20,"completion_tokens":64,"model_name":"mock-gpt","token_name":"timeout-test-token","quota":42,"content":"","token_id":1,"use_time_seconds":13,"is_stream":true,"group":"default","other":{"admin_info":{"local_count_tokens":true,"use_channel":["2","3"]},"billing_source":"wallet","cache_ratio":1,"cache_tokens":0,"completion_ratio":1,"frt":11197,"group_ratio":1,"model_price":-1,"model_ratio":0.5,"request_conversion":["OpenAI Compatible"],"request_path":"/v1/chat/completions","stream_status":{"end_reason":"done","status":"ok"},"user_group_ratio":-1}} 
+[INFO] 2026/06/10 - 10:17:03 | request_id=202606100216504807350008268d9d69mcrMwL5 trace_id= | stream ended: reason=done 
+[INFO] 2026/06/10 - 10:17:03 | request_id=202606100216504807350008268d9d69mcrMwL5 trace_id= | 预扣费后补扣费：＄0.000084（实际消耗：＄0.000084，预扣费：＄0.000000） 
+[INFO] 2026/06/10 - 10:17:03 | request_id=202606100216504807350008268d9d69mcrMwL5 trace_id= | record consume log: userId=1, params={"channel_id":3,"prompt_tokens":20,"completion_tokens":64,"model_name":"mock-gpt","token_name":"timeout-test-token","quota":42,"content":"","token_id":1,"use_time_seconds":13,"is_stream":true,"group":"default","other":{"admin_info":{"local_count_tokens":true,"use_channel":["2","3"]},"billing_source":"wallet","cache_ratio":1,"cache_tokens":0,"completion_ratio":1,"frt":11197,"group_ratio":1,"model_price":-1,"model_ratio":0.5,"request_conversion":["OpenAI Compatible"],"request_path":"/v1/chat/completions","stream_status":{"end_reason":"done","status":"ok"},"user_group_ratio":-1}} 
+[INFO] 2026/06/10 - 10:17:03 | request_id=202606100216504800800008268d9d6YWKzUtqF trace_id= | stream ended: reason=done 
+[INFO] 2026/06/10 - 10:17:03 | request_id=202606100216504670720008268d9d6CYzx3oyq trace_id= | stream ended: reason=done 
+[INFO] 2026/06/10 - 10:17:03 | request_id=202606100216504791890008268d9d6LNRA3Zcx trace_id= | stream ended: reason=done 
+[INFO] 2026/06/10 - 10:17:03 | request_id=202606100216504670720008268d9d6CYzx3oyq trace_id= | 预扣费后补扣费：＄0.000084（实际消耗：＄0.000084，预扣费：＄0.000000） 
+[INFO] 2026/06/10 - 10:17:03 | request_id=202606100216504800800008268d9d6YWKzUtqF trace_id= | 预扣费后补扣费：＄0.000084（实际消耗：＄0.000084，预扣费：＄0.000000） 
+[INFO] 2026/06/10 - 10:17:03 | request_id=202606100216504670720008268d9d6CYzx3oyq trace_id= | record consume log: userId=1, params={"channel_id":3,"prompt_tokens":20,"completion_tokens":64,"model_name":"mock-gpt","token_name":"timeout-test-token","quota":42,"content":"","token_id":1,"use_time_seconds":12,"is_stream":true,"group":"default","other":{"admin_info":{"local_count_tokens":true,"use_channel":["2","3"]},"billing_source":"wallet","cache_ratio":1,"cache_tokens":0,"completion_ratio":1,"frt":11138,"group_ratio":1,"model_price":-1,"model_ratio":0.5,"request_conversion":["OpenAI Compatible"],"request_path":"/v1/chat/completions","stream_status":{"end_reason":"done","status":"ok"},"user_group_ratio":-1}} 
+[INFO] 2026/06/10 - 10:17:03 | request_id=202606100216504791890008268d9d6LNRA3Zcx trace_id= | 预扣费后补扣费：＄0.000084（实际消耗：＄0.000084，预扣费：＄0.000000） 
+[INFO] 2026/06/10 - 10:17:03 | request_id=202606100216504791890008268d9d6LNRA3Zcx trace_id= | record consume log: userId=1, params={"channel_id":3,"prompt_tokens":20,"completion_tokens":64,"model_name":"mock-gpt","token_name":"timeout-test-token","quota":42,"content":"","token_id":1,"use_time_seconds":13,"is_stream":true,"group":"default","other":{"admin_info":{"local_count_tokens":true,"use_channel":["2","3"]},"billing_source":"wallet","cache_ratio":1,"cache_tokens":0,"completion_ratio":1,"frt":11207,"group_ratio":1,"model_price":-1,"model_ratio":0.5,"request_conversion":["OpenAI Compatible"],"request_path":"/v1/chat/completions","stream_status":{"end_reason":"done","status":"ok"},"user_group_ratio":-1}} 
+[INFO] 2026/06/10 - 10:17:03 | request_id=202606100216504800800008268d9d6YWKzUtqF trace_id= | record consume log: userId=1, params={"channel_id":3,"prompt_tokens":20,"completion_tokens":64,"model_name":"mock-gpt","token_name":"timeout-test-token","quota":42,"content":"","token_id":1,"use_time_seconds":12,"is_stream":true,"group":"default","other":{"admin_info":{"local_count_tokens":true,"use_channel":["2","3"]},"billing_source":"wallet","cache_ratio":1,"cache_tokens":0,"completion_ratio":1,"frt":11111,"group_ratio":1,"model_price":-1,"model_ratio":0.5,"request_conversion":["OpenAI Compatible"],"request_path":"/v1/chat/completions","stream_status":{"end_reason":"done","status":"ok"},"user_group_ratio":-1}} 
+[INFO] 2026/06/10 - 10:17:03 | request_id=202606100216504785310008268d9d6jGtB9Ntn trace_id= | stream ended: reason=done 
+[INFO] 2026/06/10 - 10:17:03 | request_id=202606100216504785310008268d9d6jGtB9Ntn trace_id= | 预扣费后补扣费：＄0.000084（实际消耗：＄0.000084，预扣费：＄0.000000） 
+[INFO] 2026/06/10 - 10:17:03 | request_id=202606100216504785310008268d9d6jGtB9Ntn trace_id= | record consume log: userId=1, params={"channel_id":3,"prompt_tokens":20,"completion_tokens":64,"model_name":"mock-gpt","token_name":"timeout-test-token","quota":42,"content":"","token_id":1,"use_time_seconds":12,"is_stream":true,"group":"default","other":{"admin_info":{"local_count_tokens":true,"use_channel":["2","3"]},"billing_source":"wallet","cache_ratio":1,"cache_tokens":0,"completion_ratio":1,"frt":11112,"group_ratio":1,"model_price":-1,"model_ratio":0.5,"request_conversion":["OpenAI Compatible"],"request_path":"/v1/chat/completions","stream_status":{"end_reason":"done","status":"ok"},"user_group_ratio":-1}} 
+[INFO] 2026/06/10 - 10:17:03 | request_id=202606100216504792000008268d9d6Rniwi8iJ trace_id= | stream ended: reason=done 
+[INFO] 2026/06/10 - 10:17:03 | request_id=202606100216504792000008268d9d6Rniwi8iJ trace_id= | 预扣费后补扣费：＄0.000084（实际消耗：＄0.000084，预扣费：＄0.000000） 
+[INFO] 2026/06/10 - 10:17:03 | request_id=202606100216504792000008268d9d6Rniwi8iJ trace_id= | record consume log: userId=1, params={"channel_id":3,"prompt_tokens":20,"completion_tokens":64,"model_name":"mock-gpt","token_name":"timeout-test-token","quota":42,"content":"","token_id":1,"use_time_seconds":12,"is_stream":true,"group":"default","other":{"admin_info":{"local_count_tokens":true,"use_channel":["2","3"]},"billing_source":"wallet","cache_ratio":1,"cache_tokens":0,"completion_ratio":1,"frt":11109,"group_ratio":1,"model_price":-1,"model_ratio":0.5,"request_conversion":["OpenAI Compatible"],"request_path":"/v1/chat/completions","stream_status":{"end_reason":"done","status":"ok"},"user_group_ratio":-1}} 
+[GIN] 2026/06/10 - 10:17:03 | relay | request_id=202606100216504800850008268d9d6zp4n5lkN trace_id= | 200 | 12.772009705s |       127.0.0.1 |    POST /v1/chat/completions
+[GIN] 2026/06/10 - 10:17:03 | relay | request_id=202606100216504676550008268d9d6Px08YNRZ trace_id= | 200 | 12.790958521s |       127.0.0.1 |    POST /v1/chat/completions
+[GIN] 2026/06/10 - 10:17:03 | relay | request_id=202606100216504673210008268d9d6gIo6de9S trace_id= | 200 | 12.792555294s |       127.0.0.1 |    POST /v1/chat/completions
+[GIN] 2026/06/10 - 10:17:03 | relay | request_id=202606100216504807350008268d9d69mcrMwL5 trace_id= | 200 | 12.787518954s |       127.0.0.1 |    POST /v1/chat/completions
+[GIN] 2026/06/10 - 10:17:03 | relay | request_id=202606100216504670720008268d9d6CYzx3oyq trace_id= | 200 | 12.809570336s |       127.0.0.1 |    POST /v1/chat/completions
+[GIN] 2026/06/10 - 10:17:03 | relay | request_id=202606100216504791890008268d9d6LNRA3Zcx trace_id= | 200 |  12.80313606s |       127.0.0.1 |    POST /v1/chat/completions
+[GIN] 2026/06/10 - 10:17:03 | relay | request_id=202606100216504800800008268d9d6YWKzUtqF trace_id= | 200 | 12.813184687s |       127.0.0.1 |    POST /v1/chat/completions
+[GIN] 2026/06/10 - 10:17:03 | relay | request_id=202606100216504785310008268d9d6jGtB9Ntn trace_id= | 200 | 12.818881177s |       127.0.0.1 |    POST /v1/chat/completions
+[GIN] 2026/06/10 - 10:17:03 | relay | request_id=202606100216504792000008268d9d6Rniwi8iJ trace_id= | 200 | 12.823420462s |       127.0.0.1 |    POST /v1/chat/completions
+[SYS] 2026/06/10 - 10:17:07 | batch update started 
+[SYS] 2026/06/10 - 10:17:07 | batch update finished 
+[SYS] 2026/06/10 - 10:17:07 | 任务进度轮询开始 
+[SYS] 2026/06/10 - 10:17:07 | 任务进度轮询完成 
+[SYS] 2026/06/10 - 10:17:22 | syncing options from database 
+[SYS] 2026/06/10 - 10:17:22 | syncing channels from database 
+[SYS] 2026/06/10 - 10:17:22 | channels synced from database 
+[SYS] 2026/06/10 - 10:17:22 | 任务进度轮询开始 
+[SYS] 2026/06/10 - 10:17:22 | 任务进度轮询完成 
+[SYS] 2026/06/10 - 10:17:37 | 任务进度轮询开始 
+[SYS] 2026/06/10 - 10:17:37 | 任务进度轮询完成 
+[SYS] 2026/06/10 - 10:17:52 | 任务进度轮询开始 
+[SYS] 2026/06/10 - 10:17:52 | 任务进度轮询完成 
+[SYS] 2026/06/10 - 10:18:07 | 任务进度轮询开始 
+[SYS] 2026/06/10 - 10:18:07 | 任务进度轮询完成 
+[SYS] 2026/06/10 - 10:18:22 | syncing options from database 
+[SYS] 2026/06/10 - 10:18:22 | syncing channels from database 
+[SYS] 2026/06/10 - 10:18:22 | channels synced from database 
+[SYS] 2026/06/10 - 10:18:22 | 任务进度轮询开始 
+[SYS] 2026/06/10 - 10:18:22 | 任务进度轮询完成 
