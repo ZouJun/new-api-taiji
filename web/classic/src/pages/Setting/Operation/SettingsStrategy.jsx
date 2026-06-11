@@ -282,10 +282,7 @@ export default function SettingsStrategy(props) {
             style={{
               width: '100%',
               display: 'flex',
-              justifyContent: 'space-between',
               alignItems: 'center',
-              gap: 12,
-              flexWrap: 'wrap',
             }}
           >
             <Text type='secondary' size='small'>
@@ -293,14 +290,6 @@ export default function SettingsStrategy(props) {
                 '这里的重试次数仅指 New API 在不同渠道之间继续尝试的次数，首次请求不计入，也不是 AWS SDK 自身的重试。',
               )}
             </Text>
-            <Space>
-              <Button theme='solid' onClick={onSubmit} loading={loading}>
-                {t('保存策略设置')}
-              </Button>
-              <Button onClick={onReset} disabled={loading || !hasChanges}>
-                {t('重置')}
-              </Button>
-            </Space>
           </div>
 
           {groupNames.length === 0 ? (
@@ -493,6 +482,45 @@ export default function SettingsStrategy(props) {
               );
             })
           )}
+
+          <div
+            style={{
+              width: '100%',
+              display: 'flex',
+              justifyContent: 'flex-start',
+              gap: '12px',
+              alignItems: 'center',
+              paddingTop: '8px',
+              borderTop: '1px solid var(--semi-color-border)',
+              marginTop: 4,
+            }}
+          >
+            <Button
+              size='default'
+              type='tertiary'
+              onClick={onReset}
+              disabled={loading || !hasChanges}
+              style={{
+                borderRadius: '6px',
+                fontWeight: '500',
+              }}
+            >
+              {t('重置为默认')}
+            </Button>
+            <Button
+              size='default'
+              type='primary'
+              onClick={onSubmit}
+              loading={loading}
+              style={{
+                borderRadius: '6px',
+                fontWeight: '500',
+                minWidth: '100px',
+              }}
+            >
+              {t('保存设置')}
+            </Button>
+          </div>
         </Space>
       </Form.Section>
     </Card>

@@ -1,5 +1,0 @@
-[SYS] 2026/06/11 - 16:27:31 | initializing token encoders 
-[SYS] 2026/06/11 - 16:27:31 | token encoders initialized 
-[SYS] 2026/06/11 - 16:27:31 | using MySQL as database 
-[SYS] 2026/06/11 - 16:27:31 | database migration started 
-[SYS] 2026/06/11 - 16:27:31 | system is already initialized at: 2026-06-08 15:48:31 +0800 CST 
