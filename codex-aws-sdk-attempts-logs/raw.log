@@ -1,0 +1,145 @@
+[SYS] 2026/06/10 - 17:56:56 | initializing token encoders 
+[SYS] 2026/06/10 - 17:56:56 | token encoders initialized 
+[SYS] 2026/06/10 - 17:56:56 | using MySQL as database 
+[SYS] 2026/06/10 - 17:56:56 | database migration started 
+[SYS] 2026/06/10 - 17:56:57 | system is already initialized at: 2026-06-08 15:48:31 +0800 CST 
+[SYS] 2026/06/10 - 17:56:57 | using MySQL as database 
+[SYS] 2026/06/10 - 17:56:57 | database migration started 
+[SYS] 2026/06/10 - 17:56:57 | Redis is enabled 
+[SYS] 2026/06/10 - 17:56:59 | archive initialized: backend=local queue_size=50000 worker_count=32 spool=data/archive/spool 
+[SYS] 2026/06/10 - 17:56:59 | i18n initialized with languages: zh-CN, zh-TW, en 
+[SYS] 2026/06/10 - 17:56:59 | Loaded 0 custom OAuth providers 
+[SYS] 2026/06/10 - 17:56:59 | New API v0.0.0 started 
+[SYS] 2026/06/10 - 17:56:59 | memory cache enabled 
+[SYS] 2026/06/10 - 17:56:59 | sync frequency: 60 seconds 
+[SYS] 2026/06/10 - 17:56:59 | channels synced from database 
+[SYS] 2026/06/10 - 17:56:59 | batch update enabled with interval 5s 
+
+  [32mNew API v0.0.0[0m  ready in 2662 ms
+
+  ➜  [1mLocal:[0m   http://localhost:3000/
+  ➜  [1mNetwork:[0m http://192.168.31.231:3000/
+  ➜  [1mNetwork:[0m http://10.242.179.142:3000/
+  ➜  [1mNetwork:[0m http://10.244.179.142:3000/
+
+[INFO] 2026/06/10 - 17:56:59 | request_id=SYSTEM trace_id= | codex credential auto-refresh task started: tick=10m0s threshold=24h0m0s 
+[SYS] 2026/06/10 - 17:56:59 | 正在更新数据看板数据... 
+[SYS] 2026/06/10 - 17:56:59 | 保存数据看板数据成功，共保存0条数据 
+[INFO] 2026/06/10 - 17:56:59 | request_id=SYSTEM trace_id= | subscription quota reset task started: tick=1m0s 
+[SYS] 2026/06/10 - 17:56:59 | upstream model update task started: interval=30m0s 
+[SYS] 2026/06/10 - 17:57:14 | 任务进度轮询开始 
+[SYS] 2026/06/10 - 17:57:14 | 任务进度轮询完成 
+[SYS] 2026/06/10 - 17:57:29 | 任务进度轮询开始 
+[SYS] 2026/06/10 - 17:57:29 | 任务进度轮询完成 
+[SYS] 2026/06/10 - 17:57:44 | 任务进度轮询开始 
+[SYS] 2026/06/10 - 17:57:44 | 任务进度轮询完成 
+[SYS] 2026/06/10 - 17:57:59 | syncing channels from database 
+[SYS] 2026/06/10 - 17:57:59 | syncing options from database 
+[SYS] 2026/06/10 - 17:57:59 | channels synced from database 
+[SYS] 2026/06/10 - 17:57:59 | 任务进度轮询开始 
+[SYS] 2026/06/10 - 17:57:59 | 任务进度轮询完成 
+[SYS] 2026/06/10 - 17:58:14 | 任务进度轮询开始 
+[SYS] 2026/06/10 - 17:58:14 | 任务进度轮询完成 
+[SYS] 2026/06/10 - 17:58:29 | 任务进度轮询开始 
+[SYS] 2026/06/10 - 17:58:29 | 任务进度轮询完成 
+[INFO] 2026/06/10 - 17:58:41 | request_id=20260610095838246200008268d9d6ELIkWF0B trace_id=AwsAttempts09 | 用户 1 额度充足, 信任且不需要预扣费 (funding=wallet) 
+[INFO] 2026/06/10 - 17:58:41 | request_id=20260610095838313910008268d9d6BuoJkVle trace_id=AwsAttempts10 | 用户 1 额度充足, 信任且不需要预扣费 (funding=wallet) 
+[INFO] 2026/06/10 - 17:58:41 | request_id=20260610095838249170008268d9d6ZHDgauts trace_id=AwsAttempts07 | 用户 1 额度充足, 信任且不需要预扣费 (funding=wallet) 
+[ERR] 2026/06/10 - 17:58:41 | request_id=20260610095838246200008268d9d6ELIkWF0B trace_id=AwsAttempts09 | channel error (channel #2, status code: 0): InvokeModelWithResponseStream: operation error Bedrock Runtime: InvokeModelWithResponseStream, exceeded maximum number of attempts, 1, https response error StatusCode: 0, RequestID: , request send failed, Post "https://bedrock-runtime.us-east-1.amazonaws.com/model/mock-gpt/invoke-with-response-stream": Bad Gateway 
+[INFO] 2026/06/10 - 17:58:41 | request_id=20260610095838246200008268d9d6ELIkWF0B trace_id=AwsAttempts09 | record error log: userId=1, channelId=2, modelName=mock-gpt, tokenName=timeout-test-token, content=InvokeModelWithResponseStream: operation error Bedrock Runtime: InvokeModelWithResponseStream, exceeded maximum number of attempts, 1, https response error StatusCode: 0, RequestID: , request send failed, Post "https://***.com/***/***/*** Bad Gateway 
+[ERR] 2026/06/10 - 17:58:41 | request_id=20260610095838313910008268d9d6BuoJkVle trace_id=AwsAttempts10 | channel error (channel #2, status code: 0): InvokeModelWithResponseStream: operation error Bedrock Runtime: InvokeModelWithResponseStream, exceeded maximum number of attempts, 1, https response error StatusCode: 0, RequestID: , request send failed, Post "https://bedrock-runtime.us-east-1.amazonaws.com/model/mock-gpt/invoke-with-response-stream": Bad Gateway 
+[INFO] 2026/06/10 - 17:58:41 | request_id=20260610095838313910008268d9d6BuoJkVle trace_id=AwsAttempts10 | record error log: userId=1, channelId=2, modelName=mock-gpt, tokenName=timeout-test-token, content=InvokeModelWithResponseStream: operation error Bedrock Runtime: InvokeModelWithResponseStream, exceeded maximum number of attempts, 1, https response error StatusCode: 0, RequestID: , request send failed, Post "https://***.com/***/***/*** Bad Gateway 
+[ERR] 2026/06/10 - 17:58:41 | request_id=20260610095838249170008268d9d6ZHDgauts trace_id=AwsAttempts07 | channel error (channel #2, status code: 0): InvokeModelWithResponseStream: operation error Bedrock Runtime: InvokeModelWithResponseStream, exceeded maximum number of attempts, 1, https response error StatusCode: 0, RequestID: , request send failed, Post "https://bedrock-runtime.us-east-1.amazonaws.com/model/mock-gpt/invoke-with-response-stream": Bad Gateway 
+[INFO] 2026/06/10 - 17:58:41 | request_id=20260610095838249170008268d9d6ZHDgauts trace_id=AwsAttempts07 | record error log: userId=1, channelId=2, modelName=mock-gpt, tokenName=timeout-test-token, content=InvokeModelWithResponseStream: operation error Bedrock Runtime: InvokeModelWithResponseStream, exceeded maximum number of attempts, 1, https response error StatusCode: 0, RequestID: , request send failed, Post "https://***.com/***/***/*** Bad Gateway 
+[INFO] 2026/06/10 - 17:58:41 | request_id=20260610095838313840008268d9d6385zWXzp trace_id=AwsAttempts02 | 用户 1 额度充足, 信任且不需要预扣费 (funding=wallet) 
+[ERR] 2026/06/10 - 17:58:41 | request_id=20260610095838313840008268d9d6385zWXzp trace_id=AwsAttempts02 | channel error (channel #2, status code: 0): InvokeModelWithResponseStream: operation error Bedrock Runtime: InvokeModelWithResponseStream, exceeded maximum number of attempts, 1, https response error StatusCode: 0, RequestID: , request send failed, Post "https://bedrock-runtime.us-east-1.amazonaws.com/model/mock-gpt/invoke-with-response-stream": Bad Gateway 
+[INFO] 2026/06/10 - 17:58:41 | request_id=20260610095838313840008268d9d6385zWXzp trace_id=AwsAttempts02 | record error log: userId=1, channelId=2, modelName=mock-gpt, tokenName=timeout-test-token, content=InvokeModelWithResponseStream: operation error Bedrock Runtime: InvokeModelWithResponseStream, exceeded maximum number of attempts, 1, https response error StatusCode: 0, RequestID: , request send failed, Post "https://***.com/***/***/*** Bad Gateway 
+[INFO] 2026/06/10 - 17:58:41 | request_id=20260610095838264450008268d9d6wpmgEjrM trace_id=AwsAttempts08 | 用户 1 额度充足, 信任且不需要预扣费 (funding=wallet) 
+[INFO] 2026/06/10 - 17:58:41 | request_id=20260610095838313350008268d9d6VH2tjFH3 trace_id=AwsAttempts04 | 用户 1 额度充足, 信任且不需要预扣费 (funding=wallet) 
+[INFO] 2026/06/10 - 17:58:41 | request_id=20260610095838313350008268d9d6F8WHiNre trace_id=AwsAttempts03 | 用户 1 额度充足, 信任且不需要预扣费 (funding=wallet) 
+[INFO] 2026/06/10 - 17:58:41 | request_id=20260610095838250330008268d9d6rm7XKL2I trace_id=AwsAttempts01 | 用户 1 额度充足, 信任且不需要预扣费 (funding=wallet) 
+[ERR] 2026/06/10 - 17:58:41 | request_id=20260610095838250330008268d9d6rm7XKL2I trace_id=AwsAttempts01 | channel error (channel #2, status code: 0): InvokeModelWithResponseStream: operation error Bedrock Runtime: InvokeModelWithResponseStream, exceeded maximum number of attempts, 1, https response error StatusCode: 0, RequestID: , request send failed, Post "https://bedrock-runtime.us-east-1.amazonaws.com/model/mock-gpt/invoke-with-response-stream": Bad Gateway 
+[INFO] 2026/06/10 - 17:58:41 | request_id=20260610095838250330008268d9d6rm7XKL2I trace_id=AwsAttempts01 | record error log: userId=1, channelId=2, modelName=mock-gpt, tokenName=timeout-test-token, content=InvokeModelWithResponseStream: operation error Bedrock Runtime: InvokeModelWithResponseStream, exceeded maximum number of attempts, 1, https response error StatusCode: 0, RequestID: , request send failed, Post "https://***.com/***/***/*** Bad Gateway 
+[ERR] 2026/06/10 - 17:58:41 | request_id=20260610095838313350008268d9d6F8WHiNre trace_id=AwsAttempts03 | channel error (channel #2, status code: 0): InvokeModelWithResponseStream: operation error Bedrock Runtime: InvokeModelWithResponseStream, exceeded maximum number of attempts, 1, https response error StatusCode: 0, RequestID: , request send failed, Post "https://bedrock-runtime.us-east-1.amazonaws.com/model/mock-gpt/invoke-with-response-stream": Bad Gateway 
+[INFO] 2026/06/10 - 17:58:41 | request_id=20260610095838313350008268d9d6F8WHiNre trace_id=AwsAttempts03 | record error log: userId=1, channelId=2, modelName=mock-gpt, tokenName=timeout-test-token, content=InvokeModelWithResponseStream: operation error Bedrock Runtime: InvokeModelWithResponseStream, exceeded maximum number of attempts, 1, https response error StatusCode: 0, RequestID: , request send failed, Post "https://***.com/***/***/*** Bad Gateway 
+[ERR] 2026/06/10 - 17:58:41 | request_id=20260610095838264450008268d9d6wpmgEjrM trace_id=AwsAttempts08 | channel error (channel #2, status code: 0): InvokeModelWithResponseStream: operation error Bedrock Runtime: InvokeModelWithResponseStream, exceeded maximum number of attempts, 1, https response error StatusCode: 0, RequestID: , request send failed, Post "https://bedrock-runtime.us-east-1.amazonaws.com/model/mock-gpt/invoke-with-response-stream": Bad Gateway 
+[ERR] 2026/06/10 - 17:58:41 | request_id=20260610095838313350008268d9d6VH2tjFH3 trace_id=AwsAttempts04 | channel error (channel #2, status code: 0): InvokeModelWithResponseStream: operation error Bedrock Runtime: InvokeModelWithResponseStream, exceeded maximum number of attempts, 1, https response error StatusCode: 0, RequestID: , request send failed, Post "https://bedrock-runtime.us-east-1.amazonaws.com/model/mock-gpt/invoke-with-response-stream": Bad Gateway 
+[INFO] 2026/06/10 - 17:58:41 | request_id=20260610095838264450008268d9d6wpmgEjrM trace_id=AwsAttempts08 | record error log: userId=1, channelId=2, modelName=mock-gpt, tokenName=timeout-test-token, content=InvokeModelWithResponseStream: operation error Bedrock Runtime: InvokeModelWithResponseStream, exceeded maximum number of attempts, 1, https response error StatusCode: 0, RequestID: , request send failed, Post "https://***.com/***/***/*** Bad Gateway 
+[INFO] 2026/06/10 - 17:58:41 | request_id=20260610095838313350008268d9d6VH2tjFH3 trace_id=AwsAttempts04 | record error log: userId=1, channelId=2, modelName=mock-gpt, tokenName=timeout-test-token, content=InvokeModelWithResponseStream: operation error Bedrock Runtime: InvokeModelWithResponseStream, exceeded maximum number of attempts, 1, https response error StatusCode: 0, RequestID: , request send failed, Post "https://***.com/***/***/*** Bad Gateway 
+[INFO] 2026/06/10 - 17:58:42 | request_id=20260610095838265860008268d9d67RvnhrmP trace_id=AwsAttempts05 | 用户 1 额度充足, 信任且不需要预扣费 (funding=wallet) 
+[INFO] 2026/06/10 - 17:58:42 | request_id=20260610095838253800008268d9d61JW6GjtG trace_id=AwsAttempts06 | 用户 1 额度充足, 信任且不需要预扣费 (funding=wallet) 
+[ERR] 2026/06/10 - 17:58:42 | request_id=20260610095838253800008268d9d61JW6GjtG trace_id=AwsAttempts06 | channel error (channel #2, status code: 0): InvokeModelWithResponseStream: operation error Bedrock Runtime: InvokeModelWithResponseStream, exceeded maximum number of attempts, 1, https response error StatusCode: 0, RequestID: , request send failed, Post "https://bedrock-runtime.us-east-1.amazonaws.com/model/mock-gpt/invoke-with-response-stream": Bad Gateway 
+[INFO] 2026/06/10 - 17:58:42 | request_id=20260610095838253800008268d9d61JW6GjtG trace_id=AwsAttempts06 | record error log: userId=1, channelId=2, modelName=mock-gpt, tokenName=timeout-test-token, content=InvokeModelWithResponseStream: operation error Bedrock Runtime: InvokeModelWithResponseStream, exceeded maximum number of attempts, 1, https response error StatusCode: 0, RequestID: , request send failed, Post "https://***.com/***/***/*** Bad Gateway 
+[ERR] 2026/06/10 - 17:58:42 | request_id=20260610095838265860008268d9d67RvnhrmP trace_id=AwsAttempts05 | channel error (channel #2, status code: 0): InvokeModelWithResponseStream: operation error Bedrock Runtime: InvokeModelWithResponseStream, exceeded maximum number of attempts, 1, https response error StatusCode: 0, RequestID: , request send failed, Post "https://bedrock-runtime.us-east-1.amazonaws.com/model/mock-gpt/invoke-with-response-stream": Bad Gateway 
+[INFO] 2026/06/10 - 17:58:42 | request_id=20260610095838265860008268d9d67RvnhrmP trace_id=AwsAttempts05 | record error log: userId=1, channelId=2, modelName=mock-gpt, tokenName=timeout-test-token, content=InvokeModelWithResponseStream: operation error Bedrock Runtime: InvokeModelWithResponseStream, exceeded maximum number of attempts, 1, https response error StatusCode: 0, RequestID: , request send failed, Post "https://***.com/***/***/*** Bad Gateway 
+[SYS] 2026/06/10 - 17:58:44 | 任务进度轮询开始 
+[SYS] 2026/06/10 - 17:58:44 | 任务进度轮询完成 
+[INFO] 2026/06/10 - 17:58:44 | request_id=20260610095838249170008268d9d6ZHDgauts trace_id=AwsAttempts07 | stream ended: reason=done 
+[INFO] 2026/06/10 - 17:58:44 | request_id=20260610095838264450008268d9d6wpmgEjrM trace_id=AwsAttempts08 | stream ended: reason=done 
+[INFO] 2026/06/10 - 17:58:44 | request_id=20260610095838313350008268d9d6F8WHiNre trace_id=AwsAttempts03 | stream ended: reason=done 
+[INFO] 2026/06/10 - 17:58:44 | request_id=20260610095838250330008268d9d6rm7XKL2I trace_id=AwsAttempts01 | stream ended: reason=done 
+[INFO] 2026/06/10 - 17:58:44 | request_id=20260610095838264450008268d9d6wpmgEjrM trace_id=AwsAttempts08 | 预扣费后补扣费：＄0.000112（实际消耗：＄0.000112，预扣费：＄0.000000） 
+[INFO] 2026/06/10 - 17:58:44 | request_id=20260610095838313350008268d9d6F8WHiNre trace_id=AwsAttempts03 | 预扣费后补扣费：＄0.000112（实际消耗：＄0.000112，预扣费：＄0.000000） 
+[INFO] 2026/06/10 - 17:58:44 | request_id=20260610095838249170008268d9d6ZHDgauts trace_id=AwsAttempts07 | 预扣费后补扣费：＄0.000112（实际消耗：＄0.000112，预扣费：＄0.000000） 
+[INFO] 2026/06/10 - 17:58:44 | request_id=20260610095838264450008268d9d6wpmgEjrM trace_id=AwsAttempts08 | record consume log: userId=1, params={"channel_id":3,"prompt_tokens":20,"completion_tokens":92,"model_name":"mock-gpt","token_name":"timeout-test-token","quota":56,"content":"","token_id":1,"use_time_seconds":4,"is_stream":true,"group":"default","other":{"admin_info":{"local_count_tokens":true,"use_channel":["2","3"]},"billing_source":"wallet","cache_ratio":1,"cache_tokens":0,"completion_ratio":1,"frt":2622,"group_ratio":1,"model_price":-1,"model_ratio":0.5,"request_conversion":["OpenAI Compatible","Claude Messages","OpenAI Compatible"],"request_path":"/v1/chat/completions","stream_status":{"end_reason":"done","status":"ok"},"user_group_ratio":-1}} 
+[INFO] 2026/06/10 - 17:58:44 | request_id=20260610095838250330008268d9d6rm7XKL2I trace_id=AwsAttempts01 | 预扣费后补扣费：＄0.000112（实际消耗：＄0.000112，预扣费：＄0.000000） 
+[INFO] 2026/06/10 - 17:58:44 | request_id=20260610095838313350008268d9d6F8WHiNre trace_id=AwsAttempts03 | record consume log: userId=1, params={"channel_id":3,"prompt_tokens":20,"completion_tokens":92,"model_name":"mock-gpt","token_name":"timeout-test-token","quota":56,"content":"","token_id":1,"use_time_seconds":4,"is_stream":true,"group":"default","other":{"admin_info":{"local_count_tokens":true,"use_channel":["2","3"]},"billing_source":"wallet","cache_ratio":1,"cache_tokens":0,"completion_ratio":1,"frt":2625,"group_ratio":1,"model_price":-1,"model_ratio":0.5,"request_conversion":["OpenAI Compatible","Claude Messages","OpenAI Compatible"],"request_path":"/v1/chat/completions","stream_status":{"end_reason":"done","status":"ok"},"user_group_ratio":-1}} 
+[INFO] 2026/06/10 - 17:58:44 | request_id=20260610095838249170008268d9d6ZHDgauts trace_id=AwsAttempts07 | record consume log: userId=1, params={"channel_id":3,"prompt_tokens":20,"completion_tokens":92,"model_name":"mock-gpt","token_name":"timeout-test-token","quota":56,"content":"","token_id":1,"use_time_seconds":4,"is_stream":true,"group":"default","other":{"admin_info":{"local_count_tokens":true,"use_channel":["2","3"]},"billing_source":"wallet","cache_ratio":1,"cache_tokens":0,"completion_ratio":1,"frt":3022,"group_ratio":1,"model_price":-1,"model_ratio":0.5,"request_conversion":["OpenAI Compatible","Claude Messages","OpenAI Compatible"],"request_path":"/v1/chat/completions","stream_status":{"end_reason":"done","status":"ok"},"user_group_ratio":-1}} 
+[INFO] 2026/06/10 - 17:58:44 | request_id=20260610095838313840008268d9d6385zWXzp trace_id=AwsAttempts02 | stream ended: reason=done 
+[INFO] 2026/06/10 - 17:58:44 | request_id=20260610095838250330008268d9d6rm7XKL2I trace_id=AwsAttempts01 | record consume log: userId=1, params={"channel_id":3,"prompt_tokens":20,"completion_tokens":92,"model_name":"mock-gpt","token_name":"timeout-test-token","quota":56,"content":"","token_id":1,"use_time_seconds":3,"is_stream":true,"group":"default","other":{"admin_info":{"local_count_tokens":true,"use_channel":["2","3"]},"billing_source":"wallet","cache_ratio":1,"cache_tokens":0,"completion_ratio":1,"frt":2096,"group_ratio":1,"model_price":-1,"model_ratio":0.5,"request_conversion":["OpenAI Compatible","Claude Messages","OpenAI Compatible"],"request_path":"/v1/chat/completions","stream_status":{"end_reason":"done","status":"ok"},"user_group_ratio":-1}} 
+[INFO] 2026/06/10 - 17:58:44 | request_id=20260610095838313840008268d9d6385zWXzp trace_id=AwsAttempts02 | 预扣费后补扣费：＄0.000112（实际消耗：＄0.000112，预扣费：＄0.000000） 
+[INFO] 2026/06/10 - 17:58:44 | request_id=20260610095838313840008268d9d6385zWXzp trace_id=AwsAttempts02 | record consume log: userId=1, params={"channel_id":3,"prompt_tokens":20,"completion_tokens":92,"model_name":"mock-gpt","token_name":"timeout-test-token","quota":56,"content":"","token_id":1,"use_time_seconds":4,"is_stream":true,"group":"default","other":{"admin_info":{"local_count_tokens":true,"use_channel":["2","3"]},"billing_source":"wallet","cache_ratio":1,"cache_tokens":0,"completion_ratio":1,"frt":3027,"group_ratio":1,"model_price":-1,"model_ratio":0.5,"request_conversion":["OpenAI Compatible","Claude Messages","OpenAI Compatible"],"request_path":"/v1/chat/completions","stream_status":{"end_reason":"done","status":"ok"},"user_group_ratio":-1}} 
+[INFO] 2026/06/10 - 17:58:44 | request_id=20260610095838246200008268d9d6ELIkWF0B trace_id=AwsAttempts09 | stream ended: reason=done 
+[INFO] 2026/06/10 - 17:58:44 | request_id=20260610095838246200008268d9d6ELIkWF0B trace_id=AwsAttempts09 | 预扣费后补扣费：＄0.000112（实际消耗：＄0.000112，预扣费：＄0.000000） 
+[INFO] 2026/06/10 - 17:58:44 | request_id=20260610095838246200008268d9d6ELIkWF0B trace_id=AwsAttempts09 | record consume log: userId=1, params={"channel_id":3,"prompt_tokens":20,"completion_tokens":92,"model_name":"mock-gpt","token_name":"timeout-test-token","quota":56,"content":"","token_id":1,"use_time_seconds":5,"is_stream":true,"group":"default","other":{"admin_info":{"local_count_tokens":true,"use_channel":["2","3"]},"billing_source":"wallet","cache_ratio":1,"cache_tokens":0,"completion_ratio":1,"frt":3704,"group_ratio":1,"model_price":-1,"model_ratio":0.5,"request_conversion":["OpenAI Compatible","Claude Messages","OpenAI Compatible"],"request_path":"/v1/chat/completions","stream_status":{"end_reason":"done","status":"ok"},"user_group_ratio":-1}} 
+[INFO] 2026/06/10 - 17:58:44 | request_id=20260610095838313350008268d9d6VH2tjFH3 trace_id=AwsAttempts04 | stream ended: reason=done 
+[INFO] 2026/06/10 - 17:58:44 | request_id=20260610095838313910008268d9d6BuoJkVle trace_id=AwsAttempts10 | stream ended: reason=done 
+[INFO] 2026/06/10 - 17:58:44 | request_id=20260610095838313350008268d9d6VH2tjFH3 trace_id=AwsAttempts04 | 预扣费后补扣费：＄0.000112（实际消耗：＄0.000112，预扣费：＄0.000000） 
+[INFO] 2026/06/10 - 17:58:44 | request_id=20260610095838313350008268d9d6VH2tjFH3 trace_id=AwsAttempts04 | record consume log: userId=1, params={"channel_id":3,"prompt_tokens":20,"completion_tokens":92,"model_name":"mock-gpt","token_name":"timeout-test-token","quota":56,"content":"","token_id":1,"use_time_seconds":3,"is_stream":true,"group":"default","other":{"admin_info":{"local_count_tokens":true,"use_channel":["2","3"]},"billing_source":"wallet","cache_ratio":1,"cache_tokens":0,"completion_ratio":1,"frt":2381,"group_ratio":1,"model_price":-1,"model_ratio":0.5,"request_conversion":["OpenAI Compatible","Claude Messages","OpenAI Compatible"],"request_path":"/v1/chat/completions","stream_status":{"end_reason":"done","status":"ok"},"user_group_ratio":-1}} 
+[INFO] 2026/06/10 - 17:58:44 | request_id=20260610095838313910008268d9d6BuoJkVle trace_id=AwsAttempts10 | 预扣费后补扣费：＄0.000112（实际消耗：＄0.000112，预扣费：＄0.000000） 
+[INFO] 2026/06/10 - 17:58:44 | request_id=20260610095838313910008268d9d6BuoJkVle trace_id=AwsAttempts10 | record consume log: userId=1, params={"channel_id":3,"prompt_tokens":20,"completion_tokens":92,"model_name":"mock-gpt","token_name":"timeout-test-token","quota":56,"content":"","token_id":1,"use_time_seconds":4,"is_stream":true,"group":"default","other":{"admin_info":{"local_count_tokens":true,"use_channel":["2","3"]},"billing_source":"wallet","cache_ratio":1,"cache_tokens":0,"completion_ratio":1,"frt":3332,"group_ratio":1,"model_price":-1,"model_ratio":0.5,"request_conversion":["OpenAI Compatible","Claude Messages","OpenAI Compatible"],"request_path":"/v1/chat/completions","stream_status":{"end_reason":"done","status":"ok"},"user_group_ratio":-1}} 
+[INFO] 2026/06/10 - 17:58:45 | request_id=20260610095838253800008268d9d61JW6GjtG trace_id=AwsAttempts06 | stream ended: reason=done 
+[INFO] 2026/06/10 - 17:58:45 | request_id=20260610095838265860008268d9d67RvnhrmP trace_id=AwsAttempts05 | stream ended: reason=done 
+[INFO] 2026/06/10 - 17:58:45 | request_id=20260610095838265860008268d9d67RvnhrmP trace_id=AwsAttempts05 | 预扣费后补扣费：＄0.000112（实际消耗：＄0.000112，预扣费：＄0.000000） 
+[INFO] 2026/06/10 - 17:58:45 | request_id=20260610095838265860008268d9d67RvnhrmP trace_id=AwsAttempts05 | record consume log: userId=1, params={"channel_id":3,"prompt_tokens":20,"completion_tokens":92,"model_name":"mock-gpt","token_name":"timeout-test-token","quota":56,"content":"","token_id":1,"use_time_seconds":4,"is_stream":true,"group":"default","other":{"admin_info":{"local_count_tokens":true,"use_channel":["2","3"]},"billing_source":"wallet","cache_ratio":1,"cache_tokens":0,"completion_ratio":1,"frt":2089,"group_ratio":1,"model_price":-1,"model_ratio":0.5,"request_conversion":["OpenAI Compatible","Claude Messages","OpenAI Compatible"],"request_path":"/v1/chat/completions","stream_status":{"end_reason":"done","status":"ok"},"user_group_ratio":-1}} 
+[INFO] 2026/06/10 - 17:58:45 | request_id=20260610095838253800008268d9d61JW6GjtG trace_id=AwsAttempts06 | 预扣费后补扣费：＄0.000112（实际消耗：＄0.000112，预扣费：＄0.000000） 
+[INFO] 2026/06/10 - 17:58:45 | request_id=20260610095838253800008268d9d61JW6GjtG trace_id=AwsAttempts06 | record consume log: userId=1, params={"channel_id":3,"prompt_tokens":20,"completion_tokens":92,"model_name":"mock-gpt","token_name":"timeout-test-token","quota":56,"content":"","token_id":1,"use_time_seconds":4,"is_stream":true,"group":"default","other":{"admin_info":{"local_count_tokens":true,"use_channel":["2","3"]},"billing_source":"wallet","cache_ratio":1,"cache_tokens":0,"completion_ratio":1,"frt":2086,"group_ratio":1,"model_price":-1,"model_ratio":0.5,"request_conversion":["OpenAI Compatible","Claude Messages","OpenAI Compatible"],"request_path":"/v1/chat/completions","stream_status":{"end_reason":"done","status":"ok"},"user_group_ratio":-1}} 
+[GIN] 2026/06/10 - 17:58:45 | relay | request_id=20260610095838250330008268d9d6rm7XKL2I trace_id=AwsAttempts01 | 200 |  7.020392331s |       127.0.0.1 |    POST /v1/chat/completions
+[GIN] 2026/06/10 - 17:58:45 | relay | request_id=20260610095838264450008268d9d6wpmgEjrM trace_id=AwsAttempts08 | 200 |  7.265192064s |       127.0.0.1 |    POST /v1/chat/completions
+[GIN] 2026/06/10 - 17:58:45 | relay | request_id=20260610095838313840008268d9d6385zWXzp trace_id=AwsAttempts02 | 200 |  7.559368893s |       127.0.0.1 |    POST /v1/chat/completions
+[GIN] 2026/06/10 - 17:58:45 | relay | request_id=20260610095838249170008268d9d6ZHDgauts trace_id=AwsAttempts07 | 200 |  7.574215644s |       127.0.0.1 |    POST /v1/chat/completions
+[GIN] 2026/06/10 - 17:58:45 | relay | request_id=20260610095838313350008268d9d6F8WHiNre trace_id=AwsAttempts03 | 200 |  7.749054408s |       127.0.0.1 |    POST /v1/chat/completions
+[GIN] 2026/06/10 - 17:58:46 | relay | request_id=20260610095838313350008268d9d6VH2tjFH3 trace_id=AwsAttempts04 | 200 |    8.0158244s |       127.0.0.1 |    POST /v1/chat/completions
+[GIN] 2026/06/10 - 17:58:46 | relay | request_id=20260610095838313910008268d9d6BuoJkVle trace_id=AwsAttempts10 | 200 |  8.017801884s |       127.0.0.1 |    POST /v1/chat/completions
+[GIN] 2026/06/10 - 17:58:46 | relay | request_id=20260610095838246200008268d9d6ELIkWF0B trace_id=AwsAttempts09 | 200 |  8.024956303s |       127.0.0.1 |    POST /v1/chat/completions
+[GIN] 2026/06/10 - 17:58:46 | relay | request_id=20260610095838265860008268d9d67RvnhrmP trace_id=AwsAttempts05 | 200 |   8.55116411s |       127.0.0.1 |    POST /v1/chat/completions
+[GIN] 2026/06/10 - 17:58:46 | relay | request_id=20260610095838253800008268d9d61JW6GjtG trace_id=AwsAttempts06 | 200 |  8.556704436s |       127.0.0.1 |    POST /v1/chat/completions
+[SYS] 2026/06/10 - 17:58:49 | batch update started 
+[SYS] 2026/06/10 - 17:58:49 | batch update finished 
+[SYS] 2026/06/10 - 17:58:59 | syncing options from database 
+[SYS] 2026/06/10 - 17:58:59 | syncing channels from database 
+[SYS] 2026/06/10 - 17:58:59 | channels synced from database 
+[SYS] 2026/06/10 - 17:58:59 | 任务进度轮询开始 
+[SYS] 2026/06/10 - 17:58:59 | 任务进度轮询完成 
+[SYS] 2026/06/10 - 17:59:14 | 任务进度轮询开始 
+[SYS] 2026/06/10 - 17:59:14 | 任务进度轮询完成 
+[SYS] 2026/06/10 - 17:59:29 | 任务进度轮询开始 
+[SYS] 2026/06/10 - 17:59:29 | 任务进度轮询完成 
+[SYS] 2026/06/10 - 17:59:44 | 任务进度轮询开始 
+[SYS] 2026/06/10 - 17:59:44 | 任务进度轮询完成 
+[SYS] 2026/06/10 - 17:59:59 | syncing options from database 
+[SYS] 2026/06/10 - 17:59:59 | syncing channels from database 
+[SYS] 2026/06/10 - 17:59:59 | channels synced from database 
+[SYS] 2026/06/10 - 17:59:59 | 任务进度轮询开始 
+[SYS] 2026/06/10 - 17:59:59 | 任务进度轮询完成 
+[SYS] 2026/06/10 - 18:00:14 | 任务进度轮询开始 
+[SYS] 2026/06/10 - 18:00:14 | 任务进度轮询完成 
+[SYS] 2026/06/10 - 18:00:29 | 任务进度轮询开始 
+[SYS] 2026/06/10 - 18:00:29 | 任务进度轮询完成 
+[SYS] 2026/06/10 - 18:00:44 | 任务进度轮询开始 
+[SYS] 2026/06/10 - 18:00:44 | 任务进度轮询完成 
+[SYS] 2026/06/10 - 18:00:59 | syncing options from database 
+[SYS] 2026/06/10 - 18:00:59 | syncing channels from database 
+[SYS] 2026/06/10 - 18:00:59 | channels synced from database 
+[SYS] 2026/06/10 - 18:00:59 | 任务进度轮询开始 
+[SYS] 2026/06/10 - 18:00:59 | 任务进度轮询完成 

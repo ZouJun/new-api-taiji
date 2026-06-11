@@ -1,0 +1,8 @@
+AWS_SDK_MAX_ATTEMPTS=1 chain test summary
+request_ids=10
+client_200=10
+aws_sdk_max_attempt_error_lines=20
+aws_proxy_connect_attempts=10
+channel2_error_logs=10
+consume_logs=10
+use_channel_2_3=10

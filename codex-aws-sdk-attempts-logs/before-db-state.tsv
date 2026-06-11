@@ -1,0 +1,5 @@
+2	1	codex-timeout-test-slow60	http://127.0.0.1:18081	sk-codex-timeout-test	1	100	0	mock-gpt	NULL	{"stream_first_byte_timeout_seconds":10}
+3	1	codex-timeout-test-fast1	http://127.0.0.1:18082	sk-codex-timeout-test	1	90	0	mock-gpt	NULL	{"stream_first_byte_timeout_seconds":120}
+default	mock-gpt	2	1	100	100	codex-timeout-test
+default	mock-gpt	3	1	90	100	codex-timeout-test
+RetryTimes	1
