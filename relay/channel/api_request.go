@@ -557,6 +557,11 @@ func doRequest(c *gin.Context, req *http.Request, info *common.RelayInfo) (*http
 	if err != nil {
 		if firstByteController != nil {
 			if firstByteController.TimeoutTriggered() {
+				if streamFirstByteTimout <= 0 {
+					if meta, ok := common.GetTimeoutMeta(c); ok && meta.Type == common.TimeoutTypeStreamFirstByte && meta.Seconds > 0 {
+						streamFirstByteTimout = meta.Seconds
+					}
+				}
 				err = fmt.Errorf("%w after %d seconds", common.ErrStreamFirstByteTimeout, streamFirstByteTimout)
 			}
 			firstByteController.Cancel()

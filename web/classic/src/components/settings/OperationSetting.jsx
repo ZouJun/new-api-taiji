@@ -20,6 +20,7 @@ For commercial licensing, please contact support@quantumnous.com
 import React, { useEffect, useState } from 'react';
 import { Card, Spin } from '@douyinfe/semi-ui';
 import SettingsGeneral from '../../pages/Setting/Operation/SettingsGeneral';
+import SettingsStrategy from '../../pages/Setting/Operation/SettingsStrategy';
 import SettingsHeaderNavModules from '../../pages/Setting/Operation/SettingsHeaderNavModules';
 import SettingsSidebarModulesAdmin from '../../pages/Setting/Operation/SettingsSidebarModulesAdmin';
 import SettingsSensitiveWords from '../../pages/Setting/Operation/SettingsSensitiveWords';
@@ -49,6 +50,8 @@ const OperationSetting = () => {
     DefaultCollapseSidebar: false,
     DemoSiteEnabled: false,
     SelfUseModeEnabled: false,
+    GroupRatio: '',
+    group_strategy_settings: '',
 
     /* 顶栏模块管理 */
     HeaderNavModules: '',
@@ -126,6 +129,10 @@ const OperationSetting = () => {
         <Card style={{ marginTop: '10px' }}>
           <SettingsGeneral options={inputs} refresh={onRefresh} />
         </Card>
+        {/* 策略设置 */}
+        <div style={{ marginTop: '10px' }}>
+          <SettingsStrategy options={inputs} refresh={onRefresh} />
+        </div>
         {/* 顶栏模块管理 */}
         <div style={{ marginTop: '10px' }}>
           <SettingsHeaderNavModules options={inputs} refresh={onRefresh} />

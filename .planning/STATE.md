@@ -7,11 +7,11 @@ stopped_at: Phase 1 closed out and Phase 2 ready
 last_updated: "2026-06-09T00:00:00Z"
 last_activity: 2026-06-09 - Closed out Phase 1 timeout control and AWS SDK governance
 progress:
-  total_phases: 4
+  total_phases: 5
   completed_phases: 1
-  total_plans: 14
+  total_plans: 17
   completed_plans: 4
-  percent: 25
+  percent: 20
 ---
 
 # Project State
@@ -25,12 +25,12 @@ See: .planning/PROJECT.md (updated 2026-06-06)
 
 ## Current Position
 
-Phase: 2 of 4 (Customer Trace-Id Propagation)
+Phase: 2 of 5 (Customer Trace-Id Propagation)
 Plan: 0 of 3 in current phase
 Status: Ready to plan
 Last activity: 2026-06-09 - Closed out Phase 1 timeout control and AWS SDK governance
 
-Progress: [###-------] 25%
+Progress: [##--------] 20%
 
 ## Performance Metrics
 
@@ -72,10 +72,12 @@ Recent decisions affecting current work:
 - Phase 2 created: Customer Trace-Id Propagation.
 - Phase 3 created: Request Response Archive Pipeline.
 - Phase 4 created: Verification and Operator Documentation.
+- Phase 5 added: Group Strategy Settings.
 
 ### Pending Todos
 
 - Start Phase 2 context and discussion for customer Trace-Id propagation.
+- Plan Phase 5 for per-group strategy settings after the current milestone path reaches it.
 
 ### Blockers/Concerns
 

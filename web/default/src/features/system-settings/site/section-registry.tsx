@@ -26,6 +26,7 @@ import {
 import { HeaderNavigationSection } from '../maintenance/header-navigation-section'
 import { NoticeSection } from '../maintenance/notice-section'
 import { SidebarModulesSection } from '../maintenance/sidebar-modules-section'
+import { StrategySettingsSection } from '../operations/strategy-settings-section'
 import type { SiteSettings } from '../types'
 import { createSectionRegistry } from '../utils/section-registry'
 
@@ -58,6 +59,17 @@ const SITE_SECTIONS = [
     titleKey: 'System Notice',
     build: (settings: SiteSettings) => (
       <NoticeSection defaultValue={settings.Notice ?? ''} />
+    ),
+  },
+  {
+    id: 'strategy',
+    titleKey: 'Strategy Settings',
+    build: (settings: SiteSettings) => (
+      <StrategySettingsSection
+        groupRatio={settings.GroupRatio}
+        strategySettings={settings.group_strategy_settings}
+        globalRetryTimes={settings.RetryTimes}
+      />
     ),
   },
   {

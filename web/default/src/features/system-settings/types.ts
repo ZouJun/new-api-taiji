@@ -67,6 +67,9 @@ export type SiteSettings = {
   ServerAddress: string
   'legal.user_agreement': string
   'legal.privacy_policy': string
+  RetryTimes: number
+  GroupRatio: string
+  group_strategy_settings: string
   HeaderNavModules: string
   SidebarModulesAdmin: string
 }
@@ -272,6 +275,7 @@ export type BillingSettings = {
 export type OperationsSettings = {
   RetryTimes: number
   'group_strategy_settings': string
+  GroupRatio: string
   DefaultCollapseSidebar: boolean
   DemoSiteEnabled: boolean
   SelfUseModeEnabled: boolean

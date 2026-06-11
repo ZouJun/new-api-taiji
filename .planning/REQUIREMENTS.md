@@ -62,6 +62,16 @@ Requirements for this milestone. Each maps to exactly one roadmap phase.
 - [ ] **TEST-02**: Tests cover archival capture for non-streaming and streaming relay paths.
 - [ ] **TEST-03**: Tests cover storage failure behavior and queue overflow policy.
 
+### Group Strategy Settings
+
+- [ ] **GSET-01**: Admin dashboard Operations Settings includes a new "策略设置" module between General Settings and Topbar Management.
+- [ ] **GSET-02**: Operators can define per-group streaming multi-channel total-timeout budgets instead of relying only on a single global `RELAY_TIMEOUT`.
+- [ ] **GSET-03**: Timeout budget settings can define custom error code and custom error message for budget-exceeded failures.
+- [ ] **GSET-04**: Operators can define per-group cross-channel retry counts, distinct from AWS SDK retry attempts.
+- [ ] **GSET-05**: Relay execution can resolve effective per-group strategy settings and apply them consistently during cross-channel retry flow.
+- [ ] **GSET-06**: Settings persistence, API surface, and runtime behavior remain compatible with SQLite, MySQL, and PostgreSQL.
+- [ ] **GSET-07**: Focused verification covers dashboard rendering, settings persistence, effective strategy resolution, timeout-budget failure behavior, and retry-count enforcement.
+
 ## v2 Requirements
 
 Deferred to future release. Tracked but not in current roadmap.
@@ -131,10 +141,17 @@ Which phases cover which requirements. Updated during roadmap creation.
 | TEST-01 | Phase 4 | Pending |
 | TEST-02 | Phase 4 | Pending |
 | TEST-03 | Phase 4 | Pending |
+| GSET-01 | Phase 5 | Pending |
+| GSET-02 | Phase 5 | Pending |
+| GSET-03 | Phase 5 | Pending |
+| GSET-04 | Phase 5 | Pending |
+| GSET-05 | Phase 5 | Pending |
+| GSET-06 | Phase 5 | Pending |
+| GSET-07 | Phase 5 | Pending |
 
 **Coverage:**
-- v1 requirements: 40 total
-- Mapped to phases: 40
+- v1 requirements: 47 total
+- Mapped to phases: 47
 - Unmapped: 0
 
 ---

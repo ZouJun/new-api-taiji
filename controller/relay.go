@@ -188,7 +188,7 @@ func Relay(c *gin.Context, relayFormat types.RelayFormat) {
 	relayInfo.RetryIndex = 0
 	relayInfo.LastError = nil
 
-	for ; retryParam.GetRetry() <= common.RetryTimes; retryParam.IncreaseRetry() {
+	for {
 		relayInfo.RetryIndex = retryParam.GetRetry()
 		c.Set("retry", relayInfo.RetryIndex)
 		channel, channelErr := getChannel(c, relayInfo, retryParam)
@@ -210,6 +210,8 @@ func Relay(c *gin.Context, relayFormat types.RelayFormat) {
 			break
 		}
 		c.Request.Body = io.NopCloser(bodyStorage)
+		relayInfo.BeginAttempt()
+		attemptStart := time.Now()
 
 		switch relayFormat {
 		case types.RelayFormatOpenAIRealtime:
@@ -232,9 +234,21 @@ func Relay(c *gin.Context, relayFormat types.RelayFormat) {
 
 		processChannelError(c, *types.NewChannelError(channel.Id, channel.Type, channel.Name, channel.ChannelInfo.IsMultiKey, common.GetContextKeyString(c, constant.ContextKeyChannelKey), channel.GetAutoBan()), newAPIError)
 
-		if !shouldRetry(c, newAPIError, common.RetryTimes-retryParam.GetRetry()) {
+		if relayInfo.IsStream && retryParam.GetRetry() > 0 {
+			runtime, _, budgetExceeded := relaycommon.ConsumeStreamFirstByteRetryBudget(c, relayInfo, relaycommon.ResolveAttemptStreamFirstByteWait(relayInfo, attemptStart, newAPIError))
+			if budgetExceeded {
+				if errors.Is(newAPIError, relaycommon.ErrStreamFirstByteTimeout) {
+					newAPIError = relaycommon.BuildGroupStrategyTimeoutError(runtime, newAPIError)
+				}
+				break
+			}
+		}
+
+		effectiveRetryTimes := relaycommon.ResolveEffectiveRetryTimes(c, relayInfo)
+		if !shouldRetry(c, newAPIError, effectiveRetryTimes-retryParam.GetRetry()) {
 			break
 		}
+		retryParam.IncreaseRetry()
 	}
 
 	useChannel := c.GetStringSlice("use_channel")
@@ -308,6 +322,10 @@ func getChannel(c *gin.Context, info *relaycommon.RelayInfo, retryParam *service
 	channel, selectGroup, err := service.CacheGetRandomSatisfiedChannel(retryParam)
 
 	info.PriceData.GroupRatioInfo = helper.HandleGroupRatio(c, info)
+	if selectGroup != "" {
+		info.UsingGroup = selectGroup
+	}
+	relaycommon.SnapshotRuntimeGroupStrategy(c, info)
 
 	if err != nil {
 		return nil, types.NewError(fmt.Errorf("获取分组 %s 下模型 %s 的可用渠道失败（retry）: %s", selectGroup, info.OriginModelName, err.Error()), types.ErrorCodeGetChannelFailed, types.ErrOptionWithSkipRetry())
@@ -331,15 +349,15 @@ func shouldRetry(c *gin.Context, openaiErr *types.NewAPIError, retryTimes int) b
 		return false
 	}
 	if types.IsChannelError(openaiErr) {
-		return true
+		return retryTimes > 0
+	}
+	if _, ok := c.Get("specific_channel_id"); ok {
+		return false
 	}
 	if types.IsSkipRetryError(openaiErr) {
 		return false
 	}
 	if retryTimes <= 0 {
-		return false
-	}
-	if _, ok := c.Get("specific_channel_id"); ok {
 		return false
 	}
 	if errors.Is(openaiErr, context.DeadlineExceeded) || errors.Is(openaiErr, relaycommon.ErrStreamFirstByteTimeout) {

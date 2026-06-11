@@ -90,6 +90,7 @@ const (
 type NewAPIError struct {
 	Err            error
 	RelayError     any
+	publicMessage  string
 	skipRetry      bool
 	recordErrorLog *bool
 	errorType      ErrorType
@@ -131,6 +132,16 @@ func (e *NewAPIError) Error() string {
 	return e.Err.Error()
 }
 
+func (e *NewAPIError) ClientMessage() string {
+	if e == nil {
+		return ""
+	}
+	if e.publicMessage != "" {
+		return e.publicMessage
+	}
+	return e.Error()
+}
+
 func (e *NewAPIError) ErrorWithStatusCode() string {
 	if e == nil {
 		return ""
@@ -153,6 +164,9 @@ func (e *NewAPIError) MaskSensitiveError() string {
 		return string(e.errorCode)
 	}
 	errStr := e.Err.Error()
+	if e.publicMessage != "" {
+		errStr = e.publicMessage
+	}
 	if e.errorCode == ErrorCodeCountTokenFailed {
 		return errStr
 	}
@@ -174,7 +188,7 @@ func (e *NewAPIError) MaskSensitiveErrorWithStatusCode() string {
 }
 
 func (e *NewAPIError) SetMessage(message string) {
-	e.Err = errors.New(message)
+	e.publicMessage = message
 }
 
 func (e *NewAPIError) ToOpenAIError() OpenAIError {
@@ -187,7 +201,7 @@ func (e *NewAPIError) ToOpenAIError() OpenAIError {
 	case ErrorTypeClaudeError:
 		if claudeError, ok := e.RelayError.(ClaudeError); ok {
 			result = OpenAIError{
-				Message: e.Error(),
+				Message: e.ClientMessage(),
 				Type:    claudeError.Type,
 				Param:   "",
 				Code:    e.errorCode,
@@ -195,7 +209,7 @@ func (e *NewAPIError) ToOpenAIError() OpenAIError {
 		}
 	default:
 		result = OpenAIError{
-			Message: e.Error(),
+			Message: e.ClientMessage(),
 			Type:    string(e.errorType),
 			Param:   "",
 			Code:    e.errorCode,
@@ -216,7 +230,7 @@ func (e *NewAPIError) ToClaudeError() ClaudeError {
 	case ErrorTypeOpenAIError:
 		if openAIError, ok := e.RelayError.(OpenAIError); ok {
 			result = ClaudeError{
-				Message: e.Error(),
+				Message: e.ClientMessage(),
 				Type:    fmt.Sprintf("%v", openAIError.Code),
 			}
 		}
@@ -226,7 +240,7 @@ func (e *NewAPIError) ToClaudeError() ClaudeError {
 		}
 	default:
 		result = ClaudeError{
-			Message: e.Error(),
+			Message: e.ClientMessage(),
 			Type:    string(e.errorType),
 		}
 	}
@@ -401,7 +415,7 @@ func ErrOptionWithHideErrMsg(replaceStr string) NewAPIErrorOptions {
 		if common.DebugEnabled {
 			fmt.Printf("ErrOptionWithHideErrMsg: %s, origin error: %s", replaceStr, e.Err)
 		}
-		e.Err = errors.New(replaceStr)
+		e.publicMessage = replaceStr
 	}
 }
 

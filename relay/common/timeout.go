@@ -140,6 +140,18 @@ func AppendTimeoutMeta(other map[string]interface{}, c *gin.Context) map[string]
 	return other
 }
 
+func GetTimeoutMeta(c *gin.Context) (TimeoutMeta, bool) {
+	if c == nil {
+		return TimeoutMeta{}, false
+	}
+	raw, ok := c.Get(string(constant.ContextKeyTimeoutMeta))
+	if !ok {
+		return TimeoutMeta{}, false
+	}
+	meta, ok := raw.(TimeoutMeta)
+	return meta, ok
+}
+
 type FirstByteTimeoutController struct {
 	timer    *time.Timer
 	cancel   context.CancelFunc

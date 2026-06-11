@@ -16,6 +16,7 @@ Decimal phases appear between their surrounding integers in numeric order.
 - [ ] **Phase 2: Customer Trace-Id Propagation** - Extract, sanitize, propagate, log, and persist customer trace IDs.
 - [ ] **Phase 3: Request Response Archive Pipeline** - Design and implement local/Azure archival for streaming and non-streaming relay payloads.
 - [ ] **Phase 4: Verification and Operator Documentation** - Verify the chain and produce beginner-readable operational documentation.
+- [ ] **Phase 5: Group Strategy Settings** - Add per-group strategy controls in Operations Settings for streaming timeout budgets and cross-channel retry counts.
 
 ## Phase Details
 
@@ -92,10 +93,29 @@ Plans:
 - [ ] 04-02: Write operator and maintainer documentation.
 - [ ] 04-03: Run final verification and update planning artifacts.
 
+### Phase 5: Group Strategy Settings
+**Goal**: Operators can manage per-group relay strategy controls from dashboard Operations Settings, including streaming multi-channel timeout budgets, custom timeout-failure responses, and cross-channel retry counts.
+**Depends on**: Phase 4
+**Requirements**: [GSET-01, GSET-02, GSET-03, GSET-04, GSET-05, GSET-06, GSET-07]
+**Success Criteria** (what must be TRUE):
+  1. Dashboard Operations Settings includes a new "策略设置" module between General Settings and Topbar Management.
+  2. Operators can persist per-group streaming multi-channel total-timeout budget settings with clear fallback behavior when a group does not override the default strategy.
+  3. Operators can persist a custom error code and custom error message that are returned when the streaming multi-channel timeout budget is exhausted.
+  4. Operators can persist per-group cross-channel retry-count settings, explicitly separate from AWS SDK internal retry behavior.
+  5. Relay execution resolves and applies effective group strategy settings during channel retry flow without breaking current timeout and retry semantics.
+  6. Backend persistence and query behavior remain compatible with SQLite, MySQL, and PostgreSQL.
+  7. Focused verification covers settings UI, persistence, strategy resolution, timeout-budget failure behavior, and retry-count enforcement.
+**Plans**: 3 plans
+
+Plans:
+- [ ] 05-01: Design storage shape, settings API, and effective-resolution rules for per-group timeout budget and retry-count strategy.
+- [ ] 05-02: Implement backend strategy persistence and relay-path enforcement for group-level timeout budget, custom timeout response, and cross-channel retry-count control.
+- [ ] 05-03: Update dashboard Operations Settings with the new "策略设置" module and add focused verification for UI and runtime behavior.
+
 ## Progress
 
 **Execution Order:**
-Phases execute in numeric order: 1 -> 2 -> 3 -> 4
+Phases execute in numeric order: 1 -> 2 -> 3 -> 4 -> 5
 
 | Phase | Plans Complete | Status | Completed |
 |-------|----------------|--------|-----------|
@@ -103,3 +123,4 @@ Phases execute in numeric order: 1 -> 2 -> 3 -> 4
 | 2. Customer Trace-Id Propagation | 0/3 | Not started | - |
 | 3. Request Response Archive Pipeline | 0/4 | Not started | - |
 | 4. Verification and Operator Documentation | 0/3 | Not started | - |
+| 5. Group Strategy Settings | 0/3 | Not started | - |
