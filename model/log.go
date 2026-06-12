@@ -275,6 +275,25 @@ func RecordConsumeLog(c *gin.Context, userId int, params RecordConsumeLogParams)
 	}
 }
 
+func PatchLogOtherArchiveByRequestID(requestId string, archiveInfo map[string]interface{}) error {
+	if requestId == "" {
+		return nil
+	}
+	var logRow Log
+	err := LOG_DB.Where("request_id = ?", requestId).Order("id desc").First(&logRow).Error
+	if err != nil {
+		return err
+	}
+	other := make(map[string]interface{})
+	if logRow.Other != "" {
+		if parsed, parseErr := common.StrToMap(logRow.Other); parseErr == nil && parsed != nil {
+			other = parsed
+		}
+	}
+	other["archive"] = archiveInfo
+	return LOG_DB.Model(&Log{}).Where("id = ?", logRow.Id).Update("other", common.MapToJsonStr(other)).Error
+}
+
 type RecordTaskBillingLogParams struct {
 	UserId    int
 	LogType   int

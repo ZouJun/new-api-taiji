@@ -109,6 +109,19 @@ func InitEnv() {
 	RelayIdleConnTimeout = GetEnvOrDefault("RELAY_IDLE_CONN_TIMEOUT", 90)
 	RelayMaxIdleConns = GetEnvOrDefault("RELAY_MAX_IDLE_CONNS", 500)
 	RelayMaxIdleConnsPerHost = GetEnvOrDefault("RELAY_MAX_IDLE_CONNS_PER_HOST", 100)
+	ArchiveEnabled = GetEnvOrDefaultBool("ARCHIVE_ENABLED", false)
+	ArchiveBackend = GetEnvOrDefaultString("ARCHIVE_BACKEND", "local")
+	ArchiveLocalDir = GetEnvOrDefaultString("ARCHIVE_LOCAL_DIR", "./data/archive")
+	ArchiveSpoolDir = GetEnvOrDefaultString("ARCHIVE_SPOOL_DIR", "")
+	ArchiveQueueSize = GetEnvOrDefault("ARCHIVE_QUEUE_SIZE", 50000)
+	ArchiveWorkerCount = GetEnvOrDefault("ARCHIVE_WORKER_COUNT", 32)
+	ArchiveMaxRequestBytes = int64(GetEnvOrDefault("ARCHIVE_MAX_REQUEST_MB", 128)) << 20
+	ArchiveMaxResponseBytes = int64(GetEnvOrDefault("ARCHIVE_MAX_RESPONSE_MB", 128)) << 20
+	ArchiveSpoolTTLHours = GetEnvOrDefault("ARCHIVE_SPOOL_TTL_HOURS", 24)
+	ArchiveAzureAccountURL = GetEnvOrDefaultString("ARCHIVE_AZURE_ACCOUNT_URL", "")
+	ArchiveAzureContainer = GetEnvOrDefaultString("ARCHIVE_AZURE_CONTAINER", "")
+	ArchiveAzureAccountName = GetEnvOrDefaultString("ARCHIVE_AZURE_ACCOUNT_NAME", "")
+	ArchiveAzureAccountKey = GetEnvOrDefaultString("ARCHIVE_AZURE_ACCOUNT_KEY", "")
 
 	// Initialize string variables with GetEnvOrDefaultString
 	GeminiSafetySetting = GetEnvOrDefaultString("GEMINI_SAFETY_SETTING", "BLOCK_NONE")

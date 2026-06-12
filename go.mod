@@ -4,6 +4,7 @@ module github.com/QuantumNous/new-api
 go 1.25.1
 
 require (
+	github.com/Azure/azure-sdk-for-go/sdk/storage/azblob v0.6.1
 	github.com/Calcium-Ion/go-epay v0.0.4
 	github.com/abema/go-mp4 v1.4.1
 	github.com/andybalholm/brotli v1.1.1
@@ -61,6 +62,11 @@ require (
 )
 
 require github.com/waffo-com/waffo-pancake-sdk-go v0.3.1
+
+require (
+	github.com/Azure/azure-sdk-for-go/sdk/azcore v1.1.4 // indirect
+	github.com/Azure/azure-sdk-for-go/sdk/internal v1.0.1 // indirect
+)
 
 require (
 	github.com/DmitriyVTitov/size v1.5.0 // indirect
