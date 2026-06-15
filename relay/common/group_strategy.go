@@ -1,7 +1,9 @@
 package common
 
 import (
+	"context"
 	"errors"
+	"net/http"
 	"strings"
 	"time"
 
@@ -160,8 +162,25 @@ func ResolveAttemptStreamFirstByteWait(info *RelayInfo, attemptStart time.Time, 
 	return 0
 }
 
-func BuildGroupStrategyTimeoutError(runtime RuntimeGroupStrategy, upstreamErr *types.NewAPIError) *types.NewAPIError {
-	if upstreamErr == nil || !errors.Is(upstreamErr, ErrStreamFirstByteTimeout) {
+func IsTimeoutFeatureRelayError(c *gin.Context, upstreamErr *types.NewAPIError) bool {
+	if upstreamErr == nil {
+		return false
+	}
+	if upstreamErr.StatusCode == http.StatusGatewayTimeout && errors.Is(upstreamErr, ErrStreamFirstByteTimeout) {
+		return true
+	}
+	if upstreamErr.StatusCode != http.StatusGatewayTimeout || !errors.Is(upstreamErr, context.DeadlineExceeded) {
+		return false
+	}
+	meta, ok := GetTimeoutMeta(c)
+	if !ok {
+		return false
+	}
+	return meta.Type == TimeoutTypeNonStreamTotal || meta.Type == TimeoutTypeStreamFirstByte
+}
+
+func BuildConfiguredTimeoutRelayError(c *gin.Context, runtime RuntimeGroupStrategy, upstreamErr *types.NewAPIError) *types.NewAPIError {
+	if !IsTimeoutFeatureRelayError(c, upstreamErr) {
 		return upstreamErr
 	}
 	statusCode := runtime.TimeoutHTTPStatus
@@ -173,4 +192,25 @@ func BuildGroupStrategyTimeoutError(runtime RuntimeGroupStrategy, upstreamErr *t
 		message = operation_setting.DefaultGroupStrategyTimeoutErrorMessage
 	}
 	return types.NewErrorWithStatusCode(errors.New(message), upstreamErr.GetErrorCode(), statusCode)
+}
+
+func BuildClientTimeoutResponseError(c *gin.Context, upstreamErr *types.NewAPIError) *types.NewAPIError {
+	if !IsTimeoutFeatureRelayError(c, upstreamErr) {
+		return upstreamErr
+	}
+	statusCode, message := operation_setting.ResolveClientTimeoutResponse()
+	if statusCode == 0 && message == "" {
+		return upstreamErr
+	}
+	if statusCode == 0 {
+		statusCode = upstreamErr.StatusCode
+	}
+	if message == "" {
+		message = upstreamErr.Error()
+	}
+	return types.NewErrorWithStatusCode(errors.New(message), upstreamErr.GetErrorCode(), statusCode)
+}
+
+func BuildGroupStrategyTimeoutError(runtime RuntimeGroupStrategy, upstreamErr *types.NewAPIError) *types.NewAPIError {
+	return BuildConfiguredTimeoutRelayError(nil, runtime, upstreamErr)
 }

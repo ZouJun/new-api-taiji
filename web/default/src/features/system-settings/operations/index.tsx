@@ -26,6 +26,7 @@ import {
 } from './section-registry.tsx'
 
 const defaultOperationsSettings: OperationsSettings = {
+  'theme.frontend': 'default',
   RetryTimes: 0,
   group_strategy_settings: '',
   GroupRatio: '',

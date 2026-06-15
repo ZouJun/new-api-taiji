@@ -12,7 +12,7 @@ This milestone turns the existing relay gateway into a more traceable and audita
 
 Decimal phases appear between their surrounding integers in numeric order.
 
-- [x] **Phase 1: Channel Timeout Control and AWS SDK Governance** - Add channel-level timeout control, streaming/non-streaming timeout semantics, timeout observability, and AWS SDK timeout configuration management.
+- [ ] **Phase 1: Channel Timeout Control and AWS SDK Governance** - Add channel-level timeout control, streaming/non-streaming timeout semantics, timeout observability, configurable client-facing timeout responses, and AWS SDK timeout configuration management.
 - [ ] **Phase 2: Customer Trace-Id Propagation** - Extract, sanitize, propagate, log, and persist customer trace IDs.
 - [ ] **Phase 3: Request Response Archive Pipeline** - Design and implement local/Azure archival for streaming and non-streaming relay payloads.
 - [ ] **Phase 4: Verification and Operator Documentation** - Verify the chain and produce beginner-readable operational documentation.
@@ -23,15 +23,16 @@ Decimal phases appear between their surrounding integers in numeric order.
 ### Phase 1: Channel Timeout Control and AWS SDK Governance
 **Goal**: Timeout behavior becomes configurable and traceable across channels, while retained AWS relay knobs are exposed for unified management at the New API layer.
 **Depends on**: Nothing (first phase)
-**Requirements**: [AWS-01, AWS-02, AWS-03, AWS-04, TIME-01, TIME-02, TIME-03, TIME-04, TIME-05, TIME-06, TIME-07, TIME-08, SDK-01, SDK-02, SDK-03, SDK-04]
+**Requirements**: [AWS-01, AWS-02, AWS-03, AWS-04, TIME-01, TIME-02, TIME-03, TIME-04, TIME-05, TIME-06, TIME-07, TIME-08, TIME-09, SDK-01, SDK-02, SDK-03, SDK-04]
 **Success Criteria** (what must be TRUE):
   1. Every channel can resolve effective timeout behavior from `channel.setting`, using two separate fields for non-stream total timeout and stream first-byte timeout, with documented fallback to defaults.
   2. Streaming requests use first-byte/first-event timeout semantics that are distinct from non-streaming request timeout semantics, and once the first stream byte arrives the first version does not enforce a separate total stream timeout kill switch.
   3. All channels honor channel-level timeout settings when configured, while preserving HTTP connection pooling and falling back to shared defaults when channel settings are absent.
   4. Timeout failures generate structured logs and database metadata that identify effective timeout, timeout source, timeout stage, stream mode, and retry index.
   5. Timeout failures do not bypass or break the existing retry flow.
-  6. Maintainer can point to the exact AWS Bedrock client and invocation code path and explain how global `AWS_INVOKE_TIMEOUT_SECONDS` / `AWS_SDK_MAX_ATTEMPTS` and per-channel `aws_invoke_timeout_seconds` / `aws_sdk_max_attempts` are applied.
-  7. Timeout and SDK behavior are backed by focused tests or documented verification steps.
+  6. When the final relay failure is caused by timeout controls, the client-facing HTTP status and error message can be replaced by configured strategy settings while internal logs retain timeout metadata.
+  7. Maintainer can point to the exact AWS Bedrock client and invocation code path and explain how global `AWS_INVOKE_TIMEOUT_SECONDS` / `AWS_SDK_MAX_ATTEMPTS` and per-channel `aws_invoke_timeout_seconds` / `aws_sdk_max_attempts` are applied.
+  8. Timeout and SDK behavior are backed by focused tests or documented verification steps.
 **Plans**: 4 plans
 
 Plans:
@@ -119,7 +120,7 @@ Phases execute in numeric order: 1 -> 2 -> 3 -> 4 -> 5
 
 | Phase | Plans Complete | Status | Completed |
 |-------|----------------|--------|-----------|
-| 1. Channel Timeout Control and AWS SDK Governance | 4/4 | Completed | 2026-06-09 |
+| 1. Channel Timeout Control and AWS SDK Governance | 4/4 | In progress | - |
 | 2. Customer Trace-Id Propagation | 0/3 | Not started | - |
 | 3. Request Response Archive Pipeline | 0/4 | Not started | - |
 | 4. Verification and Operator Documentation | 0/3 | Not started | - |

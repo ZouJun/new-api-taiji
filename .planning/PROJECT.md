@@ -28,7 +28,7 @@ Every relay request must remain stable, bounded, and traceable from customer req
 - [ ] Separate streaming and non-streaming timeout semantics so that streaming timeout is based on first response chunk timing rather than total stream duration.
 - [ ] Ensure timeout failures emit detailed structured metadata and remain compatible with the existing retry mechanism.
 - [ ] Expose retained AWS invoke-timeout and retry-attempt knobs to the New API layer for unified control and tuning.
-- [ ] Add per-group strategy settings under dashboard Operations Settings so operators can define streaming multi-channel total-timeout budgets by group, with custom error code and error message behavior when the budget is exceeded.
+- [ ] Add per-group strategy settings under dashboard Operations Settings so operators can define streaming multi-channel total-timeout budgets by group, cross-channel retry ceilings, and custom timeout-response status/message behavior for timeout-control-caused failures.
 - [ ] Add per-group cross-channel retry-count settings so different groups can cap how many alternate channels the relay layer will try, distinct from AWS SDK internal retries.
 - [ ] Design a complete full-chain request/response archival system for both streaming and non-streaming relay calls, with a switchable local/Azure Blob backend.
 - [ ] Ensure archival design handles 8000-15000 RPM without coupling upstream latency or availability to blob/local storage failures.
@@ -99,6 +99,7 @@ Important current findings:
 | Keep AWS SDK `max_attempts` as a documented retained control | The current project still exposes `AWS_SDK_MAX_ATTEMPTS` and `aws_sdk_max_attempts` in code | Accepted |
 | Remove AWS HTTP client timeout configuration from the Phase 1 plan surface | The user clarified that AWS HTTP client timeout-related configuration has been fully removed | Accepted |
 | Allow selected AWS Claude timeout-related knobs to be overridden per channel in `channel.setting` | The user wants AWS Claude timeout behavior to remain channel-tunable without expanding retry-mode controls in this phase | Accepted |
+| Return timeout-control-caused relay failures through configurable strategy status/message mapping | The user wants client-facing timeout responses to be replaceable from strategy settings without losing internal timeout evidence in logs | Accepted |
 
 ## Evolution
 

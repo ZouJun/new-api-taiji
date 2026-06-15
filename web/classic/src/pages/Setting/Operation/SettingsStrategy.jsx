@@ -144,6 +144,10 @@ function validateRows(rows, t) {
   return '';
 }
 
+function hasEnabledGroup(rows) {
+  return rows.some((row) => row.enabled);
+}
+
 function buildRowsSignature(rows) {
   return JSON.stringify(
     rows.map((row) => ({
@@ -159,11 +163,23 @@ function buildRowsSignature(rows) {
   );
 }
 
+function normalizeClientStatus(value) {
+  const trimmed = String(value || '').trim();
+  if (trimmed === '' || trimmed === '0') {
+    return '';
+  }
+  return trimmed;
+}
+
 export default function SettingsStrategy(props) {
   const { t } = useTranslation();
   const [loading, setLoading] = useState(false);
   const [rows, setRows] = useState([]);
   const [rowsSnapshot, setRowsSnapshot] = useState([]);
+  const [clientStatus, setClientStatus] = useState('');
+  const [clientStatusSnapshot, setClientStatusSnapshot] = useState('');
+  const [clientMessage, setClientMessage] = useState('');
+  const [clientMessageSnapshot, setClientMessageSnapshot] = useState('');
 
   const groupNames = useMemo(
     () => parseGroupNames(props.options?.GroupRatio || ''),
@@ -177,6 +193,13 @@ export default function SettingsStrategy(props) {
     );
     setRows(nextRows);
     setRowsSnapshot(structuredClone(nextRows));
+    const normalizedClientStatus = normalizeClientStatus(
+      props.options?.ClientTimeoutResponseHttpStatus,
+    );
+    setClientStatus(normalizedClientStatus);
+    setClientStatusSnapshot(normalizedClientStatus);
+    setClientMessage(props.options?.ClientTimeoutResponseErrorMessage || '');
+    setClientMessageSnapshot(props.options?.ClientTimeoutResponseErrorMessage || '');
   }, [groupNames, props.options]);
 
   const updateRow = (group, field, value) => {
@@ -186,7 +209,9 @@ export default function SettingsStrategy(props) {
   };
 
   const hasChanges =
-    buildRowsSignature(rows) !== buildRowsSignature(rowsSnapshot);
+    buildRowsSignature(rows) !== buildRowsSignature(rowsSnapshot) ||
+    clientStatus !== clientStatusSnapshot ||
+    clientMessage !== clientMessageSnapshot;
 
   const onSubmit = async () => {
     if (!hasChanges) {
@@ -197,17 +222,43 @@ export default function SettingsStrategy(props) {
     if (validationError) {
       return showError(validationError);
     }
+    if (hasEnabledGroup(rows)) {
+      if (clientStatus.trim() === '') {
+        return showError(t('存在启用中的分组时，必须设置客户响应的状态码'));
+      }
+      if (clientMessage.trim() === '') {
+        return showError(t('存在启用中的分组时，必须设置客户响应的错误消息'));
+      }
+    }
+    if (clientStatus !== '') {
+      const status = Number(clientStatus);
+      if (Number.isNaN(status) || status < 100 || status > 599) {
+        return showError(t('客户响应状态码必须在 100 到 599 之间'));
+      }
+    }
 
     setLoading(true);
     try {
-      const value = serializeRows(rows);
-      const res = await API.put('/api/option/', {
-        key: 'group_strategy_settings',
-        value,
-      });
-      const { success, message } = res.data;
-      if (!success) {
-        return showError(message);
+      const updates = [
+        {
+          key: 'group_strategy_settings',
+          value: serializeRows(rows),
+        },
+        {
+          key: 'ClientTimeoutResponseHttpStatus',
+          value: clientStatus.trim(),
+        },
+        {
+          key: 'ClientTimeoutResponseErrorMessage',
+          value: clientMessage,
+        },
+      ];
+      for (const payload of updates) {
+        const res = await API.put('/api/option/', payload);
+        const { success, message } = res.data;
+        if (!success) {
+          return showError(message);
+        }
       }
       showSuccess(t('保存成功'));
       await props.refresh();
@@ -220,15 +271,66 @@ export default function SettingsStrategy(props) {
 
   const onReset = () => {
     setRows(structuredClone(rowsSnapshot));
+    setClientStatus(clientStatusSnapshot);
+    setClientMessage(clientMessageSnapshot);
   };
 
   return (
     <Card>
       <Form.Section
         text={t('策略设置')}
-        extraText={t('按分组覆盖重试次数、流式首包等待预算以及预算耗尽时的回退响应')}
+        extraText={t('按分组覆盖重试次数、流式首包等待预算以及超时控制触发后的回退响应')}
       >
         <Space vertical align='start' style={{ width: '100%' }} spacing='small'>
+          <Card
+            style={{
+              width: '100%',
+              border: '1px solid var(--semi-color-border)',
+            }}
+            bodyStyle={{ padding: 12 }}
+          >
+            <Space vertical align='start' style={{ width: '100%' }}>
+              <div>
+                <Title heading={6} style={{ margin: 0 }}>
+                  {t('客户响应封装')}
+                </Title>
+                <Text
+                  type='secondary'
+                  size='small'
+                  style={{ display: 'block', marginTop: 4 }}
+                >
+                  {t('仅在最终返回给客户时生效，针对所有分组统一生效，不影响内部超时判断、重试和日志记录')}
+                </Text>
+              </div>
+              <Row gutter={[12, 8]} style={{ width: '100%' }}>
+                <Col xs={24} sm={12}>
+                  <Form.Slot
+                    label={t('客户响应的状态码')}
+                    extraText={t('留空则不额外替换')}
+                  >
+                    <Input
+                      value={clientStatus}
+                      placeholder={t('例如 400')}
+                      onChange={(value) => setClientStatus(value)}
+                    />
+                  </Form.Slot>
+                </Col>
+                <Col xs={24} sm={12}>
+                  <Form.Slot
+                    label={t('客户响应的错误消息')}
+                    extraText={t('留空则沿用原始消息')}
+                  >
+                    <Input
+                      value={clientMessage}
+                      placeholder={t('例如 请求繁忙，请稍后重试')}
+                      onChange={(value) => setClientMessage(value)}
+                    />
+                  </Form.Slot>
+                </Col>
+              </Row>
+            </Space>
+          </Card>
+
           <div
             style={{
               width: '100%',
@@ -271,7 +373,7 @@ export default function SettingsStrategy(props) {
                   style={{ display: 'block', marginTop: 4 }}
                 >
                   {t(
-                    '上游没有更明确错误时，回退到当前分组的状态码与文案；默认 503 / 资源繁忙，请稍后尝试。',
+                    '当请求最终因非流式总超时或流式首包超时结束时，会回退到当前分组的状态码与文案；默认 503 / 资源繁忙，请稍后尝试。',
                   )}
                 </Text>
               </Col>

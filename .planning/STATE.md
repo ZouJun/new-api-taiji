@@ -2,10 +2,10 @@
 gsd_state_version: 1.0
 milestone: v1.0
 milestone_name: milestone
-status: planning
-stopped_at: Phase 1 closed out and Phase 2 ready
-last_updated: "2026-06-09T00:00:00Z"
-last_activity: 2026-06-09 - Closed out Phase 1 timeout control and AWS SDK governance
+status: implementation
+stopped_at: Phase 1 reopened for timeout-response amendment
+last_updated: "2026-06-15T00:00:00Z"
+last_activity: 2026-06-15 - Reopened Phase 1 to add configurable client timeout response mapping
 progress:
   total_phases: 5
   completed_phases: 1
@@ -21,14 +21,14 @@ progress:
 See: .planning/PROJECT.md (updated 2026-06-06)
 
 **Core value:** Every relay request must remain stable, bounded, and traceable from customer request through upstream call, response delivery, storage/audit artifacts, and database logs.
-**Current focus:** Phase 2: Customer Trace-Id Propagation
+**Current focus:** Phase 1 amendment: configurable timeout-response mapping
 
 ## Current Position
 
-Phase: 2 of 5 (Customer Trace-Id Propagation)
-Plan: 0 of 3 in current phase
-Status: Ready to plan
-Last activity: 2026-06-09 - Closed out Phase 1 timeout control and AWS SDK governance
+Phase: 1 of 5 (Channel Timeout Control and AWS SDK Governance)
+Plan: 4 of 4 in current phase
+Status: Amendment in implementation
+Last activity: 2026-06-15 - Reopened Phase 1 to add configurable client timeout response mapping
 
 Progress: [##--------] 20%
 
@@ -48,8 +48,8 @@ Progress: [##--------] 20%
 
 **Recent Trend:**
 
-- Last 5 plans: Phase 1 completed
-- Trend: Phase transition ready
+- Last 5 plans: Phase 1 amendment started
+- Trend: finish Phase 1 before moving back to Phase 2
 
 ## Accumulated Context
 
@@ -63,12 +63,13 @@ Recent decisions affecting current work:
 - Keep full payloads out of `logs.other`; store archive object references and metadata there instead.
 - Prefer async isolated archival over synchronous storage upload in the relay hot path.
 - Timeout failures remain retry-eligible when caused by request deadline or stream first-byte timeout.
+- Timeout-control-caused final failures should use strategy-configured client status/message while logs retain timeout evidence.
 - AWS Phase 1 configuration surface is limited to `AWS_INVOKE_TIMEOUT_SECONDS`, `AWS_SDK_MAX_ATTEMPTS`, `aws_invoke_timeout_seconds`, and `aws_sdk_max_attempts`.
 
 ### Roadmap Evolution
 
 - Project initialized: new-api Reliability and Traceability.
-- Phase 1 completed: Channel Timeout Control and AWS SDK Governance.
+- Phase 1 reopened: Channel Timeout Control and AWS SDK Governance timeout-response amendment.
 - Phase 2 created: Customer Trace-Id Propagation.
 - Phase 3 created: Request Response Archive Pipeline.
 - Phase 4 created: Verification and Operator Documentation.
@@ -76,7 +77,7 @@ Recent decisions affecting current work:
 
 ### Pending Todos
 
-- Start Phase 2 context and discussion for customer Trace-Id propagation.
+- Finish Phase 1 timeout-response amendment and verification.
 - Plan Phase 5 for per-group strategy settings after the current milestone path reaches it.
 
 ### Blockers/Concerns
@@ -96,6 +97,6 @@ Recent decisions affecting current work:
 
 ## Session Continuity
 
-Last session: 2026-06-09T00:00:00Z
-Stopped at: Phase 1 complete
+Last session: 2026-06-15T00:00:00Z
+Stopped at: Phase 1 amendment in progress
 Resume file: .planning/ROADMAP.md

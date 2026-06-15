@@ -347,7 +347,7 @@ export function StrategySettingsSection({
                         />
                         <FormDescription>
                           {t(
-                            'Returned when the stream retry first-byte budget is exhausted and no clearer upstream error is available.'
+                            'Returned when this group ends with a timeout caused by the relay timeout controls, including non-stream total timeout and stream first-byte timeout.'
                           )}
                         </FormDescription>
                         <p className='text-xs text-muted-foreground'>
@@ -382,7 +382,7 @@ export function StrategySettingsSection({
                         />
                         <FormDescription>
                           {t(
-                            'Custom message for budget exhaustion. Leave empty to use: 资源繁忙，请稍后尝试'
+                            'Custom message for timeout responses caused by the relay timeout controls. Leave empty to use: 资源繁忙，请稍后尝试'
                           )}
                         </FormDescription>
                         <p className='text-xs text-muted-foreground'>

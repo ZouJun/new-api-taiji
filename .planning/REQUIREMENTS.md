@@ -21,6 +21,7 @@ Requirements for this milestone. Each maps to exactly one roadmap phase.
 - [ ] **TIME-06**: Per-channel timeout settings are stored in `channel.setting` as two separate fields: non-stream total timeout and stream first-byte timeout.
 - [ ] **TIME-07**: After the first stream byte/event is received, the first version does not enforce a separate total stream timeout kill switch.
 - [ ] **TIME-08**: All channels build or resolve HTTP behavior using channel-level timeout settings when configured, while preserving connection pooling and falling back to shared defaults when absent.
+- [ ] **TIME-09**: When relay timeout controls cause the final failure, the client-facing HTTP status and error message can be replaced by configured strategy settings without removing structured timeout evidence from logs.
 - [ ] **SDK-01**: AWS relay invoke-timeout and retry-attempt knobs used by execution are exposed to New API configuration instead of being fully hidden inside SDK defaults.
 - [ ] **SDK-02**: Maintainers can explain which AWS knobs are controlled globally, which are controlled per channel, and how they interact.
 - [ ] **SDK-03**: New API globally controls `AWS_INVOKE_TIMEOUT_SECONDS` and `AWS_SDK_MAX_ATTEMPTS` with documented interaction rules against per-channel timeout settings.
@@ -113,6 +114,7 @@ Which phases cover which requirements. Updated during roadmap creation.
 | TIME-06 | Phase 1 | Completed |
 | TIME-07 | Phase 1 | Completed |
 | TIME-08 | Phase 1 | Completed |
+| TIME-09 | Phase 1 | In progress |
 | SDK-01 | Phase 1 | Completed |
 | SDK-02 | Phase 1 | Completed |
 | SDK-03 | Phase 1 | Completed |
@@ -156,4 +158,4 @@ Which phases cover which requirements. Updated during roadmap creation.
 
 ---
 *Requirements defined: 2026-06-06*
-*Last updated: 2026-06-09 after Phase 1 closeout*
+*Last updated: 2026-06-15 after Phase 1 timeout-response amendment*

@@ -52,6 +52,8 @@ const OperationSetting = () => {
     SelfUseModeEnabled: false,
     GroupRatio: '',
     group_strategy_settings: '',
+    ClientTimeoutResponseHttpStatus: '',
+    ClientTimeoutResponseErrorMessage: '',
 
     /* 顶栏模块管理 */
     HeaderNavModules: '',

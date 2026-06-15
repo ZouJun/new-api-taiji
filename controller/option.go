@@ -241,6 +241,15 @@ func UpdateOption(c *gin.Context) {
 			})
 			return
 		}
+	case "ClientTimeoutResponseHttpStatus":
+		status, convErr := strconv.Atoi(strings.TrimSpace(option.Value.(string)))
+		if convErr != nil || status < 0 || status > 599 || (status > 0 && status < 100) {
+			c.JSON(http.StatusOK, gin.H{
+				"success": false,
+				"message": "客户响应状态码必须为空或位于 100 到 599 之间",
+			})
+			return
+		}
 	case "ImageRatio":
 		err = ratio_setting.UpdateImageRatioByJSONString(option.Value.(string))
 		if err != nil {

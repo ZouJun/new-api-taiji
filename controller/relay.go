@@ -74,6 +74,7 @@ func Relay(c *gin.Context, relayFormat types.RelayFormat) {
 
 	var (
 		newAPIError *types.NewAPIError
+		relayInfo   *relaycommon.RelayInfo
 		ws          *websocket.Conn
 	)
 
@@ -90,18 +91,23 @@ func Relay(c *gin.Context, relayFormat types.RelayFormat) {
 	defer func() {
 		if newAPIError != nil {
 			logger.LogError(c, fmt.Sprintf("relay error: %s", common.LocalLogPreview(newAPIError.Error())))
-			newAPIError.SetMessage(common.MessageWithRequestId(newAPIError.Error(), requestId))
+			responseErr := relaycommon.BuildClientTimeoutResponseError(c, newAPIError)
+			clientMessage := responseErr.Error()
+			if responseErr == newAPIError && shouldHideInternalRelayError(c, newAPIError) {
+				clientMessage = "upstream error: do request failed"
+			}
+			responseErr.SetMessage(common.MessageWithRequestId(clientMessage, requestId))
 			switch relayFormat {
 			case types.RelayFormatOpenAIRealtime:
-				helper.WssError(c, ws, newAPIError.ToOpenAIError())
+				helper.WssError(c, ws, responseErr.ToOpenAIError())
 			case types.RelayFormatClaude:
-				c.JSON(newAPIError.StatusCode, gin.H{
+				c.JSON(responseErr.StatusCode, gin.H{
 					"type":  "error",
-					"error": newAPIError.ToClaudeError(),
+					"error": responseErr.ToClaudeError(),
 				})
 			default:
-				c.JSON(newAPIError.StatusCode, gin.H{
-					"error": newAPIError.ToOpenAIError(),
+				c.JSON(responseErr.StatusCode, gin.H{
+					"error": responseErr.ToOpenAIError(),
 				})
 			}
 		}
@@ -118,7 +124,7 @@ func Relay(c *gin.Context, relayFormat types.RelayFormat) {
 		return
 	}
 
-	relayInfo, err := relaycommon.GenRelayInfo(c, relayFormat, request, ws)
+	relayInfo, err = relaycommon.GenRelayInfo(c, relayFormat, request, ws)
 	if err != nil {
 		newAPIError = types.NewError(err, types.ErrorCodeGenRelayInfoFailed)
 		return
@@ -235,11 +241,8 @@ func Relay(c *gin.Context, relayFormat types.RelayFormat) {
 		processChannelError(c, *types.NewChannelError(channel.Id, channel.Type, channel.Name, channel.ChannelInfo.IsMultiKey, common.GetContextKeyString(c, constant.ContextKeyChannelKey), channel.GetAutoBan()), newAPIError)
 
 		if relayInfo.IsStream && retryParam.GetRetry() > 0 {
-			runtime, _, budgetExceeded := relaycommon.ConsumeStreamFirstByteRetryBudget(c, relayInfo, relaycommon.ResolveAttemptStreamFirstByteWait(relayInfo, attemptStart, newAPIError))
+			_, _, budgetExceeded := relaycommon.ConsumeStreamFirstByteRetryBudget(c, relayInfo, relaycommon.ResolveAttemptStreamFirstByteWait(relayInfo, attemptStart, newAPIError))
 			if budgetExceeded {
-				if errors.Is(newAPIError, relaycommon.ErrStreamFirstByteTimeout) {
-					newAPIError = relaycommon.BuildGroupStrategyTimeoutError(runtime, newAPIError)
-				}
 				break
 			}
 		}
@@ -261,6 +264,10 @@ func Relay(c *gin.Context, relayFormat types.RelayFormat) {
 			perfmetrics.RecordRelaySample(relayInfo, false, 0)
 		})
 	}
+}
+
+func shouldHideInternalRelayError(c *gin.Context, err *types.NewAPIError) bool {
+	return relaycommon.IsTimeoutFeatureRelayError(c, err)
 }
 
 var upgrader = websocket.Upgrader{

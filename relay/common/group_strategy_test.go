@@ -1,6 +1,9 @@
 package common
 
 import (
+	"context"
+	"errors"
+	"net/http"
 	"net/http/httptest"
 	"testing"
 	"time"
@@ -145,13 +148,35 @@ func TestBuildGroupStrategyTimeoutError(t *testing.T) {
 	}
 }
 
+func TestBuildConfiguredTimeoutRelayErrorForNonStreamTimeout(t *testing.T) {
+	t.Parallel()
+
+	gin.SetMode(gin.TestMode)
+	recorder := httptest.NewRecorder()
+	ctx, _ := gin.CreateTestContext(recorder)
+	ctx.Request = httptest.NewRequest(http.MethodPost, "/v1/chat/completions", nil)
+	SetTimeoutMeta(ctx, TimeoutMeta{
+		Type:   TimeoutTypeNonStreamTotal,
+		Source: TimeoutSourceProviderGlobal,
+	})
+
+	upstreamErr := types.NewErrorWithStatusCode(context.DeadlineExceeded, types.ErrorCodeDoRequestFailed, 504)
+	err := BuildConfiguredTimeoutRelayError(ctx, RuntimeGroupStrategy{
+		TimeoutHTTPStatus:   429,
+		TimeoutErrorMessage: "busy",
+	}, upstreamErr)
+	if err.StatusCode != 429 {
+		t.Fatalf("expected status 429, got %d", err.StatusCode)
+	}
+	if err.Error() != "busy" {
+		t.Fatalf("expected custom message, got %q", err.Error())
+	}
+}
+
 func TestBuildGroupStrategyTimeoutErrorPreservesNonTimeoutError(t *testing.T) {
 	t.Parallel()
 
-	upstreamErr := types.NewErrorWithStatusCode(ErrStreamFirstByteTimeout, types.ErrorCodeDoRequestFailed, 504)
-	upstreamErr.SetMessage("upstream busy")
-	nonTimeoutErr := types.NewErrorWithStatusCode(upstreamErr, types.ErrorCodeDoRequestFailed, 502, types.ErrOptionWithStatusCode(502))
-	nonTimeoutErr.SetMessage("upstream specific error")
+	nonTimeoutErr := types.NewErrorWithStatusCode(errors.New("upstream specific error"), types.ErrorCodeDoRequestFailed, 502)
 
 	err := BuildGroupStrategyTimeoutError(RuntimeGroupStrategy{
 		TimeoutHTTPStatus:   429,
@@ -162,6 +187,22 @@ func TestBuildGroupStrategyTimeoutErrorPreservesNonTimeoutError(t *testing.T) {
 	}
 	if err.Error() != "upstream specific error" {
 		t.Fatalf("expected upstream message to be preserved, got %q", err.Error())
+	}
+}
+
+func TestBuildConfiguredTimeoutRelayErrorPreservesPlainDeadlineExceededWithoutTimeoutMeta(t *testing.T) {
+	t.Parallel()
+
+	upstreamErr := types.NewErrorWithStatusCode(context.DeadlineExceeded, types.ErrorCodeDoRequestFailed, 504)
+	err := BuildConfiguredTimeoutRelayError(nil, RuntimeGroupStrategy{
+		TimeoutHTTPStatus:   429,
+		TimeoutErrorMessage: "busy",
+	}, upstreamErr)
+	if err.StatusCode != 504 {
+		t.Fatalf("expected upstream status 504 to be preserved, got %d", err.StatusCode)
+	}
+	if !errors.Is(err, context.DeadlineExceeded) {
+		t.Fatal("expected deadline exceeded cause to be preserved")
 	}
 }
 

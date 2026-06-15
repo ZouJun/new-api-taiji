@@ -567,11 +567,11 @@ func doRequest(c *gin.Context, req *http.Request, info *common.RelayInfo) (*http
 			firstByteController.Cancel()
 		}
 		logger.LogError(c, "do request failed: "+err.Error())
-		options := []types.NewAPIErrorOptions{
-			types.ErrOptionWithHideErrMsg("upstream error: do request failed"),
-		}
+		options := []types.NewAPIErrorOptions{}
 		if errors.Is(err, context.DeadlineExceeded) || errors.Is(err, common.ErrStreamFirstByteTimeout) {
 			options = append(options, types.ErrOptionWithStatusCode(http.StatusGatewayTimeout))
+		} else {
+			options = append(options, types.ErrOptionWithHideErrMsg("upstream error: do request failed"))
 		}
 		return nil, types.NewError(err, types.ErrorCodeDoRequestFailed, options...)
 	}

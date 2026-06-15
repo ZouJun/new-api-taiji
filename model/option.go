@@ -153,6 +153,8 @@ func InitOptionMap() {
 	//common.OptionMap["ChatLink2"] = common.ChatLink2
 	common.OptionMap["QuotaPerUnit"] = strconv.FormatFloat(common.QuotaPerUnit, 'f', -1, 64)
 	common.OptionMap["RetryTimes"] = strconv.Itoa(common.RetryTimes)
+	common.OptionMap["ClientTimeoutResponseHttpStatus"] = ""
+	common.OptionMap["ClientTimeoutResponseErrorMessage"] = operation_setting.ClientTimeoutResponseMessage
 	common.OptionMap["DataExportInterval"] = strconv.Itoa(common.DataExportInterval)
 	common.OptionMap["DataExportDefaultTime"] = common.DataExportDefaultTime
 	common.OptionMap["DefaultCollapseSidebar"] = strconv.FormatBool(common.DefaultCollapseSidebar)
@@ -561,6 +563,10 @@ func updateOptionMap(key string, value string) (err error) {
 		err = operation_setting.AutomaticRetryStatusCodesFromString(value)
 	case "group_strategy_settings":
 		err = operation_setting.UpdateGroupStrategySettingsByJSONString(value)
+	case "ClientTimeoutResponseHttpStatus":
+		operation_setting.ClientTimeoutResponseHTTPStatus, _ = strconv.Atoi(value)
+	case "ClientTimeoutResponseErrorMessage":
+		operation_setting.ClientTimeoutResponseMessage = value
 	case "StreamCacheQueueLength":
 		setting.StreamCacheQueueLength, _ = strconv.Atoi(value)
 	case "PayMethods":

@@ -35,9 +35,6 @@ const defaultSiteSettings: SiteSettings = {
   ServerAddress: '',
   'legal.user_agreement': '',
   'legal.privacy_policy': '',
-  RetryTimes: 0,
-  GroupRatio: '',
-  group_strategy_settings: '',
   HeaderNavModules: '',
   SidebarModulesAdmin: '',
 }

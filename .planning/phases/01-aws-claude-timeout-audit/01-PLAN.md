@@ -1,8 +1,8 @@
 # Phase 1 Plan: Channel Timeout Control and AWS SDK Governance
 
 **Phase:** 1  
-**Status:** Completed  
-**Updated:** 2026-06-09
+**Status:** Amendment in progress  
+**Updated:** 2026-06-15
 
 ## 1. Goal
 
@@ -27,6 +27,7 @@ These points are already confirmed and should not be reopened during implementat
    - `invoke timeout`
    - `retry max attempts`
 9. Selected AWS Claude timeout-related knobs must also support channel-level override.
+10. When timeout controls produce the final relay failure, the client-facing HTTP status and error message should be replaceable through strategy settings without removing timeout evidence from logs.
 
 ## 3. Proposed Configuration Model
 
@@ -434,6 +435,7 @@ Completed on 2026-06-09:
 - AWS path honors `AWS_INVOKE_TIMEOUT_SECONDS`, `AWS_SDK_MAX_ATTEMPTS`, `aws_invoke_timeout_seconds`, and `aws_sdk_max_attempts`.
 - Timeout metadata is appended into log `other` fields.
 - Retry logic now treats `context.DeadlineExceeded` and `ErrStreamFirstByteTimeout` as retry-eligible timeout failures.
+- Strategy-configured timeout status/message mapping is applied only when the final relay failure is caused by timeout controls, while `logs.other` still keeps timeout metadata for operator evidence.
 
 Targeted tests run with `GOROOT=/Users/zf/.gvm/gos/go1.25.1`:
 

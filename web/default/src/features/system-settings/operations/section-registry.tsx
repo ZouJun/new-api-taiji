@@ -16,6 +16,8 @@ along with this program. If not, see <https://www.gnu.org/licenses/>.
 
 For commercial licensing, please contact support@quantumnous.com
 */
+import { FrontendThemeSection } from './frontend-theme-section'
+import { StrategySettingsSection } from './strategy-settings-section'
 import { SystemBehaviorSection } from '../general/system-behavior-section'
 import { EmailSettingsSection } from '../integrations/email-settings-section'
 import { MonitoringSettingsSection } from '../integrations/monitoring-settings-section'
@@ -27,6 +29,24 @@ import type { OperationsSettings } from '../types'
 import { createSectionRegistry } from '../utils/section-registry'
 
 const OPERATIONS_SECTIONS = [
+  {
+    id: 'frontend-theme',
+    titleKey: 'Frontend Theme',
+    build: (settings: OperationsSettings) => (
+      <FrontendThemeSection frontendTheme={settings['theme.frontend']} />
+    ),
+  },
+  {
+    id: 'strategy',
+    titleKey: 'Strategy Settings',
+    build: (settings: OperationsSettings) => (
+      <StrategySettingsSection
+        groupRatio={settings.GroupRatio}
+        strategySettings={settings.group_strategy_settings}
+        globalRetryTimes={settings.RetryTimes}
+      />
+    ),
+  },
   {
     id: 'behavior',
     titleKey: 'System Behavior',
@@ -161,7 +181,7 @@ const operationsRegistry = createSectionRegistry<
   [string | null | undefined, number | null | undefined]
 >({
   sections: OPERATIONS_SECTIONS,
-  defaultSection: 'behavior',
+  defaultSection: 'frontend-theme',
   basePath: '/system-settings/operations',
   urlStyle: 'path',
 })
