@@ -18,6 +18,14 @@ func BuildRelayErrorTrace(c *gin.Context, info *RelayInfo, err *types.NewAPIErro
 	return trace
 }
 
+func AppendRelayTrace(other map[string]interface{}, c *gin.Context, info *RelayInfo, decision RelayRetryDecision) map[string]interface{} {
+	if other == nil {
+		other = make(map[string]interface{})
+	}
+	appendRetryTrace(other, c, info, decision)
+	return other
+}
+
 type RelayRetryDecision struct {
 	WillRetry           bool
 	StopReason          string
@@ -32,8 +40,22 @@ func appendFailureTrace(other map[string]interface{}, c *gin.Context, err *types
 	source, category := resolveRelayFailureSource(c, err)
 	other["failure_source"] = source
 	other["failure_category"] = category
-	if errors.Is(err, context.Canceled) || err.StatusCode == 499 {
+	if err.StatusCode == 499 {
 		other["client_disconnect"] = true
+	}
+	if errors.Is(err, context.Canceled) {
+		other["context_canceled"] = true
+		other["cancel_origin"] = inferCancelOrigin(c, err)
+		if c != nil && c.Request != nil {
+			if reqErr := c.Request.Context().Err(); reqErr != nil {
+				other["request_context_err"] = reqErr.Error()
+			}
+		}
+		if meta, ok := GetTimeoutMeta(c); ok {
+			other["cancel_with_timeout_meta"] = true
+			other["cancel_timeout_type"] = meta.Type
+			other["cancel_timeout_stage"] = meta.Stage
+		}
 	}
 	if err.StatusCode >= 400 && err.StatusCode <= 599 {
 		other["http_status_family"] = err.StatusCode / 100
@@ -79,13 +101,34 @@ func appendRetryTrace(other map[string]interface{}, c *gin.Context, info *RelayI
 	}
 }
 
+func inferCancelOrigin(c *gin.Context, err *types.NewAPIError) string {
+	if err == nil {
+		return "unknown"
+	}
+	if err.StatusCode == 499 {
+		return "client_request_context"
+	}
+	if IsTimeoutFeatureRelayError(c, err) {
+		return "timeout_context"
+	}
+	if c != nil && c.Request != nil && c.Request.Context().Err() == context.Canceled {
+		return "client_request_context"
+	}
+	return "unknown_context"
+}
+
 func resolveRelayFailureSource(c *gin.Context, err *types.NewAPIError) (string, string) {
 	if err == nil {
 		return "unknown", "unknown"
 	}
 	switch {
-	case errors.Is(err, context.Canceled) || err.StatusCode == 499:
+	case err.StatusCode == 499:
 		return "client", "client_disconnect"
+	case errors.Is(err, context.Canceled):
+		if IsTimeoutFeatureRelayError(c, err) {
+			return "timeout_feature", "timeout_context_canceled"
+		}
+		return "internal", "context_canceled"
 	case IsTimeoutFeatureRelayError(c, err):
 		return "timeout_feature", "timeout"
 	case err.GetErrorCode() == types.ErrorCodeBadResponseStatusCode ||
@@ -114,4 +157,18 @@ func IsRelayErrorLogged(c *gin.Context) bool {
 		return false
 	}
 	return rootcommon.GetContextKeyBool(c, constant.ContextKeyRelayErrorLogged)
+}
+
+func MarkRelayFinalErrorLogged(c *gin.Context) {
+	if c == nil {
+		return
+	}
+	rootcommon.SetContextKey(c, constant.ContextKeyRelayFinalErrorLogged, true)
+}
+
+func IsRelayFinalErrorLogged(c *gin.Context) bool {
+	if c == nil {
+		return false
+	}
+	return rootcommon.GetContextKeyBool(c, constant.ContextKeyRelayFinalErrorLogged)
 }

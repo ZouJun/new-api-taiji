@@ -79,7 +79,26 @@ func GenerateTextOtherInfo(ctx *gin.Context, relayInfo *relaycommon.RelayInfo, m
 	appendBillingInfo(relayInfo, other)
 	appendParamOverrideInfo(relayInfo, other)
 	appendStreamStatus(relayInfo, other)
+	appendRelaySuccessTrace(ctx, relayInfo, other)
 	return other
+}
+
+func appendRelaySuccessTrace(ctx *gin.Context, relayInfo *relaycommon.RelayInfo, other map[string]interface{}) {
+	if relayInfo == nil || other == nil {
+		return
+	}
+	decision := relaycommon.RelayRetryDecision{
+		WillRetry:           false,
+		StopReason:          "request_succeeded",
+		EffectiveRetryTimes: relayInfo.EffectiveRetryTimes,
+		RemainingRetrySlots: relayInfo.EffectiveRetryTimes - ctx.GetInt("retry"),
+	}
+	relaycommon.AppendRelayTrace(other, ctx, relayInfo, decision)
+	other["log_phase"] = "request_succeeded"
+	other["log_event"] = "relay_consume_success"
+	if len(ctx.GetStringSlice("use_channel")) > 1 {
+		other["request_succeeded_after_retry"] = true
+	}
 }
 
 func appendParamOverrideInfo(relayInfo *relaycommon.RelayInfo, other map[string]interface{}) {

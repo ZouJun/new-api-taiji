@@ -61,11 +61,12 @@ const (
 
 	// ContextKeyAdminRejectReason stores an admin-only reject/block reason extracted from upstream responses.
 	// It is not returned to end users, but can be persisted into consume/error logs for debugging.
-	ContextKeyAdminRejectReason ContextKey = "admin_reject_reason"
-	ContextKeyTimeoutMeta       ContextKey = "timeout_meta"
-	ContextKeyGroupStrategy     ContextKey = "group_strategy_snapshot"
-	ContextKeyGroupStrategyWait ContextKey = "group_strategy_first_byte_wait"
-	ContextKeyRelayErrorLogged  ContextKey = "relay_error_logged"
+	ContextKeyAdminRejectReason     ContextKey = "admin_reject_reason"
+	ContextKeyTimeoutMeta           ContextKey = "timeout_meta"
+	ContextKeyGroupStrategy         ContextKey = "group_strategy_snapshot"
+	ContextKeyGroupStrategyWait     ContextKey = "group_strategy_first_byte_wait"
+	ContextKeyRelayErrorLogged      ContextKey = "relay_error_logged"
+	ContextKeyRelayFinalErrorLogged ContextKey = "relay_final_error_logged"
 
 	// ContextKeyLanguage stores the user's language preference for i18n
 	ContextKeyLanguage ContextKey = "language"

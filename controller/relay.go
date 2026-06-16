@@ -90,14 +90,17 @@ func Relay(c *gin.Context, relayFormat types.RelayFormat) {
 
 	defer func() {
 		if newAPIError != nil {
-			recordUnhandledRelayError(c, relayInfo, newAPIError)
-			logger.LogError(c, fmt.Sprintf("relay error: %s", common.LocalLogPreview(newAPIError.Error())))
 			responseErr := relaycommon.BuildClientTimeoutResponseError(c, newAPIError)
-			clientMessage := responseErr.Error()
+			rawClientMessage := responseErr.Error()
+			clientMessage := rawClientMessage
 			if responseErr == newAPIError && shouldHideInternalRelayError(c, newAPIError) {
 				clientMessage = "upstream error: do request failed"
+				rawClientMessage = clientMessage
 			}
 			responseErr.SetMessage(common.MessageWithRequestId(clientMessage, requestId))
+			recordUnhandledRelayError(c, relayInfo, newAPIError)
+			recordFinalRelayError(c, relayInfo, newAPIError, responseErr, rawClientMessage)
+			logger.LogError(c, fmt.Sprintf("relay error: %s", common.LocalLogPreview(newAPIError.Error())))
 			switch relayFormat {
 			case types.RelayFormatOpenAIRealtime:
 				helper.WssError(c, ws, responseErr.ToOpenAIError())
@@ -243,7 +246,7 @@ func Relay(c *gin.Context, relayFormat types.RelayFormat) {
 		effectiveRetryTimes := relaycommon.ResolveEffectiveRetryTimes(c, relayInfo)
 		remainingRetrySlots := effectiveRetryTimes - retryParam.GetRetry()
 		willRetry := !budgetExceeded && shouldRetry(c, newAPIError, remainingRetrySlots)
-		stopReason := resolveRelayRetryStopReason(c, newAPIError, budgetExceeded, remainingRetrySlots)
+		stopReason := resolveRelayRetryStopReason(c, newAPIError, budgetExceeded, willRetry, remainingRetrySlots)
 		decision := relaycommon.RelayRetryDecision{
 			WillRetry:           willRetry,
 			StopReason:          stopReason,
@@ -300,6 +303,8 @@ func recordUnhandledRelayError(c *gin.Context, relayInfo *relaycommon.RelayInfo,
 	other["error_type"] = err.GetErrorType()
 	other["error_code"] = err.GetErrorCode()
 	other["status_code"] = err.StatusCode
+	other["log_phase"] = "pre_channel_or_unhandled_error"
+	other["log_event"] = "relay_error"
 	startTime := common.GetContextKeyTime(c, constant.ContextKeyRequestStartTime)
 	if startTime.IsZero() {
 		startTime = time.Now()
@@ -319,6 +324,53 @@ func recordUnhandledRelayError(c *gin.Context, relayInfo *relaycommon.RelayInfo,
 		other,
 	)
 	relaycommon.MarkRelayErrorLogged(c)
+}
+
+func recordFinalRelayError(c *gin.Context, relayInfo *relaycommon.RelayInfo, upstreamErr *types.NewAPIError, responseErr *types.NewAPIError, rawClientMessage string) {
+	if upstreamErr == nil || responseErr == nil || !constant.ErrorLogEnabled || !types.IsRecordErrorLog(upstreamErr) || relaycommon.IsRelayFinalErrorLogged(c) {
+		return
+	}
+	effectiveRetryTimes := relaycommon.ResolveEffectiveRetryTimes(c, relayInfo)
+	finalDecision := relaycommon.RelayRetryDecision{
+		WillRetry:           false,
+		StopReason:          "final_response_returned",
+		EffectiveRetryTimes: effectiveRetryTimes,
+		RemainingRetrySlots: effectiveRetryTimes - c.GetInt("retry"),
+	}
+	other := relaycommon.BuildRelayErrorTrace(c, relayInfo, upstreamErr, finalDecision)
+	if c.Request != nil && c.Request.URL != nil {
+		other["request_path"] = c.Request.URL.Path
+	}
+	other["error_type"] = upstreamErr.GetErrorType()
+	other["error_code"] = upstreamErr.GetErrorCode()
+	other["status_code"] = upstreamErr.StatusCode
+	other["final_error"] = true
+	other["log_phase"] = "final_response_error"
+	other["log_event"] = "relay_final_error"
+	other["final_response_status_code"] = responseErr.StatusCode
+	other["final_response_message"] = rawClientMessage
+	other["final_response_message_with_request_id"] = responseErr.ClientMessage()
+	other["final_response_wrapped"] = responseErr != upstreamErr
+	other["upstream_error_message"] = upstreamErr.MaskSensitiveErrorWithStatusCode()
+	startTime := common.GetContextKeyTime(c, constant.ContextKeyRequestStartTime)
+	if startTime.IsZero() {
+		startTime = time.Now()
+	}
+	useTimeSeconds := int(time.Since(startTime).Seconds())
+	model.RecordErrorLog(
+		c,
+		c.GetInt("id"),
+		c.GetInt("channel_id"),
+		c.GetString("original_model"),
+		c.GetString("token_name"),
+		responseErr.MaskSensitiveErrorWithStatusCode(),
+		c.GetInt("token_id"),
+		useTimeSeconds,
+		common.GetContextKeyBool(c, constant.ContextKeyIsStream),
+		c.GetString("group"),
+		other,
+	)
+	relaycommon.MarkRelayFinalErrorLogged(c)
 }
 
 func consumeStreamFirstByteRetryBudget(c *gin.Context, relayInfo *relaycommon.RelayInfo, attemptStart time.Time, relayErr *types.NewAPIError) bool {
@@ -477,6 +529,8 @@ func processChannelError(c *gin.Context, channelError types.ChannelError, relayI
 		other["channel_id"] = channelId
 		other["channel_name"] = c.GetString("channel_name")
 		other["channel_type"] = c.GetInt("channel_type")
+		other["log_phase"] = "channel_attempt_error"
+		other["log_event"] = "relay_channel_error"
 		for key, value := range relaycommon.BuildRelayErrorTrace(c, relayInfo, err, decision) {
 			other[key] = value
 		}
@@ -501,17 +555,21 @@ func processChannelError(c *gin.Context, channelError types.ChannelError, relayI
 
 }
 
-func resolveRelayRetryStopReason(c *gin.Context, err *types.NewAPIError, budgetExceeded bool, remainingRetrySlots int) string {
+func resolveRelayRetryStopReason(c *gin.Context, err *types.NewAPIError, budgetExceeded bool, willRetry bool, remainingRetrySlots int) string {
 	switch {
 	case budgetExceeded:
 		return "stream_first_byte_budget_exhausted"
 	case err == nil:
 		return "no_error"
-	case errors.Is(err, context.Canceled) || err.StatusCode == 499:
+	case err.StatusCode == 499:
 		return "client_disconnected"
-	case remainingRetrySlots > 0 && !types.IsSkipRetryError(err) && !types.IsChannelError(err) &&
-		(errors.Is(err, context.DeadlineExceeded) || errors.Is(err, relaycommon.ErrStreamFirstByteTimeout)):
+	case willRetry:
 		return "retry_next_channel"
+	case errors.Is(err, context.Canceled):
+		if relaycommon.IsTimeoutFeatureRelayError(c, err) {
+			return "timeout_context_canceled"
+		}
+		return "context_canceled"
 	case remainingRetrySlots <= 0:
 		return "retry_limit_reached"
 	case types.IsSkipRetryError(err):
