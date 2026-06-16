@@ -2,6 +2,7 @@ package channel
 
 import (
 	"bufio"
+	"context"
 	"errors"
 	"fmt"
 	"io"
@@ -359,4 +360,39 @@ func TestDoRequest_StreamFirstByteTimeoutCancelsUpstreamConnection(t *testing.T)
 	require.Equal(t, relaycommon.TimeoutSourceChannelSetting, timeoutMeta["timeout_source"])
 	require.Equal(t, timeoutSeconds, timeoutMeta["timeout_seconds"])
 	require.Equal(t, "stream_first_byte_wait", timeoutMeta["timeout_stage"])
+}
+
+func TestDoRequest_ClientCanceledRequestStopsRetryClassification(t *testing.T) {
+	gin.SetMode(gin.TestMode)
+	recorder := httptest.NewRecorder()
+	ctx, _ := gin.CreateTestContext(recorder)
+
+	requestCtx, cancel := context.WithCancel(context.Background())
+	ctx.Request = httptest.NewRequest(http.MethodPost, "/v1/messages", strings.NewReader(`{"model":"mock-gpt","stream":true}`)).WithContext(requestCtx)
+	ctx.Request.Header.Set("Content-Type", "application/json")
+
+	info := &relaycommon.RelayInfo{
+		IsStream:                true,
+		RelayFormat:             "claude",
+		FinalRequestRelayFormat: "claude",
+		ChannelMeta:             &relaycommon.ChannelMeta{},
+	}
+
+	req, err := http.NewRequestWithContext(ctx.Request.Context(), http.MethodPost, "http://127.0.0.1:1/v1/messages", strings.NewReader(`{"model":"mock-gpt","stream":true}`))
+	require.NoError(t, err)
+	req.Header.Set("Content-Type", "application/json")
+
+	cancel()
+
+	resp, err := DoRequest(ctx, req, info)
+	require.Nil(t, resp)
+	require.Error(t, err)
+
+	var apiErr *types.NewAPIError
+	require.True(t, errors.As(err, &apiErr), "expected NewAPIError, got %T", err)
+	require.Equal(t, 499, apiErr.StatusCode)
+	require.Equal(t, types.ErrorCodeDoRequestFailed, apiErr.GetErrorCode())
+	require.True(t, types.IsSkipRetryError(apiErr))
+	require.Equal(t, "client canceled request", apiErr.ClientMessage())
+	require.ErrorIs(t, apiErr, context.Canceled)
 }

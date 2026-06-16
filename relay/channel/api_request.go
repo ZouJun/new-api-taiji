@@ -25,6 +25,8 @@ import (
 	"github.com/gorilla/websocket"
 )
 
+const clientClosedRequestStatusCode = 499
+
 // applyUpstreamContentLength populates req.ContentLength when the upstream
 // body is wrapped in a BodyStorage (see relay/common/outbound_body.go).
 //
@@ -568,9 +570,16 @@ func doRequest(c *gin.Context, req *http.Request, info *common.RelayInfo) (*http
 		}
 		logger.LogError(c, "do request failed: "+err.Error())
 		options := []types.NewAPIErrorOptions{}
-		if errors.Is(err, context.DeadlineExceeded) || errors.Is(err, common.ErrStreamFirstByteTimeout) {
+		switch {
+		case errors.Is(err, context.Canceled):
+			options = append(options,
+				types.ErrOptionWithStatusCode(clientClosedRequestStatusCode),
+				types.ErrOptionWithSkipRetry(),
+				types.ErrOptionWithHideErrMsg("client canceled request"),
+			)
+		case errors.Is(err, context.DeadlineExceeded) || errors.Is(err, common.ErrStreamFirstByteTimeout):
 			options = append(options, types.ErrOptionWithStatusCode(http.StatusGatewayTimeout))
-		} else {
+		default:
 			options = append(options, types.ErrOptionWithHideErrMsg("upstream error: do request failed"))
 		}
 		return nil, types.NewError(err, types.ErrorCodeDoRequestFailed, options...)

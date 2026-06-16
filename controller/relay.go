@@ -367,6 +367,9 @@ func shouldRetry(c *gin.Context, openaiErr *types.NewAPIError, retryTimes int) b
 	if retryTimes <= 0 {
 		return false
 	}
+	if errors.Is(openaiErr, context.Canceled) {
+		return false
+	}
 	if errors.Is(openaiErr, context.DeadlineExceeded) || errors.Is(openaiErr, relaycommon.ErrStreamFirstByteTimeout) {
 		return true
 	}

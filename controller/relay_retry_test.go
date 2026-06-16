@@ -35,6 +35,26 @@ func TestShouldRetry_RetriesGatewayTimeoutErrors(t *testing.T) {
 	}
 }
 
+func TestShouldRetry_DoesNotRetryCanceledRequests(t *testing.T) {
+	t.Parallel()
+
+	gin.SetMode(gin.TestMode)
+	recorder := httptest.NewRecorder()
+	ctx, _ := gin.CreateTestContext(recorder)
+	ctx.Request = httptest.NewRequest(http.MethodPost, "/v1/messages", nil)
+
+	canceledErr := types.NewErrorWithStatusCode(
+		context.Canceled,
+		types.ErrorCodeDoRequestFailed,
+		499,
+		types.ErrOptionWithSkipRetry(),
+	)
+
+	if shouldRetry(ctx, canceledErr, 2) {
+		t.Fatal("expected canceled request error to bypass retry")
+	}
+}
+
 func TestShouldRetry_DoesNotRetrySkipRetryErrors(t *testing.T) {
 	t.Parallel()
 
