@@ -21,6 +21,7 @@ const (
 	TimeoutSourceChannelSetting = "channel_setting"
 	TimeoutSourceProviderGlobal = "provider_global"
 	TimeoutSourceLegacyGlobal   = "legacy_global"
+	TimeoutSourceGroupBudget    = "group_strategy_budget"
 	TimeoutSourceNone           = "none"
 )
 
@@ -73,6 +74,29 @@ func ResolveStreamFirstByteTimeoutSeconds(info *RelayInfo) (int, string) {
 		return rootcommon.RelayTimeout, TimeoutSourceLegacyGlobal
 	}
 	return 0, TimeoutSourceNone
+}
+
+func ResolveEffectiveStreamFirstByteTimeout(c *gin.Context, info *RelayInfo) (time.Duration, int, string) {
+	baseSeconds, baseSource := ResolveStreamFirstByteTimeoutSeconds(info)
+	baseDuration := time.Duration(baseSeconds) * time.Second
+
+	if c == nil {
+		return baseDuration, baseSeconds, baseSource
+	}
+
+	runtime := SnapshotRuntimeGroupStrategy(c, info)
+	if runtime.StreamRetryFirstByteBudget <= 0 {
+		return baseDuration, baseSeconds, baseSource
+	}
+
+	remaining := runtime.StreamRetryFirstByteBudget - GetConsumedStreamFirstByteRetryWait(c)
+	if remaining <= 0 {
+		return 0, 0, TimeoutSourceGroupBudget
+	}
+	if baseDuration <= 0 || remaining < baseDuration {
+		return remaining, int(remaining / time.Second), TimeoutSourceGroupBudget
+	}
+	return baseDuration, baseSeconds, baseSource
 }
 
 func ResolveAWSSDKMaxAttempts(info *RelayInfo) (int, string) {

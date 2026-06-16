@@ -86,17 +86,18 @@ type TokenCountMeta struct {
 }
 
 type RelayInfo struct {
-	TokenId                  int
-	TokenKey                 string
-	TokenGroup               string
-	UserId                   int
-	UsingGroup               string // 使用的分组，当auto跨分组重试时，会变动
-	UserGroup                string // 用户所在分组
-	TokenUnlimited           bool
-	StartTime                time.Time
-	FirstResponseTime        time.Time
-	AttemptFirstResponseTime time.Time
-	isFirstResponse          bool
+	TokenId                       int
+	TokenKey                      string
+	TokenGroup                    string
+	UserId                        int
+	UsingGroup                    string // 使用的分组，当auto跨分组重试时，会变动
+	UserGroup                     string // 用户所在分组
+	TokenUnlimited                bool
+	StartTime                     time.Time
+	FirstResponseTime             time.Time
+	AttemptFirstResponseTime      time.Time
+	AttemptStreamFirstByteTimeout time.Duration
+	isFirstResponse               bool
 	//SendLastReasoningResponse bool
 	IsStream               bool
 	IsGeminiBatchEmbedding bool
@@ -678,6 +679,7 @@ func (info *RelayInfo) BeginAttempt() {
 		return
 	}
 	info.AttemptFirstResponseTime = time.Time{}
+	info.AttemptStreamFirstByteTimeout = 0
 }
 
 func (info *RelayInfo) HasSendResponse() bool {

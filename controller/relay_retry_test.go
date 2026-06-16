@@ -176,6 +176,36 @@ func TestGroupStrategyTimeoutErrorWinsAfterRetryBudgetExhausted(t *testing.T) {
 	}
 }
 
+func TestConsumeStreamFirstByteRetryBudget_CountsFirstAttempt(t *testing.T) {
+	prepareGroupStrategyRelayTestOptions()
+	t.Cleanup(func() {
+		_ = operation_setting.UpdateGroupStrategySettingsByJSONString("{}")
+	})
+	if err := operation_setting.UpdateGroupStrategySettingsByJSONString(`{"default":{"enabled":true,"stream_retry_first_byte_budget_seconds":2}}`); err != nil {
+		t.Fatalf("setup group strategy: %v", err)
+	}
+
+	gin.SetMode(gin.TestMode)
+	recorder := httptest.NewRecorder()
+	ctx, _ := gin.CreateTestContext(recorder)
+	ctx.Request = httptest.NewRequest(http.MethodPost, "/v1/chat/completions", nil)
+	common.SetContextKey(ctx, constant.ContextKeyUsingGroup, "default")
+
+	start := time.Now()
+	info := &relaycommon.RelayInfo{
+		IsStream:                 true,
+		AttemptFirstResponseTime: start.Add(2 * time.Second),
+	}
+	streamErr := types.NewErrorWithStatusCode(relaycommon.ErrStreamFirstByteTimeout, types.ErrorCodeDoRequestFailed, http.StatusGatewayTimeout)
+
+	if !consumeStreamFirstByteRetryBudget(ctx, info, start, streamErr) {
+		t.Fatal("expected first failed stream attempt to exhaust budget")
+	}
+	if spent := relaycommon.GetConsumedStreamFirstByteRetryWait(ctx); spent != 2*time.Second {
+		t.Fatalf("expected first attempt to spend 2s budget, got %s", spent)
+	}
+}
+
 func TestShouldRetry_DoesNotRetryChannelErrorsWhenExhausted(t *testing.T) {
 	t.Parallel()
 

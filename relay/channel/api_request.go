@@ -488,30 +488,33 @@ func DoRequest(c *gin.Context, req *http.Request, info *common.RelayInfo) (*http
 }
 func doRequest(c *gin.Context, req *http.Request, info *common.RelayInfo) (*http.Response, error) {
 	var (
-		client                *http.Client
-		err                   error
-		clientTimeoutSeconds  int
-		requestContext        context.Context
-		cancel                context.CancelFunc
-		firstByteController   *common.FirstByteTimeoutController
-		streamFirstByteTimout int
+		client                        *http.Client
+		err                           error
+		clientTimeoutSeconds          int
+		requestContext                context.Context
+		cancel                        context.CancelFunc
+		firstByteController           *common.FirstByteTimeoutController
+		streamFirstByteTimeoutSeconds int
+		streamFirstByteTimeout        time.Duration
+		timeoutSource                 string
 	)
 
 	requestContext = c.Request.Context()
 	cancel = func() {}
 	if info.IsStream {
 		// 流式请求只限制首包等待时间，首包到达后不再用总时长硬切断整条流。
-		streamFirstByteTimout, timeoutSource := common.ResolveStreamFirstByteTimeoutSeconds(info)
+		streamFirstByteTimeout, streamFirstByteTimeoutSeconds, timeoutSource = common.ResolveEffectiveStreamFirstByteTimeout(c, info)
+		info.AttemptStreamFirstByteTimeout = streamFirstByteTimeout
 		common.SetTimeoutMeta(c, common.TimeoutMeta{
 			Type:     common.TimeoutTypeStreamFirstByte,
 			Source:   timeoutSource,
-			Seconds:  streamFirstByteTimout,
+			Seconds:  streamFirstByteTimeoutSeconds,
 			Provider: string(info.GetFinalRequestRelayFormat()),
 			Stage:    "stream_first_byte_wait",
 			IsStream: true,
 		})
-		if streamFirstByteTimout > 0 {
-			requestContext, firstByteController = common.NewFirstByteTimeoutContext(requestContext, time.Duration(streamFirstByteTimout)*time.Second)
+		if streamFirstByteTimeout > 0 {
+			requestContext, firstByteController = common.NewFirstByteTimeoutContext(requestContext, streamFirstByteTimeout)
 		}
 	} else {
 		// 非流式请求同时收敛请求级 context 和 HTTP Client 超时，避免上游长时间占住连接。
@@ -559,12 +562,12 @@ func doRequest(c *gin.Context, req *http.Request, info *common.RelayInfo) (*http
 	if err != nil {
 		if firstByteController != nil {
 			if firstByteController.TimeoutTriggered() {
-				if streamFirstByteTimout <= 0 {
+				if streamFirstByteTimeoutSeconds <= 0 {
 					if meta, ok := common.GetTimeoutMeta(c); ok && meta.Type == common.TimeoutTypeStreamFirstByte && meta.Seconds > 0 {
-						streamFirstByteTimout = meta.Seconds
+						streamFirstByteTimeoutSeconds = meta.Seconds
 					}
 				}
-				err = fmt.Errorf("%w after %d seconds", common.ErrStreamFirstByteTimeout, streamFirstByteTimout)
+				err = fmt.Errorf("%w after %d seconds", common.ErrStreamFirstByteTimeout, streamFirstByteTimeoutSeconds)
 			}
 			firstByteController.Cancel()
 		}
@@ -591,7 +594,7 @@ func doRequest(c *gin.Context, req *http.Request, info *common.RelayInfo) (*http
 		return nil, errors.New("resp is nil")
 	}
 	if info.IsStream && firstByteController != nil {
-		resp.Body = firstByteController.WrapBody(resp.Body, streamFirstByteTimout)
+		resp.Body = firstByteController.WrapBody(resp.Body, streamFirstByteTimeoutSeconds)
 	}
 
 	if upID := resp.Header.Get(common2.RequestIdKey); upID != "" {

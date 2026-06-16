@@ -530,21 +530,54 @@ const EditChannelModal = (props) => {
   const showApiConfigCard = true; // 控制是否显示 API 配置卡片
   const getInitValues = () => ({ ...originInputs });
 
+  const normalizeOptionalPositiveNumber = (value) => {
+    if (value === '' || value === null || typeof value === 'undefined') {
+      return undefined;
+    }
+    return value;
+  };
+
+  const sanitizeChannelExtraSettings = (settings) => ({
+    ...settings,
+    non_stream_timeout_seconds: normalizeOptionalPositiveNumber(
+      settings.non_stream_timeout_seconds,
+    ),
+    stream_first_byte_timeout_seconds: normalizeOptionalPositiveNumber(
+      settings.stream_first_byte_timeout_seconds,
+    ),
+    aws_invoke_timeout_seconds: normalizeOptionalPositiveNumber(
+      settings.aws_invoke_timeout_seconds,
+    ),
+    aws_sdk_max_attempts: normalizeOptionalPositiveNumber(
+      settings.aws_sdk_max_attempts,
+    ),
+  });
+
   // 处理渠道额外设置的更新
   const handleChannelSettingsChange = (key, value) => {
+    const normalizedValue =
+      key === 'non_stream_timeout_seconds' ||
+      key === 'stream_first_byte_timeout_seconds' ||
+      key === 'aws_invoke_timeout_seconds' ||
+      key === 'aws_sdk_max_attempts'
+        ? normalizeOptionalPositiveNumber(value)
+        : value;
     // 更新内部状态
-    setChannelSettings((prev) => ({ ...prev, [key]: value }));
+    setChannelSettings((prev) => ({ ...prev, [key]: normalizedValue }));
 
     // 同步更新到表单字段
     if (formApiRef.current) {
-      formApiRef.current.setValue(key, value);
+      formApiRef.current.setValue(key, normalizedValue);
     }
 
     // 同步更新inputs状态
-    setInputs((prev) => ({ ...prev, [key]: value }));
+    setInputs((prev) => ({ ...prev, [key]: normalizedValue }));
 
     // 生成setting JSON并更新
-    const newSettings = { ...channelSettings, [key]: value };
+    const newSettings = sanitizeChannelExtraSettings({
+      ...channelSettings,
+      [key]: normalizedValue,
+    });
     const settingsJson = JSON.stringify(newSettings);
     handleInputChange('setting', settingsJson);
   };
@@ -1793,7 +1826,7 @@ const EditChannelModal = (props) => {
     }
 
     // 生成渠道额外设置JSON
-    const channelExtraSettings = {
+    const channelExtraSettings = sanitizeChannelExtraSettings({
       force_format: localInputs.force_format || false,
       thinking_to_content: localInputs.thinking_to_content || false,
       proxy: localInputs.proxy || '',
@@ -1805,7 +1838,7 @@ const EditChannelModal = (props) => {
         localInputs.stream_first_byte_timeout_seconds,
       aws_invoke_timeout_seconds: localInputs.aws_invoke_timeout_seconds,
       aws_sdk_max_attempts: localInputs.aws_sdk_max_attempts,
-    };
+    });
     localInputs.setting = JSON.stringify(channelExtraSettings);
 
     // 处理 settings 字段（包括企业账户设置和字段透传控制）

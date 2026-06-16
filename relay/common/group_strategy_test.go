@@ -10,6 +10,7 @@ import (
 
 	rootcommon "github.com/QuantumNous/new-api/common"
 	"github.com/QuantumNous/new-api/constant"
+	"github.com/QuantumNous/new-api/dto"
 	"github.com/QuantumNous/new-api/setting/operation_setting"
 	"github.com/QuantumNous/new-api/types"
 	"github.com/gin-gonic/gin"
@@ -128,6 +129,79 @@ func TestResolveAttemptStreamFirstByteWaitFromFirstResponse(t *testing.T) {
 	wait := ResolveAttemptStreamFirstByteWait(info, start, nil)
 	if wait != 1500*time.Millisecond {
 		t.Fatalf("expected 1.5s wait, got %s", wait)
+	}
+}
+
+func TestResolveEffectiveStreamFirstByteTimeoutClampsToGroupBudget(t *testing.T) {
+	prepareGroupStrategyRuntimeTestOptions()
+	t.Cleanup(func() {
+		_ = operation_setting.UpdateGroupStrategySettingsByJSONString("{}")
+	})
+	if err := operation_setting.UpdateGroupStrategySettingsByJSONString(`{"default":{"enabled":true,"stream_retry_first_byte_budget_seconds":10}}`); err != nil {
+		t.Fatalf("setup group strategy: %v", err)
+	}
+
+	gin.SetMode(gin.TestMode)
+	recorder := httptest.NewRecorder()
+	ctx, _ := gin.CreateTestContext(recorder)
+	rootcommon.SetContextKey(ctx, constant.ContextKeyUsingGroup, "default")
+
+	channelTimeout := 30
+	info := &RelayInfo{
+		IsStream: true,
+		ChannelMeta: &ChannelMeta{
+			ChannelSetting: dto.ChannelSettings{
+				StreamFirstByteTimeoutSeconds: &channelTimeout,
+			},
+		},
+	}
+
+	timeout, seconds, source := ResolveEffectiveStreamFirstByteTimeout(ctx, info)
+	if timeout != 10*time.Second {
+		t.Fatalf("expected effective timeout 10s, got %s", timeout)
+	}
+	if seconds != 10 {
+		t.Fatalf("expected effective timeout seconds 10, got %d", seconds)
+	}
+	if source != TimeoutSourceGroupBudget {
+		t.Fatalf("expected timeout source %s, got %s", TimeoutSourceGroupBudget, source)
+	}
+}
+
+func TestResolveEffectiveStreamFirstByteTimeoutUsesRemainingGroupBudget(t *testing.T) {
+	prepareGroupStrategyRuntimeTestOptions()
+	t.Cleanup(func() {
+		_ = operation_setting.UpdateGroupStrategySettingsByJSONString("{}")
+	})
+	if err := operation_setting.UpdateGroupStrategySettingsByJSONString(`{"default":{"enabled":true,"stream_retry_first_byte_budget_seconds":30}}`); err != nil {
+		t.Fatalf("setup group strategy: %v", err)
+	}
+
+	gin.SetMode(gin.TestMode)
+	recorder := httptest.NewRecorder()
+	ctx, _ := gin.CreateTestContext(recorder)
+	rootcommon.SetContextKey(ctx, constant.ContextKeyUsingGroup, "default")
+	rootcommon.SetContextKey(ctx, constant.ContextKeyGroupStrategyWait, 15*time.Second)
+
+	channelTimeout := 20
+	info := &RelayInfo{
+		IsStream: true,
+		ChannelMeta: &ChannelMeta{
+			ChannelSetting: dto.ChannelSettings{
+				StreamFirstByteTimeoutSeconds: &channelTimeout,
+			},
+		},
+	}
+
+	timeout, seconds, source := ResolveEffectiveStreamFirstByteTimeout(ctx, info)
+	if timeout != 15*time.Second {
+		t.Fatalf("expected effective timeout 15s, got %s", timeout)
+	}
+	if seconds != 15 {
+		t.Fatalf("expected effective timeout seconds 15, got %d", seconds)
+	}
+	if source != TimeoutSourceGroupBudget {
+		t.Fatalf("expected timeout source %s, got %s", TimeoutSourceGroupBudget, source)
 	}
 }
 

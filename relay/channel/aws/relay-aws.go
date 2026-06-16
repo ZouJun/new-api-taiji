@@ -276,7 +276,8 @@ func awsHandler(c *gin.Context, info *relaycommon.RelayInfo, a *Adaptor) (*types
 
 func awsStreamHandler(c *gin.Context, info *relaycommon.RelayInfo, a *Adaptor) (*types.NewAPIError, *dto.Usage) {
 	baseCtx := c.Request.Context()
-	streamFirstByteTimeoutSeconds, timeoutSource := relaycommon.ResolveStreamFirstByteTimeoutSeconds(info)
+	streamFirstByteTimeout, streamFirstByteTimeoutSeconds, timeoutSource := relaycommon.ResolveEffectiveStreamFirstByteTimeout(c, info)
+	info.AttemptStreamFirstByteTimeout = streamFirstByteTimeout
 	relaycommon.SetTimeoutMeta(c, relaycommon.TimeoutMeta{
 		Type:     relaycommon.TimeoutTypeStreamFirstByte,
 		Source:   timeoutSource,
@@ -288,8 +289,8 @@ func awsStreamHandler(c *gin.Context, info *relaycommon.RelayInfo, a *Adaptor) (
 	// 流式这里只控制“多久能等到第一段可转发事件”，首包到达后不再做总时长截断。
 	ctx := baseCtx
 	controller := (*relaycommon.FirstByteTimeoutController)(nil)
-	if streamFirstByteTimeoutSeconds > 0 {
-		ctx, controller = relaycommon.NewFirstByteTimeoutContext(baseCtx, time.Duration(streamFirstByteTimeoutSeconds)*time.Second)
+	if streamFirstByteTimeout > 0 {
+		ctx, controller = relaycommon.NewFirstByteTimeoutContext(baseCtx, streamFirstByteTimeout)
 		defer controller.Cancel()
 	}
 

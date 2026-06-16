@@ -154,9 +154,8 @@ func ResolveAttemptStreamFirstByteWait(info *RelayInfo, attemptStart time.Time, 
 		return info.AttemptFirstResponseTime.Sub(attemptStart)
 	}
 	if relayErr != nil && errors.Is(relayErr, ErrStreamFirstByteTimeout) {
-		timeoutSeconds, _ := ResolveStreamFirstByteTimeoutSeconds(info)
-		if timeoutSeconds > 0 {
-			return time.Duration(timeoutSeconds) * time.Second
+		if info.AttemptStreamFirstByteTimeout > 0 {
+			return info.AttemptStreamFirstByteTimeout
 		}
 	}
 	return 0

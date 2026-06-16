@@ -240,11 +240,8 @@ func Relay(c *gin.Context, relayFormat types.RelayFormat) {
 
 		processChannelError(c, *types.NewChannelError(channel.Id, channel.Type, channel.Name, channel.ChannelInfo.IsMultiKey, common.GetContextKeyString(c, constant.ContextKeyChannelKey), channel.GetAutoBan()), newAPIError)
 
-		if relayInfo.IsStream && retryParam.GetRetry() > 0 {
-			_, _, budgetExceeded := relaycommon.ConsumeStreamFirstByteRetryBudget(c, relayInfo, relaycommon.ResolveAttemptStreamFirstByteWait(relayInfo, attemptStart, newAPIError))
-			if budgetExceeded {
-				break
-			}
+		if consumeStreamFirstByteRetryBudget(c, relayInfo, attemptStart, newAPIError) {
+			break
 		}
 
 		effectiveRetryTimes := relaycommon.ResolveEffectiveRetryTimes(c, relayInfo)
@@ -268,6 +265,18 @@ func Relay(c *gin.Context, relayFormat types.RelayFormat) {
 
 func shouldHideInternalRelayError(c *gin.Context, err *types.NewAPIError) bool {
 	return relaycommon.IsTimeoutFeatureRelayError(c, err)
+}
+
+func consumeStreamFirstByteRetryBudget(c *gin.Context, relayInfo *relaycommon.RelayInfo, attemptStart time.Time, relayErr *types.NewAPIError) bool {
+	if relayInfo == nil || !relayInfo.IsStream {
+		return false
+	}
+	_, _, budgetExceeded := relaycommon.ConsumeStreamFirstByteRetryBudget(
+		c,
+		relayInfo,
+		relaycommon.ResolveAttemptStreamFirstByteWait(relayInfo, attemptStart, relayErr),
+	)
+	return budgetExceeded
 }
 
 var upgrader = websocket.Upgrader{

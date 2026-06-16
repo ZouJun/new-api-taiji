@@ -279,7 +279,7 @@ export default function SettingsStrategy(props) {
     <Card>
       <Form.Section
         text={t('策略设置')}
-        extraText={t('按分组覆盖重试次数、流式首包等待预算以及超时控制触发后的回退响应')}
+        extraText={t('按分组覆盖可重试渠道数、流式首包等待时间之和以及超时控制触发后的回退响应')}
       >
         <Space vertical align='start' style={{ width: '100%' }} spacing='small'>
           <Card
@@ -331,54 +331,14 @@ export default function SettingsStrategy(props) {
             </Space>
           </Card>
 
-          <div
-            style={{
-              width: '100%',
-              border: '1px solid var(--semi-color-border)',
-              borderRadius: 8,
-              padding: 12,
-              background: 'var(--semi-color-fill-0)',
-            }}
-          >
-            <Row gutter={[16, 8]}>
-              <Col xs={24} md={8}>
-                <Text strong>{t('优先级')}</Text>
-                <Text
-                  type='secondary'
-                  size='small'
-                  style={{ display: 'block', marginTop: 4 }}
-                >
-                  {t(
-                    '命中分组后，重试次数优先使用分组值；未命中时继续沿用全局 RetryTimes。',
-                  )}
-                </Text>
-              </Col>
-              <Col xs={24} md={8}>
-                <Text strong>{t('预算口径')}</Text>
-                <Text
-                  type='secondary'
-                  size='small'
-                  style={{ display: 'block', marginTop: 4 }}
-                >
-                  {t(
-                    '只统计每次重试等待流式首包的耗时之和，不统计完整输出时长。',
-                  )}
-                </Text>
-              </Col>
-              <Col xs={24} md={8}>
-                <Text strong>{t('回退响应')}</Text>
-                <Text
-                  type='secondary'
-                  size='small'
-                  style={{ display: 'block', marginTop: 4 }}
-                >
-                  {t(
-                    '当请求最终因非流式总超时或流式首包超时结束时，会回退到当前分组的状态码与文案；默认 503 / 资源繁忙，请稍后尝试。',
-                  )}
-                </Text>
-              </Col>
-            </Row>
-          </div>
+          <Banner
+            type='info'
+            fullMode={false}
+            title={t('流式预算说明')}
+            description={t(
+              '“流式首包等待时间之和（秒）”指一次请求在多个渠道之间等待流式首包的时间之和。比如渠道 1 等了 30 秒后超时，渠道 2 最多只会再按剩余预算继续等待。命中分组后，优先使用分组里配置的可重试渠道数；未命中时继续沿用全局 RetryTimes。最终因非流式总超时或流式首包超时结束时，会回退到当前分组的状态码与文案；默认 503 / 资源繁忙，请稍后尝试。',
+            )}
+          />
 
           <div
             style={{
@@ -389,7 +349,7 @@ export default function SettingsStrategy(props) {
           >
             <Text type='secondary' size='small'>
               {t(
-                '这里的重试次数仅指 New API 在不同渠道之间继续尝试的次数，首次请求不计入，也不是 AWS SDK 自身的重试。',
+                '这里的可重试渠道数，仅指 New API 在当前请求失败后，最多还能继续尝试多少个其他渠道。首次请求不计入，也不是 AWS SDK 自身的重试。',
               )}
             </Text>
           </div>
@@ -479,8 +439,10 @@ export default function SettingsStrategy(props) {
                     <Row gutter={[12, 8]} style={{ width: '100%' }}>
                       <Col xs={24} sm={12} md={6}>
                         <Form.Slot
-                          label={t('流式首包重试预算（秒）')}
-                          extraText={t('留空则不额外限制')}
+                          label={t('流式首包等待时间之和（秒）')}
+                          extraText={t(
+                            '限制该分组一次请求在多个渠道间等待流式首包的时间之和。每次切换渠道时，都会按剩余预算收紧本次渠道的首包超时；留空则不额外限制。',
+                          )}
                         >
                           <Input
                             value={row.stream_retry_first_byte_budget_seconds}
@@ -499,8 +461,10 @@ export default function SettingsStrategy(props) {
 
                       <Col xs={24} sm={12} md={6}>
                         <Form.Slot
-                          label={t('重试次数')}
-                          extraText={t('首次请求不计入')}
+                          label={t('最多重试渠道数')}
+                          extraText={t(
+                            '表示首次请求失败后，最多还会继续尝试多少个其他渠道。0 表示不再切换渠道；首次请求不计入。',
+                          )}
                         >
                           <Input
                             value={row.retry_times}
