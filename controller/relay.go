@@ -90,6 +90,7 @@ func Relay(c *gin.Context, relayFormat types.RelayFormat) {
 
 	defer func() {
 		if newAPIError != nil {
+			recordUnhandledRelayError(c, relayInfo, newAPIError)
 			logger.LogError(c, fmt.Sprintf("relay error: %s", common.LocalLogPreview(newAPIError.Error())))
 			responseErr := relaycommon.BuildClientTimeoutResponseError(c, newAPIError)
 			clientMessage := responseErr.Error()
@@ -238,14 +239,31 @@ func Relay(c *gin.Context, relayFormat types.RelayFormat) {
 		newAPIError = service.NormalizeViolationFeeError(newAPIError)
 		relayInfo.LastError = newAPIError
 
-		processChannelError(c, *types.NewChannelError(channel.Id, channel.Type, channel.Name, channel.ChannelInfo.IsMultiKey, common.GetContextKeyString(c, constant.ContextKeyChannelKey), channel.GetAutoBan()), newAPIError)
+		budgetExceeded := consumeStreamFirstByteRetryBudget(c, relayInfo, attemptStart, newAPIError)
+		effectiveRetryTimes := relaycommon.ResolveEffectiveRetryTimes(c, relayInfo)
+		remainingRetrySlots := effectiveRetryTimes - retryParam.GetRetry()
+		willRetry := !budgetExceeded && shouldRetry(c, newAPIError, remainingRetrySlots)
+		stopReason := resolveRelayRetryStopReason(c, newAPIError, budgetExceeded, remainingRetrySlots)
+		decision := relaycommon.RelayRetryDecision{
+			WillRetry:           willRetry,
+			StopReason:          stopReason,
+			EffectiveRetryTimes: effectiveRetryTimes,
+			RemainingRetrySlots: remainingRetrySlots,
+		}
+		processChannelError(
+			c,
+			*types.NewChannelError(channel.Id, channel.Type, channel.Name, channel.ChannelInfo.IsMultiKey, common.GetContextKeyString(c, constant.ContextKeyChannelKey), channel.GetAutoBan()),
+			relayInfo,
+			newAPIError,
+			decision,
+		)
+		logger.LogInfo(c, fmt.Sprintf("relay retry decision: will_retry=%t stop_reason=%s retry_index=%d remaining_retry_slots=%d used_channels=%v", willRetry, stopReason, retryParam.GetRetry(), remainingRetrySlots, c.GetStringSlice("use_channel")))
 
-		if consumeStreamFirstByteRetryBudget(c, relayInfo, attemptStart, newAPIError) {
+		if budgetExceeded {
 			break
 		}
 
-		effectiveRetryTimes := relaycommon.ResolveEffectiveRetryTimes(c, relayInfo)
-		if !shouldRetry(c, newAPIError, effectiveRetryTimes-retryParam.GetRetry()) {
+		if !willRetry {
 			break
 		}
 		retryParam.IncreaseRetry()
@@ -265,6 +283,42 @@ func Relay(c *gin.Context, relayFormat types.RelayFormat) {
 
 func shouldHideInternalRelayError(c *gin.Context, err *types.NewAPIError) bool {
 	return relaycommon.IsTimeoutFeatureRelayError(c, err)
+}
+
+func recordUnhandledRelayError(c *gin.Context, relayInfo *relaycommon.RelayInfo, err *types.NewAPIError) {
+	if err == nil || !constant.ErrorLogEnabled || !types.IsRecordErrorLog(err) || relaycommon.IsRelayErrorLogged(c) {
+		return
+	}
+	other := relaycommon.BuildRelayErrorTrace(c, relayInfo, err, relaycommon.RelayRetryDecision{
+		WillRetry:           false,
+		StopReason:          "request_terminated_before_channel_retry",
+		EffectiveRetryTimes: relaycommon.ResolveEffectiveRetryTimes(c, relayInfo),
+	})
+	if c.Request != nil && c.Request.URL != nil {
+		other["request_path"] = c.Request.URL.Path
+	}
+	other["error_type"] = err.GetErrorType()
+	other["error_code"] = err.GetErrorCode()
+	other["status_code"] = err.StatusCode
+	startTime := common.GetContextKeyTime(c, constant.ContextKeyRequestStartTime)
+	if startTime.IsZero() {
+		startTime = time.Now()
+	}
+	useTimeSeconds := int(time.Since(startTime).Seconds())
+	model.RecordErrorLog(
+		c,
+		c.GetInt("id"),
+		c.GetInt("channel_id"),
+		c.GetString("original_model"),
+		c.GetString("token_name"),
+		err.MaskSensitiveErrorWithStatusCode(),
+		c.GetInt("token_id"),
+		useTimeSeconds,
+		common.GetContextKeyBool(c, constant.ContextKeyIsStream),
+		c.GetString("group"),
+		other,
+	)
+	relaycommon.MarkRelayErrorLogged(c)
 }
 
 func consumeStreamFirstByteRetryBudget(c *gin.Context, relayInfo *relaycommon.RelayInfo, attemptStart time.Time, relayErr *types.NewAPIError) bool {
@@ -395,7 +449,7 @@ func shouldRetry(c *gin.Context, openaiErr *types.NewAPIError, retryTimes int) b
 	return operation_setting.ShouldRetryByStatusCode(code)
 }
 
-func processChannelError(c *gin.Context, channelError types.ChannelError, err *types.NewAPIError) {
+func processChannelError(c *gin.Context, channelError types.ChannelError, relayInfo *relaycommon.RelayInfo, err *types.NewAPIError, decision relaycommon.RelayRetryDecision) {
 	logger.LogError(c, fmt.Sprintf("channel error (channel #%d, status code: %d): %s", channelError.ChannelId, err.StatusCode, common.LocalLogPreview(err.Error())))
 	// 不要使用context获取渠道信息，异步处理时可能会出现渠道信息不一致的情况
 	// do not use context to get channel info, there may be inconsistent channel info when processing asynchronously
@@ -423,6 +477,9 @@ func processChannelError(c *gin.Context, channelError types.ChannelError, err *t
 		other["channel_id"] = channelId
 		other["channel_name"] = c.GetString("channel_name")
 		other["channel_type"] = c.GetInt("channel_type")
+		for key, value := range relaycommon.BuildRelayErrorTrace(c, relayInfo, err, decision) {
+			other[key] = value
+		}
 		other = relaycommon.AppendTimeoutMeta(other, c)
 		adminInfo := make(map[string]interface{})
 		adminInfo["use_channel"] = c.GetStringSlice("use_channel")
@@ -439,8 +496,34 @@ func processChannelError(c *gin.Context, channelError types.ChannelError, err *t
 		}
 		useTimeSeconds := int(time.Since(startTime).Seconds())
 		model.RecordErrorLog(c, userId, channelId, modelName, tokenName, err.MaskSensitiveErrorWithStatusCode(), tokenId, useTimeSeconds, common.GetContextKeyBool(c, constant.ContextKeyIsStream), userGroup, other)
+		relaycommon.MarkRelayErrorLogged(c)
 	}
 
+}
+
+func resolveRelayRetryStopReason(c *gin.Context, err *types.NewAPIError, budgetExceeded bool, remainingRetrySlots int) string {
+	switch {
+	case budgetExceeded:
+		return "stream_first_byte_budget_exhausted"
+	case err == nil:
+		return "no_error"
+	case errors.Is(err, context.Canceled) || err.StatusCode == 499:
+		return "client_disconnected"
+	case remainingRetrySlots > 0 && !types.IsSkipRetryError(err) && !types.IsChannelError(err) &&
+		(errors.Is(err, context.DeadlineExceeded) || errors.Is(err, relaycommon.ErrStreamFirstByteTimeout)):
+		return "retry_next_channel"
+	case remainingRetrySlots <= 0:
+		return "retry_limit_reached"
+	case types.IsSkipRetryError(err):
+		return "skip_retry_error"
+	case types.IsChannelError(err):
+		return "channel_not_retryable"
+	default:
+		if _, ok := c.Get("specific_channel_id"); ok {
+			return "specific_channel_no_retry"
+		}
+		return "retry_policy_rejected"
+	}
 }
 
 func RelayMidjourney(c *gin.Context) {
@@ -599,7 +682,9 @@ func RelayTask(c *gin.Context) {
 			processChannelError(c,
 				*types.NewChannelError(channel.Id, channel.Type, channel.Name, channel.ChannelInfo.IsMultiKey,
 					common.GetContextKeyString(c, constant.ContextKeyChannelKey), channel.GetAutoBan()),
-				types.NewOpenAIError(taskErr.Error, types.ErrorCodeBadResponseStatusCode, taskErr.StatusCode))
+				relayInfo,
+				types.NewOpenAIError(taskErr.Error, types.ErrorCodeBadResponseStatusCode, taskErr.StatusCode),
+				relaycommon.RelayRetryDecision{})
 		}
 
 		if !shouldRetryTaskRelay(c, channel.Id, taskErr, common.RetryTimes-retryParam.GetRetry()) {
