@@ -47,7 +47,9 @@ import {
 } from 'lucide-react'
 import { useTranslation } from 'react-i18next'
 import { toast } from 'sonner'
+import { useAuthStore } from '@/stores/auth-store'
 import { getLobeIcon } from '@/lib/lobe-icon'
+import { ROLE } from '@/lib/roles'
 import { useCopyToClipboard } from '@/hooks/use-copy-to-clipboard'
 import { useHiddenClickUnlock } from '@/hooks/use-hidden-click-unlock'
 import { Alert, AlertDescription } from '@/components/ui/alert'
@@ -274,6 +276,8 @@ export function ChannelMutateDrawer({
   currentRow,
 }: ChannelMutateDrawerProps) {
   const { t } = useTranslation()
+  const userRole = useAuthStore((state) => state.auth.user?.role ?? 0)
+  const canManageChannelConfig = userRole >= ROLE.SUPER_ADMIN
   const queryClient = useQueryClient()
   const { setOpen } = useChannels()
   const [fetchModelsDialogOpen, setFetchModelsDialogOpen] = useState(false)
@@ -2328,140 +2332,144 @@ export function ChannelMutateDrawer({
                         </div>
                       </div>
 
-                      <div className='border-border/60 rounded-lg border p-4'>
-                        <FormField
-                          control={form.control}
-                          name='model_mapping'
-                          render={({ field }) => (
-                            <FormItem className='space-y-3'>
-                              <div className='flex flex-col gap-2 sm:flex-row sm:items-start sm:justify-between'>
-                                <div className='space-y-1'>
-                                  <div className='flex items-center gap-2'>
-                                    <FormLabel className='mb-0'>
-                                      {t('Model Mapping')}
-                                    </FormLabel>
-                                    <Tooltip>
-                                      <TooltipTrigger
-                                        render={
-                                          <Button
-                                            type='button'
-                                            variant='ghost'
-                                            size='icon-sm'
-                                            className='text-muted-foreground hover:text-foreground size-auto p-0'
-                                            aria-label={t(
-                                              'How model mapping works'
-                                            )}
+                      {canManageChannelConfig && (
+                        <div className='border-border/60 rounded-lg border p-4'>
+                          <FormField
+                            control={form.control}
+                            name='model_mapping'
+                            render={({ field }) => (
+                              <FormItem className='space-y-3'>
+                                <div className='flex flex-col gap-2 sm:flex-row sm:items-start sm:justify-between'>
+                                  <div className='space-y-1'>
+                                    <div className='flex items-center gap-2'>
+                                      <FormLabel className='mb-0'>
+                                        {t('Model Mapping')}
+                                      </FormLabel>
+                                      <Tooltip>
+                                        <TooltipTrigger
+                                          render={
+                                            <Button
+                                              type='button'
+                                              variant='ghost'
+                                              size='icon-sm'
+                                              className='text-muted-foreground hover:text-foreground size-auto p-0'
+                                              aria-label={t(
+                                                'How model mapping works'
+                                              )}
+                                            />
+                                          }
+                                        >
+                                          <HelpCircle
+                                            className='h-4 w-4'
+                                            aria-hidden='true'
                                           />
-                                        }
-                                      >
-                                        <HelpCircle
-                                          className='h-4 w-4'
-                                          aria-hidden='true'
-                                        />
-                                      </TooltipTrigger>
-                                      <TooltipContent
-                                        side='top'
-                                        align='start'
-                                        className='max-w-xs space-y-2 text-left'
-                                      >
-                                        <p className='text-xs font-semibold tracking-wide uppercase'>
-                                          {t('Request flow')}
-                                        </p>
-                                        <div className='space-y-1 font-mono text-xs'>
-                                          {mappingPreviewPairs.map((pair) => (
-                                            <div
-                                              key={`${pair.source}-${pair.target}`}
-                                              className='flex items-center gap-1'
-                                            >
-                                              <span>{pair.source}</span>
-                                              <ArrowRight
-                                                className='h-3.5 w-3.5 opacity-70'
-                                                aria-hidden='true'
-                                              />
-                                              <span>{pair.target}</span>
-                                            </div>
-                                          ))}
-                                          {remainingMappingCount > 0 && (
-                                            <div className='text-[11px] opacity-70'>
-                                              +{remainingMappingCount}{' '}
-                                              {t('more mapping')}
-                                              {remainingMappingCount > 1
-                                                ? 's'
-                                                : ''}
-                                            </div>
-                                          )}
-                                        </div>
-                                        <p className='text-[11px] leading-relaxed opacity-80'>
-                                          {t(
-                                            'Users call the model on the left. The platform forwards the request to the upstream model on the right.'
-                                          )}
-                                        </p>
-                                      </TooltipContent>
-                                    </Tooltip>
+                                        </TooltipTrigger>
+                                        <TooltipContent
+                                          side='top'
+                                          align='start'
+                                          className='max-w-xs space-y-2 text-left'
+                                        >
+                                          <p className='text-xs font-semibold tracking-wide uppercase'>
+                                            {t('Request flow')}
+                                          </p>
+                                          <div className='space-y-1 font-mono text-xs'>
+                                            {mappingPreviewPairs.map((pair) => (
+                                              <div
+                                                key={`${pair.source}-${pair.target}`}
+                                                className='flex items-center gap-1'
+                                              >
+                                                <span>{pair.source}</span>
+                                                <ArrowRight
+                                                  className='h-3.5 w-3.5 opacity-70'
+                                                  aria-hidden='true'
+                                                />
+                                                <span>{pair.target}</span>
+                                              </div>
+                                            ))}
+                                            {remainingMappingCount > 0 && (
+                                              <div className='text-[11px] opacity-70'>
+                                                +{remainingMappingCount}{' '}
+                                                {t('more mapping')}
+                                                {remainingMappingCount > 1
+                                                  ? 's'
+                                                  : ''}
+                                              </div>
+                                            )}
+                                          </div>
+                                          <p className='text-[11px] leading-relaxed opacity-80'>
+                                            {t(
+                                              'Users call the model on the left. The platform forwards the request to the upstream model on the right.'
+                                            )}
+                                          </p>
+                                        </TooltipContent>
+                                      </Tooltip>
+                                    </div>
+                                    <FormDescription>
+                                      {t(FIELD_DESCRIPTIONS.MODEL_MAPPING)}
+                                    </FormDescription>
                                   </div>
-                                  <FormDescription>
-                                    {t(FIELD_DESCRIPTIONS.MODEL_MAPPING)}
-                                  </FormDescription>
                                 </div>
-                              </div>
-                              <FormControl>
-                                <ModelMappingEditor
-                                  value={field.value || ''}
-                                  onChange={field.onChange}
-                                  disabled={isSubmitting}
-                                  sourceModelOptions={currentModelsArray}
-                                  targetModelOptions={modelOptions.map(
-                                    (option) => option.value
-                                  )}
-                                />
-                              </FormControl>
-                              {modelMappingGuardrail.invalidJson && (
-                                <Alert variant='destructive'>
-                                  <AlertDescription>
-                                    {t(
-                                      'Model Mapping must be a JSON object like'
-                                    )}{' '}
-                                    <code className='font-mono'>
-                                      {'{"gpt-4":"Azure-GPT4"}'}
-                                    </code>
-                                    {t('. Please fix the JSON before saving.')}
-                                  </AlertDescription>
-                                </Alert>
-                              )}
-                              {modelMappingGuardrail.missingSourceModels
-                                .length > 0 && (
-                                <Alert className='border-amber-200 bg-amber-50 text-amber-900 dark:border-amber-500/40 dark:bg-amber-500/10 dark:text-amber-50'>
-                                  <AlertDescription className='flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between'>
-                                    <span>
-                                      {t('Add')}{' '}
-                                      {formatModelNames(
-                                        modelMappingGuardrail.missingSourceModels
-                                      )}{' '}
+                                <FormControl>
+                                  <ModelMappingEditor
+                                    value={field.value || ''}
+                                    onChange={field.onChange}
+                                    disabled={isSubmitting}
+                                    sourceModelOptions={currentModelsArray}
+                                    targetModelOptions={modelOptions.map(
+                                      (option) => option.value
+                                    )}
+                                  />
+                                </FormControl>
+                                {modelMappingGuardrail.invalidJson && (
+                                  <Alert variant='destructive'>
+                                    <AlertDescription>
                                       {t(
-                                        'to the Models list so users can use them before the mapping sends traffic upstream.'
+                                        'Model Mapping must be a JSON object like'
+                                      )}{' '}
+                                      <code className='font-mono'>
+                                        {'{"gpt-4":"Azure-GPT4"}'}
+                                      </code>
+                                      {t(
+                                        '. Please fix the JSON before saving.'
                                       )}
-                                    </span>
-                                    <Button
-                                      type='button'
-                                      variant='outline'
-                                      size='sm'
-                                      onClick={() => {
-                                        updateModels([
-                                          ...currentModelsArray,
-                                          ...modelMappingGuardrail.missingSourceModels,
-                                        ])
-                                      }}
-                                    >
-                                      {t('Add missing models')}
-                                    </Button>
-                                  </AlertDescription>
-                                </Alert>
-                              )}
-                              <FormMessage />
-                            </FormItem>
-                          )}
-                        />
-                      </div>
+                                    </AlertDescription>
+                                  </Alert>
+                                )}
+                                {modelMappingGuardrail.missingSourceModels
+                                  .length > 0 && (
+                                  <Alert className='border-amber-200 bg-amber-50 text-amber-900 dark:border-amber-500/40 dark:bg-amber-500/10 dark:text-amber-50'>
+                                    <AlertDescription className='flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between'>
+                                      <span>
+                                        {t('Add')}{' '}
+                                        {formatModelNames(
+                                          modelMappingGuardrail.missingSourceModels
+                                        )}{' '}
+                                        {t(
+                                          'to the Models list so users can use them before the mapping sends traffic upstream.'
+                                        )}
+                                      </span>
+                                      <Button
+                                        type='button'
+                                        variant='outline'
+                                        size='sm'
+                                        onClick={() => {
+                                          updateModels([
+                                            ...currentModelsArray,
+                                            ...modelMappingGuardrail.missingSourceModels,
+                                          ])
+                                        }}
+                                      >
+                                        {t('Add missing models')}
+                                      </Button>
+                                    </AlertDescription>
+                                  </Alert>
+                                )}
+                                <FormMessage />
+                              </FormItem>
+                            )}
+                          />
+                        </div>
+                      )}
 
                       <div className='border-border/60 rounded-lg border p-4'>
                         <FormField
@@ -3394,17 +3402,26 @@ export function ChannelMutateDrawer({
           </Form>
 
           <SheetFooter className={sideDrawerFooterClassName()}>
+            {!canManageChannelConfig && (
+              <p className='text-muted-foreground mr-auto text-sm'>
+                {t(
+                  'Administrators can view channel details but cannot submit changes.'
+                )}
+              </p>
+            )}
             <SheetClose
               render={<Button variant='outline' disabled={isSubmitting} />}
             >
               {t('Cancel')}
             </SheetClose>
-            <Button form='channel-form' type='submit' disabled={isSubmitting}>
-              {isSubmitting && (
-                <Loader2 className='mr-2 h-4 w-4 animate-spin' />
-              )}
-              {isEditing ? t('Update Channel') : t('Save changes')}
-            </Button>
+            {canManageChannelConfig && (
+              <Button form='channel-form' type='submit' disabled={isSubmitting}>
+                {isSubmitting && (
+                  <Loader2 className='mr-2 h-4 w-4 animate-spin' />
+                )}
+                {isEditing ? t('Update Channel') : t('Save changes')}
+              </Button>
+            )}
           </SheetFooter>
         </SheetContent>
       </Sheet>

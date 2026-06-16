@@ -36,6 +36,8 @@ import {
   Loader2,
 } from 'lucide-react'
 import { useTranslation } from 'react-i18next'
+import { useAuthStore } from '@/stores/auth-store'
+import { ROLE } from '@/lib/roles'
 import { Button } from '@/components/ui/button'
 import {
   DropdownMenu,
@@ -70,6 +72,8 @@ interface DataTableRowActionsProps {
 
 export function DataTableRowActions({ row }: DataTableRowActionsProps) {
   const { t } = useTranslation()
+  const userRole = useAuthStore((state) => state.auth.user?.role ?? 0)
+  const canManageChannelConfig = userRole >= ROLE.SUPER_ADMIN
   const channel = row.original
   const { setOpen, setCurrentRow, upstream } = useChannels()
   const queryClient = useQueryClient()
@@ -277,12 +281,14 @@ export function DataTableRowActions({ row }: DataTableRowActionsProps) {
           <DropdownMenuSeparator />
 
           {/* Copy Channel */}
-          <DropdownMenuItem onClick={handleCopy}>
-            {t('Copy Channel')}
-            <DropdownMenuShortcut>
-              <Copy size={16} />
-            </DropdownMenuShortcut>
-          </DropdownMenuItem>
+          {canManageChannelConfig && (
+            <DropdownMenuItem onClick={handleCopy}>
+              {t('Copy Channel')}
+              <DropdownMenuShortcut>
+                <Copy size={16} />
+              </DropdownMenuShortcut>
+            </DropdownMenuItem>
+          )}
 
           {/* Manage Keys (only for multi-key channels) */}
           {isMultiKey && (
