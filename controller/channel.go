@@ -89,6 +89,25 @@ func buildChannelListQuery(group string, statusFilter int, typeFilter int) *gorm
 	return query
 }
 
+func isLimitedAdmin(c *gin.Context) bool {
+	return c.GetInt("role") == common.RoleAdminUser
+}
+
+func rejectLimitedAdminChannelMutation(c *gin.Context) bool {
+	if !isLimitedAdmin(c) {
+		return false
+	}
+	common.ApiErrorMsg(c, "当前管理员无权修改渠道配置")
+	return true
+}
+
+func sanitizeChannelForLimitedAdmin(channel *model.Channel) {
+	if channel == nil {
+		return
+	}
+	channel.ModelMapping = nil
+}
+
 func GetAllChannels(c *gin.Context) {
 	pageInfo := common.GetPageQuery(c)
 	channelData := make([]*model.Channel, 0)
@@ -159,6 +178,9 @@ func GetAllChannels(c *gin.Context) {
 
 	for _, datum := range channelData {
 		clearChannelInfo(datum)
+		if isLimitedAdmin(c) {
+			sanitizeChannelForLimitedAdmin(datum)
+		}
 	}
 
 	countQuery := buildChannelListQuery(groupFilter, statusFilter, -1)
@@ -365,6 +387,9 @@ func SearchChannels(c *gin.Context) {
 
 	for _, datum := range pagedData {
 		clearChannelInfo(datum)
+		if isLimitedAdmin(c) {
+			sanitizeChannelForLimitedAdmin(datum)
+		}
 	}
 
 	c.JSON(http.StatusOK, gin.H{
@@ -392,6 +417,9 @@ func GetChannel(c *gin.Context) {
 	}
 	if channel != nil {
 		clearChannelInfo(channel)
+		if isLimitedAdmin(c) {
+			sanitizeChannelForLimitedAdmin(channel)
+		}
 	}
 	c.JSON(http.StatusOK, gin.H{
 		"success": true,
@@ -587,6 +615,9 @@ func getVertexArrayKeys(keys string) ([]string, error) {
 }
 
 func AddChannel(c *gin.Context) {
+	if rejectLimitedAdminChannelMutation(c) {
+		return
+	}
 	addChannelRequest := AddChannelRequest{}
 	err := c.ShouldBindJSON(&addChannelRequest)
 	if err != nil {
@@ -798,6 +829,9 @@ func EnableTagChannels(c *gin.Context) {
 }
 
 func EditTagChannels(c *gin.Context) {
+	if rejectLimitedAdminChannelMutation(c) {
+		return
+	}
 	channelTag := ChannelTag{}
 	err := c.ShouldBindJSON(&channelTag)
 	if err != nil {
@@ -891,6 +925,9 @@ type PatchChannel struct {
 }
 
 func UpdateChannel(c *gin.Context) {
+	if rejectLimitedAdminChannelMutation(c) {
+		return
+	}
 	channel := PatchChannel{}
 	err := c.ShouldBindJSON(&channel)
 	if err != nil {
@@ -1252,6 +1289,9 @@ func GetTagModels(c *gin.Context) {
 //	suffix         - string appended to the original name (default "_复制")
 //	reset_balance  - bool, when true will reset balance & used_quota to 0 (default true)
 func CopyChannel(c *gin.Context) {
+	if rejectLimitedAdminChannelMutation(c) {
+		return
+	}
 	id, err := strconv.Atoi(c.Param("id"))
 	if err != nil {
 		c.JSON(http.StatusOK, gin.H{"success": false, "message": "invalid id"})
