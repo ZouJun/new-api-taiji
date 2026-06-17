@@ -246,7 +246,7 @@ func UpdateOption(c *gin.Context) {
 		if convErr != nil || status < 0 || status > 599 || (status > 0 && status < 100) {
 			c.JSON(http.StatusOK, gin.H{
 				"success": false,
-				"message": "客户响应状态码必须为空或位于 100 到 599 之间",
+				"message": "渠道超时响应给客户的状态码必须为空或位于 100 到 599 之间",
 			})
 			return
 		}

@@ -328,7 +328,11 @@ export function StrategySettingsSection({
                       </div>
 
                       <div className='space-y-2'>
-                        <FormLabel>{t('Timeout HTTP status')}</FormLabel>
+                        <FormLabel>
+                          {t(
+                            'HTTP status returned when stream first-byte wait budget is exhausted'
+                          )}
+                        </FormLabel>
                         <Input
                           type='number'
                           min='100'
@@ -347,7 +351,7 @@ export function StrategySettingsSection({
                         />
                         <FormDescription>
                           {t(
-                            'Returned when this group ends with a timeout caused by the relay timeout controls, including non-stream total timeout and stream first-byte timeout.'
+                            'Returned to the customer only when this group ends because the total stream first-byte wait budget is exhausted.'
                           )}
                         </FormDescription>
                         <p className='text-xs text-muted-foreground'>
@@ -355,9 +359,12 @@ export function StrategySettingsSection({
                             ? t('Blank falls back to HTTP status {{status}}.', {
                                 status: DEFAULT_TIMEOUT_STATUS,
                               })
-                            : t('Current fallback response status: {{status}}.', {
+                            : t(
+                                'Current response status for stream first-byte budget exhaustion: {{status}}.',
+                                {
                                 status: row.timeoutHTTPStatus,
-                              })}
+                                }
+                              )}
                         </p>
                         {rowErrors.timeoutHTTPStatus ? (
                           <p className='text-destructive text-xs'>
@@ -367,7 +374,11 @@ export function StrategySettingsSection({
                       </div>
 
                       <div className='space-y-2'>
-                        <FormLabel>{t('Timeout error message')}</FormLabel>
+                        <FormLabel>
+                          {t(
+                            'Error message returned when stream first-byte wait budget is exhausted'
+                          )}
+                        </FormLabel>
                         <Input
                           value={row.timeoutErrorMessage}
                           onChange={(event) =>
@@ -382,14 +393,17 @@ export function StrategySettingsSection({
                         />
                         <FormDescription>
                           {t(
-                            'Custom message for timeout responses caused by the relay timeout controls. Leave empty to use: 资源繁忙，请稍后尝试'
+                            'Returned to the customer only when the total stream first-byte wait budget is exhausted. Leave empty to use: 资源繁忙，请稍后尝试'
                           )}
                         </FormDescription>
                         <p className='text-xs text-muted-foreground'>
                           {row.timeoutErrorMessage.trim()
-                            ? t('Current fallback message: {{message}}', {
+                            ? t(
+                                'Current error message for stream first-byte budget exhaustion: {{message}}',
+                                {
                                 message: row.timeoutErrorMessage.trim(),
-                              })
+                                }
+                              )
                             : t('Blank falls back to: {{message}}', {
                                 message: DEFAULT_TIMEOUT_MESSAGE,
                               })}

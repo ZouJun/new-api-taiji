@@ -1,14 +1,17 @@
 package common
 
 import (
+	"context"
 	"errors"
 	"io"
+	"net/http"
 	"net/http/httptest"
 	"strings"
 	"testing"
 	"time"
 
 	rootcommon "github.com/QuantumNous/new-api/common"
+	"github.com/QuantumNous/new-api/constant"
 	"github.com/QuantumNous/new-api/dto"
 	"github.com/gin-gonic/gin"
 )
@@ -159,5 +162,66 @@ func TestAppendTimeoutMeta(t *testing.T) {
 	}
 	if other["retry_index"] != 2 {
 		t.Fatalf("expected retry_index to be 2, got %v", other["retry_index"])
+	}
+}
+
+func TestCaptureAndAppendTimeoutTrace(t *testing.T) {
+	gin.SetMode(gin.TestMode)
+	recorder := httptest.NewRecorder()
+	c, _ := gin.CreateTestContext(recorder)
+	c.Request = httptest.NewRequest(http.MethodPost, "/v1/chat/completions", nil)
+
+	SetTimeoutMeta(c, TimeoutMeta{
+		Type:     TimeoutTypeStreamFirstByte,
+		Source:   TimeoutSourceChannelSetting,
+		Seconds:  8,
+		Provider: "openai",
+		Stage:    "stream_first_byte_wait",
+		IsStream: true,
+	})
+
+	attemptStart := time.Now().Add(-3 * time.Second)
+	info := &RelayInfo{
+		IsStream:                      true,
+		StreamRetryFirstByteBudget:    10 * time.Second,
+		StreamRetryFirstByteWaitSpent: 8 * time.Second,
+		AttemptStreamFirstByteTimeout: 3 * time.Second,
+	}
+
+	trace := CaptureTimeoutTrace(c, info, attemptStart, attemptStart.Add(3*time.Second), false, ErrStreamFirstByteTimeout)
+	if trace.WrapReason != TimeoutWrapReasonChannelSetting {
+		t.Fatalf("expected channel timeout wrap reason, got %s", trace.WrapReason)
+	}
+
+	other := AppendTimeoutTrace(map[string]interface{}{}, c)
+	if other["configured_timeout_seconds"] != 8 {
+		t.Fatalf("expected configured_timeout_seconds 8, got %v", other["configured_timeout_seconds"])
+	}
+	if other["timeout_actual_elapsed_ms"] != int64(3000) {
+		t.Fatalf("expected timeout_actual_elapsed_ms 3000, got %v", other["timeout_actual_elapsed_ms"])
+	}
+	if other["group_budget_remaining_ms"] != int64(2000) {
+		t.Fatalf("expected group_budget_remaining_ms 2000, got %v", other["group_budget_remaining_ms"])
+	}
+}
+
+func TestCaptureTimeoutTraceMarksGroupBudgetWrapReason(t *testing.T) {
+	gin.SetMode(gin.TestMode)
+	recorder := httptest.NewRecorder()
+	c, _ := gin.CreateTestContext(recorder)
+	c.Request = httptest.NewRequest(http.MethodPost, "/v1/chat/completions", nil)
+
+	SetTimeoutMeta(c, TimeoutMeta{
+		Type:    TimeoutTypeStreamFirstByte,
+		Source:  TimeoutSourceGroupBudget,
+		Seconds: 5,
+	})
+
+	trace := CaptureTimeoutTrace(c, &RelayInfo{IsStream: true}, time.Now().Add(-5*time.Second), time.Now(), true, context.DeadlineExceeded)
+	if trace.WrapReason != TimeoutWrapReasonGroupBudgetExceeded {
+		t.Fatalf("expected group budget wrap reason, got %s", trace.WrapReason)
+	}
+	if wrapReason, ok := c.Get(string(constant.ContextKeyTimeoutWrapReason)); !ok || wrapReason != TimeoutWrapReasonGroupBudgetExceeded {
+		t.Fatalf("expected timeout wrap reason in context, got %v", wrapReason)
 	}
 }

@@ -90,7 +90,7 @@ func Relay(c *gin.Context, relayFormat types.RelayFormat) {
 
 	defer func() {
 		if newAPIError != nil {
-			responseErr := relaycommon.BuildClientTimeoutResponseError(c, newAPIError)
+			responseErr := relaycommon.BuildFinalTimeoutResponseError(c, relayInfo, newAPIError)
 			rawClientMessage := responseErr.Error()
 			clientMessage := rawClientMessage
 			if responseErr == newAPIError && shouldHideInternalRelayError(c, newAPIError) {
@@ -236,13 +236,18 @@ func Relay(c *gin.Context, relayFormat types.RelayFormat) {
 
 		if newAPIError == nil {
 			relayInfo.LastError = nil
+			relaycommon.ClearTimeoutTrace(c)
 			return
 		}
 
 		newAPIError = service.NormalizeViolationFeeError(newAPIError)
 		relayInfo.LastError = newAPIError
+		timeoutTrace := relaycommon.CaptureTimeoutTrace(c, relayInfo, attemptStart, time.Now(), false, newAPIError)
 
 		budgetExceeded := consumeStreamFirstByteRetryBudget(c, relayInfo, attemptStart, newAPIError)
+		if budgetExceeded {
+			timeoutTrace = relaycommon.CaptureTimeoutTrace(c, relayInfo, attemptStart, time.Now(), true, newAPIError)
+		}
 		effectiveRetryTimes := relaycommon.ResolveEffectiveRetryTimes(c, relayInfo)
 		remainingRetrySlots := effectiveRetryTimes - retryParam.GetRetry()
 		willRetry := !budgetExceeded && shouldRetry(c, newAPIError, remainingRetrySlots)
@@ -260,6 +265,7 @@ func Relay(c *gin.Context, relayFormat types.RelayFormat) {
 			newAPIError,
 			decision,
 		)
+		logRelayTimeoutTrace(c, relayInfo, timeoutTrace, budgetExceeded)
 		logger.LogInfo(c, fmt.Sprintf("relay retry decision: will_retry=%t stop_reason=%s retry_index=%d remaining_retry_slots=%d used_channels=%v", willRetry, stopReason, retryParam.GetRetry(), remainingRetrySlots, c.GetStringSlice("use_channel")))
 
 		if budgetExceeded {
@@ -282,6 +288,37 @@ func Relay(c *gin.Context, relayFormat types.RelayFormat) {
 			perfmetrics.RecordRelaySample(relayInfo, false, 0)
 		})
 	}
+}
+
+func logRelayTimeoutTrace(c *gin.Context, relayInfo *relaycommon.RelayInfo, trace relaycommon.TimeoutTrace, budgetExceeded bool) {
+	if trace.Type == "" && !budgetExceeded {
+		return
+	}
+	group := ""
+	channelID := 0
+	if relayInfo != nil {
+		group = relayInfo.GroupStrategyGroup
+		channelID = relayInfo.ChannelId
+	}
+	logger.LogWarn(
+		c,
+		fmt.Sprintf(
+			"timeout trace: type=%s source=%s stage=%s configured_seconds=%d actual_elapsed_ms=%d wrap_reason=%s budget_exceeded=%t group=%s group_budget_seconds=%d group_budget_spent_ms=%d group_budget_remaining_ms=%d channel_id=%d retry_index=%d",
+			trace.Type,
+			trace.Source,
+			trace.Stage,
+			trace.ConfiguredTimeoutSeconds,
+			trace.ActualElapsed.Milliseconds(),
+			trace.WrapReason,
+			budgetExceeded,
+			group,
+			int(trace.GroupBudget/time.Second),
+			trace.GroupBudgetSpent.Milliseconds(),
+			trace.GroupBudgetRemaining.Milliseconds(),
+			channelID,
+			c.GetInt("retry"),
+		),
+	)
 }
 
 func shouldHideInternalRelayError(c *gin.Context, err *types.NewAPIError) bool {
@@ -535,6 +572,7 @@ func processChannelError(c *gin.Context, channelError types.ChannelError, relayI
 			other[key] = value
 		}
 		other = relaycommon.AppendTimeoutMeta(other, c)
+		other = relaycommon.AppendTimeoutTrace(other, c)
 		adminInfo := make(map[string]interface{})
 		adminInfo["use_channel"] = c.GetStringSlice("use_channel")
 		isMultiKey := common.GetContextKeyBool(c, constant.ContextKeyChannelIsMultiKey)

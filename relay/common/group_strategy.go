@@ -210,6 +210,21 @@ func BuildClientTimeoutResponseError(c *gin.Context, upstreamErr *types.NewAPIEr
 	return types.NewErrorWithStatusCode(errors.New(message), upstreamErr.GetErrorCode(), statusCode)
 }
 
+func BuildFinalTimeoutResponseError(c *gin.Context, info *RelayInfo, upstreamErr *types.NewAPIError) *types.NewAPIError {
+	if !IsTimeoutFeatureRelayError(c, upstreamErr) {
+		return upstreamErr
+	}
+	if wrapReason := rootcommon.GetContextKeyString(c, constant.ContextKeyTimeoutWrapReason); wrapReason == TimeoutWrapReasonGroupBudgetExceeded {
+		runtime := SnapshotRuntimeGroupStrategy(c, info)
+		return BuildConfiguredTimeoutRelayError(c, runtime, upstreamErr)
+	}
+	meta, ok := GetTimeoutMeta(c)
+	if ok && meta.Source == TimeoutSourceChannelSetting {
+		return BuildClientTimeoutResponseError(c, upstreamErr)
+	}
+	return upstreamErr
+}
+
 func BuildGroupStrategyTimeoutError(runtime RuntimeGroupStrategy, upstreamErr *types.NewAPIError) *types.NewAPIError {
 	return BuildConfiguredTimeoutRelayError(nil, runtime, upstreamErr)
 }

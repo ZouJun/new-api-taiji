@@ -280,6 +280,67 @@ func TestBuildConfiguredTimeoutRelayErrorPreservesPlainDeadlineExceededWithoutTi
 	}
 }
 
+func TestBuildFinalTimeoutResponseErrorPrefersGroupBudgetWrap(t *testing.T) {
+	prepareGroupStrategyRuntimeTestOptions()
+	t.Cleanup(func() {
+		_ = operation_setting.UpdateGroupStrategySettingsByJSONString("{}")
+		operation_setting.ClientTimeoutResponseHTTPStatus = operation_setting.DefaultClientTimeoutResponseHTTPStatus
+		operation_setting.ClientTimeoutResponseMessage = operation_setting.DefaultClientTimeoutResponseMessage
+	})
+	if err := operation_setting.UpdateGroupStrategySettingsByJSONString(`{"default":{"enabled":true,"timeout_http_status":429,"timeout_error_message":"budget exhausted"}}`); err != nil {
+		t.Fatalf("setup group strategy: %v", err)
+	}
+	operation_setting.ClientTimeoutResponseHTTPStatus = 498
+	operation_setting.ClientTimeoutResponseMessage = "channel timeout"
+
+	gin.SetMode(gin.TestMode)
+	recorder := httptest.NewRecorder()
+	ctx, _ := gin.CreateTestContext(recorder)
+	ctx.Request = httptest.NewRequest(http.MethodPost, "/v1/chat/completions", nil)
+	rootcommon.SetContextKey(ctx, constant.ContextKeyUsingGroup, "default")
+	rootcommon.SetContextKey(ctx, constant.ContextKeyTimeoutWrapReason, TimeoutWrapReasonGroupBudgetExceeded)
+	SetTimeoutMeta(ctx, TimeoutMeta{
+		Type:   TimeoutTypeStreamFirstByte,
+		Source: TimeoutSourceGroupBudget,
+	})
+
+	upstreamErr := types.NewErrorWithStatusCode(ErrStreamFirstByteTimeout, types.ErrorCodeDoRequestFailed, http.StatusGatewayTimeout)
+	finalErr := BuildFinalTimeoutResponseError(ctx, &RelayInfo{IsStream: true}, upstreamErr)
+	if finalErr.StatusCode != 429 {
+		t.Fatalf("expected group strategy status 429, got %d", finalErr.StatusCode)
+	}
+	if finalErr.Error() != "budget exhausted" {
+		t.Fatalf("expected group strategy message, got %q", finalErr.Error())
+	}
+}
+
+func TestBuildFinalTimeoutResponseErrorUsesClientTimeoutResponseForChannelSetting(t *testing.T) {
+	t.Cleanup(func() {
+		operation_setting.ClientTimeoutResponseHTTPStatus = operation_setting.DefaultClientTimeoutResponseHTTPStatus
+		operation_setting.ClientTimeoutResponseMessage = operation_setting.DefaultClientTimeoutResponseMessage
+	})
+	operation_setting.ClientTimeoutResponseHTTPStatus = 498
+	operation_setting.ClientTimeoutResponseMessage = "channel timeout"
+
+	gin.SetMode(gin.TestMode)
+	recorder := httptest.NewRecorder()
+	ctx, _ := gin.CreateTestContext(recorder)
+	ctx.Request = httptest.NewRequest(http.MethodPost, "/v1/chat/completions", nil)
+	SetTimeoutMeta(ctx, TimeoutMeta{
+		Type:   TimeoutTypeNonStreamTotal,
+		Source: TimeoutSourceChannelSetting,
+	})
+
+	upstreamErr := types.NewErrorWithStatusCode(context.DeadlineExceeded, types.ErrorCodeDoRequestFailed, http.StatusGatewayTimeout)
+	finalErr := BuildFinalTimeoutResponseError(ctx, nil, upstreamErr)
+	if finalErr.StatusCode != 498 {
+		t.Fatalf("expected client timeout response status 498, got %d", finalErr.StatusCode)
+	}
+	if finalErr.Error() != "channel timeout" {
+		t.Fatalf("expected client timeout response message, got %q", finalErr.Error())
+	}
+}
+
 func prepareGroupStrategyRuntimeTestOptions() {
 	rootcommon.OptionMapRWMutex.Lock()
 	defer rootcommon.OptionMapRWMutex.Unlock()

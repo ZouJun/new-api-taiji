@@ -224,16 +224,16 @@ export default function SettingsStrategy(props) {
     }
     if (hasEnabledGroup(rows)) {
       if (clientStatus.trim() === '') {
-        return showError(t('存在启用中的分组时，必须设置客户响应的状态码'));
+        return showError(t('存在启用中的分组时，必须设置渠道超时响应给客户的状态码'));
       }
       if (clientMessage.trim() === '') {
-        return showError(t('存在启用中的分组时，必须设置客户响应的错误消息'));
+        return showError(t('存在启用中的分组时，必须设置渠道超时响应给客户的错误消息'));
       }
     }
     if (clientStatus !== '') {
       const status = Number(clientStatus);
       if (Number.isNaN(status) || status < 100 || status > 599) {
-        return showError(t('客户响应状态码必须在 100 到 599 之间'));
+        return showError(t('渠道超时响应给客户的状态码必须在 100 到 599 之间'));
       }
     }
 
@@ -292,7 +292,7 @@ export default function SettingsStrategy(props) {
             <Space vertical align='start' style={{ width: '100%' }}>
               <div>
                 <Title heading={6} style={{ margin: 0 }}>
-                  {t('客户响应封装')}
+                  {t('渠道超时响应给客户')}
                 </Title>
                 <Text
                   type='secondary'
@@ -305,8 +305,8 @@ export default function SettingsStrategy(props) {
               <Row gutter={[12, 8]} style={{ width: '100%' }}>
                 <Col xs={24} sm={12}>
                   <Form.Slot
-                    label={t('客户响应的状态码')}
-                    extraText={t('留空则不额外替换')}
+                    label={t('渠道超时响应给客户的状态码')}
+                    extraText={t('留空则不额外替换，仅对渠道超时生效')}
                   >
                     <Input
                       value={clientStatus}
@@ -317,8 +317,8 @@ export default function SettingsStrategy(props) {
                 </Col>
                 <Col xs={24} sm={12}>
                   <Form.Slot
-                    label={t('客户响应的错误消息')}
-                    extraText={t('留空则沿用原始消息')}
+                    label={t('渠道超时响应给客户的错误消息')}
+                    extraText={t('留空则沿用原始消息，仅对渠道超时生效')}
                   >
                     <Input
                       value={clientMessage}
@@ -336,7 +336,7 @@ export default function SettingsStrategy(props) {
             fullMode={false}
             title={t('流式预算说明')}
             description={t(
-              '“流式首包等待时间之和（秒）”指一次请求在多个渠道之间等待流式首包的时间之和。比如渠道 1 等了 30 秒后超时，渠道 2 最多只会再按剩余预算继续等待。命中分组后，优先使用分组里配置的可重试渠道数；未命中时继续沿用全局 RetryTimes。最终因非流式总超时或流式首包超时结束时，会回退到当前分组的状态码与文案；默认 503 / 资源繁忙，请稍后尝试。',
+              '“流式首包等待时间之和（秒）”指一次请求在多个渠道之间等待流式首包的时间之和。比如渠道 1 等了 30 秒后超时，渠道 2 最多只会再按剩余预算继续等待。命中分组后，优先使用分组里配置的可重试渠道数；未命中时继续沿用全局 RetryTimes。若累计首包等待超过分组预算，则优先回退到当前分组的状态码与文案；否则仅当渠道自身超时配置触发超时，才使用这里配置的统一客户响应。',
             )}
           />
 
@@ -479,8 +479,12 @@ export default function SettingsStrategy(props) {
 
                       <Col xs={24} sm={12} md={6}>
                         <Form.Slot
-                          label={t('超时 HTTP 状态码')}
-                          extraText={t('默认 503')}
+                          label={t(
+                            '流式首包等待时间之和耗尽时返回给客户的 HTTP 状态码'
+                          )}
+                          extraText={t(
+                            '仅用于流式首包等待时间之和（秒）耗尽；默认 503'
+                          )}
                         >
                           <Input
                             value={row.timeout_http_status}
@@ -495,8 +499,12 @@ export default function SettingsStrategy(props) {
 
                       <Col xs={24} sm={12} md={6}>
                         <Form.Slot
-                          label={t('超时错误文案')}
-                          extraText={t('默认繁忙提示')}
+                          label={t(
+                            '流式首包等待时间之和耗尽时返回给客户的错误文案'
+                          )}
+                          extraText={t(
+                            '仅用于流式首包等待时间之和（秒）耗尽；默认繁忙提示'
+                          )}
                         >
                           <Input
                             value={row.timeout_error_message}

@@ -23,6 +23,10 @@ const (
 	TimeoutSourceLegacyGlobal   = "legacy_global"
 	TimeoutSourceGroupBudget    = "group_strategy_budget"
 	TimeoutSourceNone           = "none"
+
+	TimeoutWrapReasonNone                = "none"
+	TimeoutWrapReasonGroupBudgetExceeded = "group_budget_exhausted"
+	TimeoutWrapReasonChannelSetting      = "channel_timeout_response"
 )
 
 var ErrStreamFirstByteTimeout = errors.New("stream first byte timeout")
@@ -37,6 +41,21 @@ type TimeoutMeta struct {
 	IsStream    bool   `json:"is_stream,omitempty"`
 	ChannelID   int    `json:"channel_id,omitempty"`
 	RequestPath string `json:"request_path,omitempty"`
+}
+
+type TimeoutTrace struct {
+	Type                     string        `json:"type,omitempty"`
+	Source                   string        `json:"source,omitempty"`
+	Stage                    string        `json:"stage,omitempty"`
+	Provider                 string        `json:"provider,omitempty"`
+	ConfiguredTimeoutSeconds int           `json:"configured_timeout_seconds,omitempty"`
+	ActualElapsed            time.Duration `json:"actual_elapsed,omitempty"`
+	AttemptStartedAt         time.Time     `json:"attempt_started_at,omitempty"`
+	AttemptEndedAt           time.Time     `json:"attempt_ended_at,omitempty"`
+	GroupBudget              time.Duration `json:"group_budget,omitempty"`
+	GroupBudgetSpent         time.Duration `json:"group_budget_spent,omitempty"`
+	GroupBudgetRemaining     time.Duration `json:"group_budget_remaining,omitempty"`
+	WrapReason               string        `json:"wrap_reason,omitempty"`
 }
 
 func normalizePositiveTimeout(value *int) (int, bool) {
@@ -174,6 +193,115 @@ func GetTimeoutMeta(c *gin.Context) (TimeoutMeta, bool) {
 	}
 	meta, ok := raw.(TimeoutMeta)
 	return meta, ok
+}
+
+func SetTimeoutTrace(c *gin.Context, trace TimeoutTrace) {
+	if c == nil {
+		return
+	}
+	if trace.WrapReason == "" {
+		trace.WrapReason = TimeoutWrapReasonNone
+	}
+	c.Set(string(constant.ContextKeyTimeoutTrace), trace)
+}
+
+func GetTimeoutTrace(c *gin.Context) (TimeoutTrace, bool) {
+	if c == nil {
+		return TimeoutTrace{}, false
+	}
+	raw, ok := c.Get(string(constant.ContextKeyTimeoutTrace))
+	if !ok {
+		return TimeoutTrace{}, false
+	}
+	trace, ok := raw.(TimeoutTrace)
+	return trace, ok
+}
+
+func ClearTimeoutTrace(c *gin.Context) {
+	if c == nil {
+		return
+	}
+	c.Set(string(constant.ContextKeyTimeoutTrace), TimeoutTrace{})
+	rootcommon.SetContextKey(c, constant.ContextKeyTimeoutWrapReason, TimeoutWrapReasonNone)
+}
+
+func CaptureTimeoutTrace(c *gin.Context, info *RelayInfo, attemptStart time.Time, attemptEnd time.Time, budgetExceeded bool, relayErr error) TimeoutTrace {
+	trace := TimeoutTrace{}
+	meta, ok := GetTimeoutMeta(c)
+	if ok {
+		trace.Type = meta.Type
+		trace.Source = meta.Source
+		trace.Stage = meta.Stage
+		trace.Provider = meta.Provider
+		trace.ConfiguredTimeoutSeconds = meta.Seconds
+	}
+	if !attemptStart.IsZero() {
+		trace.AttemptStartedAt = attemptStart
+	}
+	if !attemptEnd.IsZero() {
+		trace.AttemptEndedAt = attemptEnd
+	}
+	if !attemptStart.IsZero() && !attemptEnd.IsZero() && attemptEnd.After(attemptStart) {
+		trace.ActualElapsed = attemptEnd.Sub(attemptStart)
+	}
+	if info != nil {
+		trace.GroupBudget = info.StreamRetryFirstByteBudget
+		trace.GroupBudgetSpent = info.StreamRetryFirstByteWaitSpent
+		if trace.GroupBudget > trace.GroupBudgetSpent {
+			trace.GroupBudgetRemaining = trace.GroupBudget - trace.GroupBudgetSpent
+		}
+		if info.IsStream && trace.ActualElapsed <= 0 && info.AttemptStreamFirstByteTimeout > 0 {
+			trace.ActualElapsed = info.AttemptStreamFirstByteTimeout
+		}
+	}
+	switch {
+	case budgetExceeded:
+		trace.WrapReason = TimeoutWrapReasonGroupBudgetExceeded
+	case meta.Source == TimeoutSourceChannelSetting && (errors.Is(relayErr, context.DeadlineExceeded) || errors.Is(relayErr, ErrStreamFirstByteTimeout)):
+		trace.WrapReason = TimeoutWrapReasonChannelSetting
+	default:
+		trace.WrapReason = TimeoutWrapReasonNone
+	}
+	SetTimeoutTrace(c, trace)
+	if c != nil {
+		rootcommon.SetContextKey(c, constant.ContextKeyTimeoutWrapReason, trace.WrapReason)
+	}
+	return trace
+}
+
+func AppendTimeoutTrace(other map[string]interface{}, c *gin.Context) map[string]interface{} {
+	if other == nil {
+		other = make(map[string]interface{})
+	}
+	trace, ok := GetTimeoutTrace(c)
+	if !ok {
+		return other
+	}
+	if !trace.AttemptStartedAt.IsZero() {
+		other["timeout_attempt_started_at_unix_ms"] = trace.AttemptStartedAt.UnixMilli()
+	}
+	if !trace.AttemptEndedAt.IsZero() {
+		other["timeout_attempt_ended_at_unix_ms"] = trace.AttemptEndedAt.UnixMilli()
+	}
+	if trace.ConfiguredTimeoutSeconds > 0 {
+		other["configured_timeout_seconds"] = trace.ConfiguredTimeoutSeconds
+	}
+	if trace.ActualElapsed > 0 {
+		other["timeout_actual_elapsed_ms"] = trace.ActualElapsed.Milliseconds()
+	}
+	if trace.GroupBudget > 0 {
+		other["group_budget_seconds"] = int(trace.GroupBudget / time.Second)
+	}
+	if trace.GroupBudgetSpent > 0 {
+		other["group_budget_spent_ms"] = trace.GroupBudgetSpent.Milliseconds()
+	}
+	if trace.GroupBudgetRemaining >= 0 && trace.GroupBudget > 0 {
+		other["group_budget_remaining_ms"] = trace.GroupBudgetRemaining.Milliseconds()
+	}
+	if trace.WrapReason != "" {
+		other["timeout_wrap_reason"] = trace.WrapReason
+	}
+	return other
 }
 
 type FirstByteTimeoutController struct {

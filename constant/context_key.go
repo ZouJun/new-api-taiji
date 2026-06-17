@@ -63,6 +63,8 @@ const (
 	// It is not returned to end users, but can be persisted into consume/error logs for debugging.
 	ContextKeyAdminRejectReason     ContextKey = "admin_reject_reason"
 	ContextKeyTimeoutMeta           ContextKey = "timeout_meta"
+	ContextKeyTimeoutTrace          ContextKey = "timeout_trace"
+	ContextKeyTimeoutWrapReason     ContextKey = "timeout_wrap_reason"
 	ContextKeyGroupStrategy         ContextKey = "group_strategy_snapshot"
 	ContextKeyGroupStrategyWait     ContextKey = "group_strategy_first_byte_wait"
 	ContextKeyRelayErrorLogged      ContextKey = "relay_error_logged"
