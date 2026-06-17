@@ -25,6 +25,7 @@ import {
   showInfo,
   showSuccess,
   verifyJSON,
+  isRoot,
 } from '../../../../helpers';
 import { useIsMobile } from '../../../../hooks/common/useIsMobile';
 import { CHANNEL_OPTIONS, MODEL_FETCHABLE_CHANNEL_TYPES } from '../../../../constants';
@@ -160,6 +161,7 @@ function type2secretPrompt(type) {
 }
 
 const EditChannelModal = (props) => {
+  const canManageChannelConfig = isRoot();
   const { t } = useTranslation();
   const channelId = props.editingChannel.id;
   const isEdit = channelId !== undefined;
@@ -835,7 +837,10 @@ const EditChannelModal = (props) => {
       } else {
         data.groups = data.group.split(',');
       }
-      if (data.model_mapping !== '') {
+      if (
+        typeof data.model_mapping === 'string' &&
+        data.model_mapping.trim() !== ''
+      ) {
         data.model_mapping = JSON.stringify(
           JSON.parse(data.model_mapping),
           null,
@@ -1535,6 +1540,10 @@ const EditChannelModal = (props) => {
   };
 
   const submit = async () => {
+    if (!canManageChannelConfig) {
+      showInfo(t('管理员可以查看渠道信息，但不能提交修改'));
+      return;
+    }
     const formValues = formApiRef.current ? formApiRef.current.getValues() : {};
     let localInputs = { ...formValues };
     localInputs.param_override = inputs.param_override;
@@ -2175,13 +2184,20 @@ const EditChannelModal = (props) => {
         width={isMobile ? '100%' : 600}
         footer={
           <div className='flex justify-end items-center gap-2'>
-            <Button
-              theme='solid'
-              onClick={() => formApiRef.current?.submitForm()}
-              icon={<IconSave />}
-            >
-              {t('提交')}
-            </Button>
+            {!canManageChannelConfig && (
+              <Text type='tertiary'>
+                {t('管理员可以查看渠道信息，但不能提交修改')}
+              </Text>
+            )}
+            {canManageChannelConfig && (
+              <Button
+                theme='solid'
+                onClick={() => formApiRef.current?.submitForm()}
+                icon={<IconSave />}
+              >
+                {t('提交')}
+              </Button>
+            )}
             <Button
               theme='light'
               type='primary'
@@ -3571,49 +3587,51 @@ const EditChannelModal = (props) => {
                   />
 
                   {/* Model Mapping - Core Config */}
-                  <JSONEditor
-                    key={`model_mapping-${isEdit ? channelId : 'new'}`}
-                    field='model_mapping'
-                    label={t('模型重定向')}
-                    placeholder={
-                      t(
-                        '此项可选，用于修改请求体中的模型名称，为一个 JSON 字符串，键为请求中模型名称，值为要替换的模型名称，例如：',
-                      ) +
-                      `\n${JSON.stringify(MODEL_MAPPING_EXAMPLE, null, 2)}`
-                    }
-                    value={inputs.model_mapping || ''}
-                    onChange={(value) =>
-                      handleInputChange('model_mapping', value)
-                    }
-                    template={MODEL_MAPPING_EXAMPLE}
-                    templateLabel={t('填入模板')}
-                    editorType='keyValue'
-                    formApi={formApiRef.current}
-                    renderStringValueSuffix={({ pairKey, value }) => {
-                      if (!MODEL_FETCHABLE_CHANNEL_TYPES.has(inputs.type)) {
-                        return null;
+                  {canManageChannelConfig && (
+                    <JSONEditor
+                      key={`model_mapping-${isEdit ? channelId : 'new'}`}
+                      field='model_mapping'
+                      label={t('模型重定向')}
+                      placeholder={
+                        t(
+                          '此项可选，用于修改请求体中的模型名称，为一个 JSON 字符串，键为请求中模型名称，值为要替换的模型名称，例如：',
+                        ) +
+                        `\n${JSON.stringify(MODEL_MAPPING_EXAMPLE, null, 2)}`
                       }
-                      const disabled = !String(pairKey ?? '').trim();
-                      return (
-                        <Tooltip content={t('选择模型')}>
-                          <Button
-                            type='tertiary'
-                            theme='borderless'
-                            size='small'
-                            icon={<IconSearch size={14} />}
-                            disabled={disabled}
-                            onClick={(e) => {
-                              e.stopPropagation();
-                              openModelMappingValueModal({ pairKey, value });
-                            }}
-                          />
-                        </Tooltip>
-                      );
-                    }}
-                    extraText={t(
-                      '键为请求中的模型名称，值为要替换的模型名称',
-                    )}
-                  />
+                      value={inputs.model_mapping || ''}
+                      onChange={(value) =>
+                        handleInputChange('model_mapping', value)
+                      }
+                      template={MODEL_MAPPING_EXAMPLE}
+                      templateLabel={t('填入模板')}
+                      editorType='keyValue'
+                      formApi={formApiRef.current}
+                      renderStringValueSuffix={({ pairKey, value }) => {
+                        if (!MODEL_FETCHABLE_CHANNEL_TYPES.has(inputs.type)) {
+                          return null;
+                        }
+                        const disabled = !String(pairKey ?? '').trim();
+                        return (
+                          <Tooltip content={t('选择模型')}>
+                            <Button
+                              type='tertiary'
+                              theme='borderless'
+                              size='small'
+                              icon={<IconSearch size={14} />}
+                              disabled={disabled}
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                openModelMappingValueModal({ pairKey, value });
+                              }}
+                            />
+                          </Tooltip>
+                        );
+                      }}
+                      extraText={t(
+                        '键为请求中的模型名称，值为要替换的模型名称',
+                      )}
+                    />
+                  )}
 
                   {/* Auto Ban - Core Config */}
                   <Form.Switch

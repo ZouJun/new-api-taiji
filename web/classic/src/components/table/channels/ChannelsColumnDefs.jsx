@@ -713,18 +713,6 @@ export const getChannelsColumns = ({
                 });
               },
             },
-            {
-              node: 'item',
-              name: t('复制'),
-              type: 'tertiary',
-              onClick: () => {
-                Modal.confirm({
-                  title: t('确定是否要复制此渠道？'),
-                  content: t('复制渠道的所有信息'),
-                  onOk: () => copySelectedChannel(record),
-                });
-              },
-            },
           ];
 
           if (upstreamUpdateMeta.supported) {

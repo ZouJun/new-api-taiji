@@ -31,8 +31,6 @@ import {
   ArrowUpFromLine,
 } from 'lucide-react'
 import { useTranslation } from 'react-i18next'
-import { useAuthStore } from '@/stores/auth-store'
-import { ROLE } from '@/lib/roles'
 import { Button } from '@/components/ui/button'
 import {
   DropdownMenu,
@@ -56,8 +54,6 @@ import { useChannels } from './channels-provider'
 
 export function ChannelsPrimaryButtons() {
   const { t } = useTranslation()
-  const userRole = useAuthStore((state) => state.auth.user?.role ?? 0)
-  const canManageChannelConfig = userRole >= ROLE.SUPER_ADMIN
   const {
     setOpen,
     setCurrentRow,
@@ -109,19 +105,17 @@ export function ChannelsPrimaryButtons() {
         </div>
 
         {/* Create Channel */}
-        {canManageChannelConfig && (
-          <Button
-            onClick={() => {
-              setCurrentRow(null)
-              setOpen('create-channel')
-            }}
-            size='sm'
-          >
-            <Plus className='h-4 w-4' />
-            <span className='max-sm:hidden'>{t('Create Channel')}</span>
-            <span className='sm:hidden'>{t('Create')}</span>
-          </Button>
-        )}
+        <Button
+          onClick={() => {
+            setCurrentRow(null)
+            setOpen('create-channel')
+          }}
+          size='sm'
+        >
+          <Plus className='h-4 w-4' />
+          <span className='max-sm:hidden'>{t('Create Channel')}</span>
+          <span className='sm:hidden'>{t('Create')}</span>
+        </Button>
 
         {/* More Actions */}
         <DropdownMenu>
