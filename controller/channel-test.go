@@ -501,6 +501,7 @@ func testChannel(channel *model.Channel, testUserID int, testModel string, endpo
 	milliseconds := tok.Sub(tik).Milliseconds()
 	consumedTime := float64(milliseconds) / 1000.0
 	other := buildTestLogOther(c, info, priceData, usage, tieredResult)
+	other["upstream_usage"] = service.AttachConsumeLogUpstreamUsage(c, info, usage)
 	model.RecordConsumeLog(c, testUserID, model.RecordConsumeLogParams{
 		ChannelId:        channel.Id,
 		PromptTokens:     usage.PromptTokens,

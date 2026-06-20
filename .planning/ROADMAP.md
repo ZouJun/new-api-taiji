@@ -59,23 +59,29 @@ Plans:
 - [ ] 02-03: Add tests for trace extraction, sanitization, logging, and error output.
 
 ### Phase 3: Request Response Archive Pipeline
-**Goal**: Relay requests and responses can be archived to local storage or Azure Blob with bounded, observable, non-blocking behavior suitable for 8000-15000 RPM.
+**Goal**: Relay requests and responses can be archived to local storage or Azure Blob with bounded, observable, non-blocking behavior suitable for 8000-15000 RPM, while preserving whitelisted customer correlation headers and upstream-native usage evidence for reconciliation.
 **Depends on**: Phase 2
-**Requirements**: [ARCH-01, ARCH-02, ARCH-03, ARCH-04, ARCH-05, ARCH-06, ARCH-07, OPS-01, OPS-02, OPS-03, OPS-04, OPS-05]
+**Requirements**: [ARCH-01, ARCH-02, ARCH-03, ARCH-04, ARCH-04A, ARCH-05, ARCH-06, ARCH-07, ARCH-08, ARCH-09, ARCH-10, ARCH-11, ARCH-12, ARCH-13, ARCH-14, OPS-01, OPS-02, OPS-03, OPS-04, OPS-05, OPS-06, OPS-07]
 **Success Criteria** (what must be TRUE):
   1. System captures request bodies and non-streaming responses without corrupting replay, retry, billing, or client output.
   2. System captures streaming response chunks while preserving chunk order and client flush behavior.
   3. Archive storage can switch between local and Azure Blob through configuration.
   4. Archive object names include server request ID and sanitized customer trace ID.
-  5. Archive failures are isolated from successful customer responses by default and recorded as metadata.
-  6. Queue limits, worker limits, retries, overflow behavior, compression, retention, and security controls are documented in code-facing design.
-**Plans**: 4 plans
+  5. Consume and error logs persist the full whitelisted request-header snapshot under `logs.other.request_header`, including empty values and truncated oversized values.
+  6. Error log output prints the same whitelisted request-header snapshot at the same correlation level as server request ID.
+  7. Consume logs include upstream-native usage metadata under `logs.other.upstream_usage`, and stream interruption paths either preserve received usage or store an estimated/incomplete usage record.
+  8. Request archive objects prefer original downstream request bytes and response archive objects prefer original upstream response bytes.
+  9. Any fallback payload capture records explicit capture-stage metadata.
+  10. Archive failures and runtime threshold skips are isolated from successful customer responses by default and recorded as metadata.
+  11. Queue limits, worker limits, retries, overflow behavior, compression, retention, safety thresholds, and security controls are documented in code-facing design.
+**Plans**: 5 plans
 
 Plans:
-- [ ] 03-01: Design archive interfaces, object naming, manifests, metadata, and configuration.
-- [ ] 03-02: Implement local archive backend and non-streaming capture path.
-- [ ] 03-03: Implement streaming capture, bounded queue, worker pool, and failure metadata.
-- [ ] 03-04: Implement Azure Blob backend and storage-mode switching.
+- [ ] 03-01: Design archive interfaces, object naming, manifests, metadata, whitelisted header capture, upstream usage metadata, and configuration.
+- [ ] 03-02: Implement whitelisted request-header capture for consume/error logs and error output, using truncation instead of request rejection.
+- [ ] 03-03: Implement upstream-native usage capture for non-streaming, streaming, and stream-interrupted paths, including estimated/incomplete fallback metadata.
+- [ ] 03-04: Implement local/Azure archive backend, raw request/response capture, bounded queue, worker pool, and failure metadata.
+- [ ] 03-05: Implement configurable CPU/memory/disk safety threshold skips with default values and operator-facing metadata.
 
 ### Phase 4: Verification and Operator Documentation
 **Goal**: Maintainers have clear proof and documentation for timeout behavior, Trace-Id propagation, and archival operation under high load assumptions.
@@ -122,6 +128,6 @@ Phases execute in numeric order: 1 -> 2 -> 3 -> 4 -> 5
 |-------|----------------|--------|-----------|
 | 1. Channel Timeout Control and AWS SDK Governance | 4/4 | In progress | - |
 | 2. Customer Trace-Id Propagation | 0/3 | Not started | - |
-| 3. Request Response Archive Pipeline | 0/4 | Not started | - |
+| 3. Request Response Archive Pipeline | 0/5 | Not started | - |
 | 4. Verification and Operator Documentation | 0/3 | Not started | - |
 | 5. Group Strategy Settings | 0/3 | Not started | - |

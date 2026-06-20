@@ -109,6 +109,31 @@ func InitEnv() {
 	RelayIdleConnTimeout = GetEnvOrDefault("RELAY_IDLE_CONN_TIMEOUT", 90)
 	RelayMaxIdleConns = GetEnvOrDefault("RELAY_MAX_IDLE_CONNS", 500)
 	RelayMaxIdleConnsPerHost = GetEnvOrDefault("RELAY_MAX_IDLE_CONNS_PER_HOST", 100)
+	ArchiveEnabled = GetEnvOrDefaultBool("ARCHIVE_ENABLED", false)
+	ArchiveBackend = GetEnvOrDefaultString("ARCHIVE_BACKEND", "local")
+	ArchiveLocalDir = GetEnvOrDefaultString("ARCHIVE_LOCAL_DIR", "./data/archive")
+	ArchiveSpoolDir = GetEnvOrDefaultString("ARCHIVE_SPOOL_DIR", "")
+	ArchiveQueueSize = GetEnvOrDefault("ARCHIVE_QUEUE_SIZE", 50000)
+	ArchiveWorkerCount = GetEnvOrDefault("ARCHIVE_WORKER_COUNT", 32)
+	ArchiveMaxRequestBytes = int64(GetEnvOrDefault("ARCHIVE_MAX_REQUEST_MB", 128)) << 20
+	ArchiveMaxResponseBytes = int64(GetEnvOrDefault("ARCHIVE_MAX_RESPONSE_MB", 128)) << 20
+	ArchiveSpoolTTLHours = GetEnvOrDefault("ARCHIVE_SPOOL_TTL_HOURS", 24)
+	ArchiveSmallPayloadMaxBytes = int64(GetEnvOrDefault("ARCHIVE_SMALL_PAYLOAD_MAX_KB", 64)) << 10
+	ArchiveSegmentMaxBytes = int64(GetEnvOrDefault("ARCHIVE_SEGMENT_MAX_MB", 256)) << 20
+	ArchiveSegmentMaxAgeSeconds = GetEnvOrDefault("ARCHIVE_SEGMENT_MAX_AGE_SECONDS", 60)
+	ArchiveSegmentMaxRecords = GetEnvOrDefault("ARCHIVE_SEGMENT_MAX_RECORDS", 50000)
+	ArchiveSegmentShardCount = GetEnvOrDefault("ARCHIVE_SEGMENT_SHARD_COUNT", 16)
+	ArchiveHeaderValueMaxLength = GetEnvOrDefault("ARCHIVE_HEADER_VALUE_MAX_LENGTH", 512)
+	ArchiveSkipOnHighLoad = GetEnvOrDefaultBool("ARCHIVE_SKIP_ON_HIGH_LOAD", true)
+	ArchiveMaxCPUPercent = GetEnvOrDefault("ARCHIVE_MAX_CPU_PERCENT", 80)
+	ArchiveMaxMemoryPercent = GetEnvOrDefault("ARCHIVE_MAX_MEMORY_PERCENT", 80)
+	ArchiveMinFreeDiskPercent = GetEnvOrDefault("ARCHIVE_MIN_FREE_DISK_PERCENT", 15)
+	ArchiveMinFreeDiskBytes = int64(GetEnvOrDefault("ARCHIVE_MIN_FREE_DISK_GB", 10)) << 30
+	ArchiveLoadCheckIntervalSeconds = GetEnvOrDefault("ARCHIVE_LOAD_CHECK_INTERVAL_SECONDS", 5)
+	ArchiveAzureAccountURL = GetEnvOrDefaultString("ARCHIVE_AZURE_ACCOUNT_URL", "")
+	ArchiveAzureContainer = GetEnvOrDefaultString("ARCHIVE_AZURE_CONTAINER", "")
+	ArchiveAzureAccountName = GetEnvOrDefaultString("ARCHIVE_AZURE_ACCOUNT_NAME", "")
+	ArchiveAzureAccountKey = GetEnvOrDefaultString("ARCHIVE_AZURE_ACCOUNT_KEY", "")
 
 	// Initialize string variables with GetEnvOrDefaultString
 	GeminiSafetySetting = GetEnvOrDefaultString("GEMINI_SAFETY_SETTING", "BLOCK_NONE")
@@ -116,11 +141,11 @@ func InitEnv() {
 
 	// Initialize rate limit variables
 	GlobalApiRateLimitEnable = GetEnvOrDefaultBool("GLOBAL_API_RATE_LIMIT_ENABLE", true)
-	GlobalApiRateLimitNum = GetEnvOrDefault("GLOBAL_API_RATE_LIMIT", 180)
+	GlobalApiRateLimitNum = GetEnvOrDefault("GLOBAL_API_RATE_LIMIT", 360)
 	GlobalApiRateLimitDuration = int64(GetEnvOrDefault("GLOBAL_API_RATE_LIMIT_DURATION", 180))
 
 	GlobalWebRateLimitEnable = GetEnvOrDefaultBool("GLOBAL_WEB_RATE_LIMIT_ENABLE", true)
-	GlobalWebRateLimitNum = GetEnvOrDefault("GLOBAL_WEB_RATE_LIMIT", 60)
+	GlobalWebRateLimitNum = GetEnvOrDefault("GLOBAL_WEB_RATE_LIMIT", 120)
 	GlobalWebRateLimitDuration = int64(GetEnvOrDefault("GLOBAL_WEB_RATE_LIMIT_DURATION", 180))
 
 	CriticalRateLimitEnable = GetEnvOrDefaultBool("CRITICAL_RATE_LIMIT_ENABLE", true)

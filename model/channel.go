@@ -945,17 +945,22 @@ func (channel *Channel) ValidateSettings() error {
 			return err
 		}
 	}
-	if channelParams.NonStreamTimeoutSeconds != nil && *channelParams.NonStreamTimeoutSeconds <= 0 {
-		return errors.New("channel.setting.non_stream_timeout_seconds must be greater than 0")
+	channelOtherSettings := &dto.ChannelOtherSettings{}
+	if channel.OtherSettings != "" {
+		err := common.UnmarshalJsonStr(channel.OtherSettings, channelOtherSettings)
+		if err != nil {
+			return err
+		}
 	}
-	if channelParams.StreamFirstByteTimeoutSeconds != nil && *channelParams.StreamFirstByteTimeoutSeconds <= 0 {
-		return errors.New("channel.setting.stream_first_byte_timeout_seconds must be greater than 0")
+	if channel.Type == constant.ChannelTypeAdvancedCustom {
+		if channelOtherSettings.AdvancedCustom == nil {
+			return fmt.Errorf("advanced_custom is required")
+		}
 	}
-	if channelParams.AwsInvokeTimeoutSeconds != nil && *channelParams.AwsInvokeTimeoutSeconds <= 0 {
-		return errors.New("channel.setting.aws_invoke_timeout_seconds must be greater than 0")
-	}
-	if channelParams.AwsSDKMaxAttempts != nil && *channelParams.AwsSDKMaxAttempts <= 0 {
-		return errors.New("channel.setting.aws_sdk_max_attempts must be greater than 0")
+	if channelOtherSettings.AdvancedCustom != nil {
+		if err := channelOtherSettings.AdvancedCustom.Validate(); err != nil {
+			return err
+		}
 	}
 	return nil
 }

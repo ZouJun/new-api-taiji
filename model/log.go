@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"net/http"
 	"strings"
 	"time"
 
@@ -65,6 +66,7 @@ const (
 	LogTypeSystem  = 4
 	LogTypeError   = 5
 	LogTypeRefund  = 6
+	LogTypeLogin   = 7
 )
 
 func formatUserLogs(logs []*Log, startIdx int) {
@@ -75,6 +77,8 @@ func formatUserLogs(logs []*Log, startIdx int) {
 		if otherMap != nil {
 			// Remove admin-only debug fields.
 			delete(otherMap, "admin_info")
+			// Remove operation-audit details (operator/route info), admin-only.
+			delete(otherMap, "audit_info")
 			// delete(otherMap, "reject_reason")
 			delete(otherMap, "stream_status")
 		}
@@ -131,6 +135,74 @@ func RecordLogWithAdminInfo(userId int, logType int, content string, adminInfo m
 	}
 }
 
+// buildOpField 构建语言无关的操作描述（写入 Other.op）。
+// 前端依据 action(稳定操作标识) + params(结构化参数) 在渲染期用 i18n 本地化展示，
+// 因此不在数据库中存储自然语言句子。
+func buildOpField(action string, params map[string]interface{}) map[string]interface{} {
+	op := map[string]interface{}{
+		"action": action,
+	}
+	if len(params) > 0 {
+		op["params"] = params
+	}
+	return op
+}
+
+// RecordLoginLog 记录用户登录成功的审计日志（type=LogTypeLogin）。
+// username 由调用方传入（登录流程已持有用户对象），避免额外的数据库查询。
+// content 为英文兜底文本（用于导出/经典前端）；action+params 供前端本地化渲染。
+// extra 可携带 login_method、user_agent 等附加信息（普通用户可见）。
+func RecordLoginLog(userId int, username string, content string, ip string, action string, params map[string]interface{}, extra map[string]interface{}) {
+	other := map[string]interface{}{}
+	for k, v := range extra {
+		other[k] = v
+	}
+	other["op"] = buildOpField(action, params)
+	log := &Log{
+		UserId:    userId,
+		Username:  username,
+		CreatedAt: common.GetTimestamp(),
+		Type:      LogTypeLogin,
+		Content:   content,
+		Ip:        ip,
+		Other:     common.MapToJsonStr(other),
+	}
+	if err := LOG_DB.Create(log).Error; err != nil {
+		common.SysLog("failed to record login log: " + err.Error())
+	}
+}
+
+// RecordOperationAuditLog 记录管理/高危操作审计日志（type=LogTypeManage）。
+// logUserId 为日志归属者（面向用户的操作如额度调整归属目标用户，资源类操作如渠道/系统设置归属操作者），
+// username 内部按 logUserId 查询。content 为英文兜底文本（导出/经典前端用）。
+// action+params 写入 Other.op，供前端本地化渲染（普通用户可见，不含敏感信息）。
+// adminInfo 存放操作者身份（写入 Other.admin_info，普通用户查询时剥离）；
+// auditInfo 存放路由/方法/结果等中间件兜底信息（写入 Other.audit_info，普通用户查询时剥离）。
+func RecordOperationAuditLog(logUserId int, content string, ip string, action string, params map[string]interface{}, adminInfo map[string]interface{}, auditInfo map[string]interface{}) {
+	username, _ := GetUsernameById(logUserId, false)
+	other := map[string]interface{}{
+		"op": buildOpField(action, params),
+	}
+	if len(adminInfo) > 0 {
+		other["admin_info"] = adminInfo
+	}
+	if len(auditInfo) > 0 {
+		other["audit_info"] = auditInfo
+	}
+	log := &Log{
+		UserId:    logUserId,
+		Username:  username,
+		CreatedAt: common.GetTimestamp(),
+		Type:      LogTypeManage,
+		Content:   content,
+		Ip:        ip,
+		Other:     common.MapToJsonStr(other),
+	}
+	if err := LOG_DB.Create(log).Error; err != nil {
+		common.SysLog("failed to record operation audit log: " + err.Error())
+	}
+}
+
 func RecordTopupLog(userId int, content string, callerIp string, paymentMethod string, callbackPaymentMethod string) {
 	username, _ := GetUsernameById(userId, false)
 	adminInfo := map[string]interface{}{
@@ -161,7 +233,8 @@ func RecordTopupLog(userId int, content string, callerIp string, paymentMethod s
 
 func RecordErrorLog(c *gin.Context, userId int, channelId int, modelName string, tokenName string, content string, tokenId int, useTimeSeconds int,
 	isStream bool, group string, other map[string]interface{}) {
-	logger.LogInfo(c, fmt.Sprintf("record error log: userId=%d, channelId=%d, modelName=%s, tokenName=%s, content=%s", userId, channelId, modelName, tokenName, common.LocalLogPreview(content)))
+	other = injectArchiveRequestHeader(c, other)
+	logger.LogInfo(c, fmt.Sprintf("record error log: userId=%d, channelId=%d, modelName=%s, tokenName=%s, content=%s, request_header=%s", userId, channelId, modelName, tokenName, common.LocalLogPreview(content), archiveNonEmptyRequestHeaderLogValue(other)))
 	username := c.GetString("username")
 	requestId := c.GetString(common.RequestIdKey)
 	upstreamRequestId := c.GetString(common.UpstreamRequestIdKey)
@@ -226,7 +299,20 @@ func RecordConsumeLog(c *gin.Context, userId int, params RecordConsumeLogParams)
 	if !common.LogConsumeEnabled {
 		return
 	}
-	logger.LogInfo(c, fmt.Sprintf("record consume log: userId=%d, params=%s", userId, common.GetJsonString(params)))
+	params.Other = injectArchiveRequestHeader(c, params.Other)
+	params.Other = injectConsumeLogUpstreamUsage(c, params.Other)
+	logger.LogInfo(c, fmt.Sprintf(
+		"record consume log: userId=%d, channelId=%d, modelName=%s, tokenName=%s, quota=%d, prompt_tokens=%d, completion_tokens=%d, upstream_usage=%s, request_header=%s",
+		userId,
+		params.ChannelId,
+		params.ModelName,
+		params.TokenName,
+		params.Quota,
+		params.PromptTokens,
+		params.CompletionTokens,
+		upstreamUsageLogValue(params.Other),
+		archiveNonEmptyRequestHeaderLogValue(params.Other),
+	))
 	username := c.GetString("username")
 	requestId := c.GetString(common.RequestIdKey)
 	upstreamRequestId := c.GetString(common.UpstreamRequestIdKey)
@@ -275,6 +361,157 @@ func RecordConsumeLog(c *gin.Context, userId int, params RecordConsumeLogParams)
 			LogQuotaData(userId, username, params.ModelName, params.Quota, common.GetTimestamp(), params.PromptTokens+params.CompletionTokens)
 		})
 	}
+}
+
+func injectConsumeLogUpstreamUsage(c *gin.Context, other map[string]interface{}) map[string]interface{} {
+	if other == nil {
+		other = make(map[string]interface{})
+	}
+	if _, ok := other["upstream_usage"]; ok {
+		return other
+	}
+	if usage := common.GetConsumeLogUpstreamUsage(c); usage != nil {
+		other["upstream_usage"] = usage
+		return other
+	}
+	fallback := map[string]interface{}{
+		"source":   common.UpstreamUsageSourceMissing,
+		"complete": false,
+	}
+	if c != nil {
+		if provider := c.GetString("base_url"); provider != "" {
+			fallback["provider"] = provider
+		}
+		if model := c.GetString("original_model"); model != "" {
+			fallback["model"] = model
+		}
+	}
+	other["upstream_usage"] = fallback
+	return other
+}
+
+func injectArchiveRequestHeader(c *gin.Context, other map[string]interface{}) map[string]interface{} {
+	if other == nil {
+		other = make(map[string]interface{})
+	}
+	var header http.Header
+	if c != nil && c.Request != nil {
+		header = c.Request.Header
+	}
+	headerSnapshot, truncated := common.BuildArchiveRequestHeaderSnapshot(header, common.ArchiveHeaderValueMaxLength)
+	other["request_header"] = headerSnapshot
+	if truncated != nil {
+		other["request_header_truncated"] = truncated
+	}
+	return other
+}
+
+func archiveRequestHeaderLogValue(other map[string]interface{}) string {
+	if other == nil {
+		return ""
+	}
+	raw, ok := other["request_header"]
+	if !ok || raw == nil {
+		return ""
+	}
+	headerMap := make(map[string]string, len(common.ArchiveTrackedRequestHeaders))
+	switch typed := raw.(type) {
+	case map[string]string:
+		return common.FormatArchiveRequestHeaderSnapshot(typed)
+	case map[string]interface{}:
+		for _, key := range common.ArchiveTrackedRequestHeaders {
+			headerMap[key] = common.Interface2String(typed[key])
+		}
+		return common.FormatArchiveRequestHeaderSnapshot(headerMap)
+	default:
+		return ""
+	}
+}
+
+func archiveNonEmptyRequestHeaderLogValue(other map[string]interface{}) string {
+	if other == nil {
+		return ""
+	}
+	raw, ok := other["request_header"]
+	if !ok || raw == nil {
+		return ""
+	}
+	headerMap := make(map[string]string, len(common.ArchiveTrackedRequestHeaders))
+	switch typed := raw.(type) {
+	case map[string]string:
+		return common.FormatNonEmptyArchiveRequestHeaderSnapshot(typed)
+	case map[string]interface{}:
+		for _, key := range common.ArchiveTrackedRequestHeaders {
+			headerMap[key] = common.Interface2String(typed[key])
+		}
+		return common.FormatNonEmptyArchiveRequestHeaderSnapshot(headerMap)
+	default:
+		return ""
+	}
+}
+
+func upstreamUsageLogValue(other map[string]interface{}) string {
+	if other == nil {
+		return ""
+	}
+	raw, ok := other["upstream_usage"]
+	if !ok || raw == nil {
+		return ""
+	}
+	usageMap, ok := raw.(map[string]interface{})
+	if !ok {
+		return ""
+	}
+	logUsage := make(map[string]interface{}, len(usageMap))
+	for key, value := range usageMap {
+		if key == "raw" {
+			continue
+		}
+		logUsage[key] = value
+	}
+	return common.MapToJsonStr(logUsage)
+}
+
+func PatchLogOtherArchiveByRequestID(requestId string, archiveInfo map[string]interface{}) error {
+	if requestId == "" {
+		return nil
+	}
+	var logRow Log
+	err := LOG_DB.Where("request_id = ?", requestId).Order("id desc").First(&logRow).Error
+	if err != nil {
+		return err
+	}
+	other := make(map[string]interface{})
+	if logRow.Other != "" {
+		if parsed, parseErr := common.StrToMap(logRow.Other); parseErr == nil && parsed != nil {
+			other = parsed
+		}
+	}
+	if existing, ok := other["archive"].(map[string]interface{}); ok && existing != nil {
+		other["archive"] = mergeArchiveMaps(existing, archiveInfo)
+	} else {
+		other["archive"] = archiveInfo
+	}
+	return LOG_DB.Model(&Log{}).Where("id = ?", logRow.Id).Update("other", common.MapToJsonStr(other)).Error
+}
+
+func mergeArchiveMaps(existing map[string]interface{}, incoming map[string]interface{}) map[string]interface{} {
+	if existing == nil {
+		existing = map[string]interface{}{}
+	}
+	for key, value := range incoming {
+		switch typed := value.(type) {
+		case map[string]interface{}:
+			if current, ok := existing[key].(map[string]interface{}); ok && current != nil {
+				existing[key] = mergeArchiveMaps(current, typed)
+			} else {
+				existing[key] = typed
+			}
+		default:
+			existing[key] = value
+		}
+	}
+	return existing
 }
 
 type RecordTaskBillingLogParams struct {

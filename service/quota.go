@@ -239,6 +239,14 @@ func PostWssConsumeQuota(ctx *gin.Context, relayInfo *relaycommon.RelayInfo, mod
 	if tieredResult != nil {
 		InjectTieredBillingInfo(other, relayInfo, tieredResult)
 	}
+	other["upstream_usage"] = AttachConsumeLogUpstreamUsage(ctx, relayInfo, &dto.Usage{
+		PromptTokens:     usage.InputTokens,
+		CompletionTokens: usage.OutputTokens,
+		TotalTokens:      usage.TotalTokens,
+		InputTokens:      usage.InputTokens,
+		OutputTokens:     usage.OutputTokens,
+		UsageSource:      "provider",
+	})
 	model.RecordConsumeLog(ctx, relayInfo.UserId, model.RecordConsumeLogParams{
 		ChannelId:        relayInfo.ChannelId,
 		PromptTokens:     usage.InputTokens,
@@ -360,6 +368,7 @@ func PostAudioConsumeQuota(ctx *gin.Context, relayInfo *relaycommon.RelayInfo, u
 	if tieredResult != nil {
 		InjectTieredBillingInfo(other, relayInfo, tieredResult)
 	}
+	other["upstream_usage"] = AttachConsumeLogUpstreamUsage(ctx, relayInfo, usage)
 	model.RecordConsumeLog(ctx, relayInfo.UserId, model.RecordConsumeLogParams{
 		ChannelId:        relayInfo.ChannelId,
 		PromptTokens:     usage.PromptTokens,
