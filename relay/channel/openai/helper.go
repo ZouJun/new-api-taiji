@@ -43,6 +43,9 @@ func handleClaudeFormat(c *gin.Context, data string, info *relaycommon.RelayInfo
 	}
 	claudeResponses := service.StreamResponseOpenAI2Claude(&streamResponse, info)
 	for _, resp := range claudeResponses {
+		if respBytes, err := common.Marshal(resp); err == nil {
+			common.SetConsumeLogClientUsageFromJSON(c, respBytes, "usage", "message.usage")
+		}
 		helper.ClaudeData(c, *resp)
 	}
 	return nil
@@ -67,6 +70,7 @@ func handleGeminiFormat(c *gin.Context, data string, info *relaycommon.RelayInfo
 		logger.LogError(c, "failed to marshal gemini response: "+err.Error())
 		return err
 	}
+	common.SetConsumeLogClientUsageFromJSON(c, geminiResponseStr, "usageMetadata")
 
 	// send gemini format response
 	c.Render(-1, common.CustomEvent{Data: "data: " + string(geminiResponseStr)})

@@ -816,8 +816,8 @@ func HandleStreamResponseData(c *gin.Context, info *relaycommon.RelayInfo, claud
 				patchedUsage := buildMessageDeltaPatchUsage(&claudeResponse, claudeInfo)
 				data = patchClaudeMessageDeltaUsageData(data, patchedUsage)
 			}
-			common.SetConsumeLogClientUsageFromJSONString(c, data, "usage", "message.usage")
 		}
+		common.SetConsumeLogClientUsageFromJSONString(c, data, "usage", "message.usage")
 		helper.ClaudeChunkData(c, claudeResponse, data)
 	} else if info.RelayFormat == types.RelayFormatOpenAI {
 		response := StreamResponseClaude2OpenAI(&claudeResponse)

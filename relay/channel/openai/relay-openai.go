@@ -130,6 +130,7 @@ func OaiStreamHandler(c *gin.Context, info *relaycommon.RelayInfo, resp *http.Re
 			}
 		}
 		if len(data) > 0 {
+			common.SetConsumeLogClientUsageFromJSONString(c, data, "usage")
 			// 对音频模型，保存倒数第二个stream data
 			if isAudioModel && lastStreamData != "" {
 				secondLastStreamData = lastStreamData
