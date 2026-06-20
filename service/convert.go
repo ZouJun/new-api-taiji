@@ -247,6 +247,10 @@ func buildClaudeUsageFromOpenAIUsage(oaiUsage *dto.Usage) *dto.ClaudeUsage {
 	return usage
 }
 
+func BuildClaudeUsageFromOpenAIUsageForLog(oaiUsage *dto.Usage) *dto.ClaudeUsage {
+	return buildClaudeUsageFromOpenAIUsage(oaiUsage)
+}
+
 func NormalizeCacheCreationSplit(totalTokens int, tokens5m int, tokens1h int) (int, int) {
 	remainder := lo.Max([]int{totalTokens - tokens5m - tokens1h, 0})
 	return tokens5m + remainder, tokens1h

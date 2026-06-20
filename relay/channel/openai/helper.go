@@ -133,6 +133,7 @@ func handleLastResponse(lastStreamData string, responseId *string, createAt *int
 	if service.ValidUsage(lastStreamResponse.Usage) {
 		*containStreamUsage = true
 		*usage = lastStreamResponse.Usage
+		common.SetConsumeLogClientUsage(c, lastStreamResponse.Usage)
 		if !info.ShouldIncludeUsage {
 			*shouldSendLastResp = lo.SomeBy(lastStreamResponse.Choices, func(choice dto.ChatCompletionsStreamResponseChoice) bool {
 				return choice.Delta.GetContentString() != "" || choice.Delta.GetReasoningContent() != ""
@@ -152,6 +153,7 @@ func HandleFinalResponse(c *gin.Context, info *relaycommon.RelayInfo, lastStream
 		if info.ShouldIncludeUsage && !containStreamUsage {
 			response := helper.GenerateFinalUsageResponse(responseId, createAt, model, *usage)
 			response.SetSystemFingerprint(systemFingerprint)
+			common.SetConsumeLogClientUsage(c, response.Usage)
 			helper.ObjectData(c, response)
 		}
 		helper.Done(c)
@@ -164,6 +166,7 @@ func HandleFinalResponse(c *gin.Context, info *relaycommon.RelayInfo, lastStream
 		}
 
 		info.ClaudeConvertInfo.Usage = usage
+		common.SetConsumeLogClientUsage(c, service.BuildClaudeUsageFromOpenAIUsageForLog(usage))
 
 		claudeResponses := service.StreamResponseOpenAI2Claude(&streamResponse, info)
 		for _, resp := range claudeResponses {
@@ -197,6 +200,7 @@ func HandleFinalResponse(c *gin.Context, info *relaycommon.RelayInfo, lastStream
 		}
 
 		// 发送最终的 Gemini 响应
+		common.SetConsumeLogClientUsage(c, geminiResponse.UsageMetadata)
 		c.Render(-1, common.CustomEvent{Data: "data: " + string(geminiResponseStr)})
 		_ = helper.FlushWriter(c)
 	}

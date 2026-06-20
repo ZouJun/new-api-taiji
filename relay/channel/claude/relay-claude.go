@@ -626,6 +626,10 @@ func buildOpenAIStyleUsageFromClaudeUsage(usage *dto.Usage) dto.Usage {
 	return clone
 }
 
+func buildClaudeUsageFromOpenAIUsageForLog(usage *dto.Usage) *dto.ClaudeUsage {
+	return service.BuildClaudeUsageFromOpenAIUsageForLog(usage)
+}
+
 func buildMessageDeltaPatchUsage(claudeResponse *dto.ClaudeResponse, claudeInfo *ClaudeResponseInfo) *dto.ClaudeUsage {
 	usage := &dto.ClaudeUsage{}
 	if claudeResponse != nil && claudeResponse.Usage != nil {
@@ -813,7 +817,11 @@ func HandleStreamResponseData(c *gin.Context, info *relaycommon.RelayInfo, claud
 			// 确保 message_delta 的 usage 包含完整的 input_tokens 和 cache 相关字段
 			// 解决 AWS Bedrock 等上游返回的 message_delta 缺少这些字段的问题
 			if !shouldSkipClaudeMessageDeltaUsagePatch(info) {
-				data = patchClaudeMessageDeltaUsageData(data, buildMessageDeltaPatchUsage(&claudeResponse, claudeInfo))
+				patchedUsage := buildMessageDeltaPatchUsage(&claudeResponse, claudeInfo)
+				data = patchClaudeMessageDeltaUsageData(data, patchedUsage)
+				common.SetConsumeLogClientUsage(c, patchedUsage)
+			} else if claudeResponse.Usage != nil {
+				common.SetConsumeLogClientUsage(c, claudeResponse.Usage)
 			}
 		}
 		helper.ClaudeChunkData(c, claudeResponse, data)
@@ -822,6 +830,9 @@ func HandleStreamResponseData(c *gin.Context, info *relaycommon.RelayInfo, claud
 
 		if !FormatClaudeResponseInfo(&claudeResponse, response, claudeInfo) {
 			return nil
+		}
+		if response.Usage != nil {
+			common.SetConsumeLogClientUsage(c, response.Usage)
 		}
 
 		err = helper.ObjectData(c, response)
@@ -856,11 +867,12 @@ func HandleStreamFinalResponse(c *gin.Context, info *relaycommon.RelayInfo, clau
 	}
 
 	if info.RelayFormat == types.RelayFormatClaude {
-		//
+		common.SetConsumeLogClientUsage(c, buildClaudeUsageFromOpenAIUsageForLog(claudeInfo.Usage))
 	} else if info.RelayFormat == types.RelayFormatOpenAI {
 		if info.ShouldIncludeUsage {
 			openAIUsage := buildOpenAIStyleUsageFromClaudeUsage(claudeInfo.Usage)
 			response := helper.GenerateFinalUsageResponse(claudeInfo.ResponseId, claudeInfo.Created, info.UpstreamModelName, openAIUsage)
+			common.SetConsumeLogClientUsage(c, response.Usage)
 			err := helper.ObjectData(c, response)
 			if err != nil {
 				common.SysLog("send final response failed: " + err.Error())
@@ -921,11 +933,13 @@ func HandleClaudeResponseData(c *gin.Context, info *relaycommon.RelayInfo, claud
 	case types.RelayFormatOpenAI:
 		openaiResponse := ResponseClaude2OpenAI(&claudeResponse)
 		openaiResponse.Usage = buildOpenAIStyleUsageFromClaudeUsage(claudeInfo.Usage)
+		common.SetConsumeLogClientUsage(c, openaiResponse.Usage)
 		responseData, err = json.Marshal(openaiResponse)
 		if err != nil {
 			return types.NewError(err, types.ErrorCodeBadResponseBody)
 		}
 	case types.RelayFormatClaude:
+		common.SetConsumeLogClientUsage(c, claudeResponse.Usage)
 		responseData = data
 	}
 

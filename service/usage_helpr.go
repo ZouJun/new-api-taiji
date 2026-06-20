@@ -76,6 +76,15 @@ func BuildUpstreamUsageLog(relayInfo *relaycommon.RelayInfo, usage *dto.Usage) m
 
 func AttachConsumeLogUpstreamUsage(c *gin.Context, relayInfo *relaycommon.RelayInfo, usage *dto.Usage) map[string]any {
 	result := BuildUpstreamUsageLog(relayInfo, usage)
+	if clientUsage := common.GetConsumeLogClientUsage(c); clientUsage != nil {
+		raw, err := common.Marshal(clientUsage)
+		if err == nil {
+			var payload map[string]any
+			if err = common.Unmarshal(raw, &payload); err == nil {
+				result["raw"] = payload
+			}
+		}
+	}
 	common.SetConsumeLogUpstreamUsage(c, result)
 	return result
 }
