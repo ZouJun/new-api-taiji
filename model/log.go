@@ -234,7 +234,7 @@ func RecordTopupLog(userId int, content string, callerIp string, paymentMethod s
 func RecordErrorLog(c *gin.Context, userId int, channelId int, modelName string, tokenName string, content string, tokenId int, useTimeSeconds int,
 	isStream bool, group string, other map[string]interface{}) {
 	other = injectArchiveRequestHeader(c, other)
-	logger.LogInfo(c, fmt.Sprintf("record error log: userId=%d, channelId=%d, modelName=%s, tokenName=%s, content=%s, request_header=%s", userId, channelId, modelName, tokenName, common.LocalLogPreview(content), archiveRequestHeaderLogValue(other)))
+	logger.LogInfo(c, fmt.Sprintf("record error log: userId=%d, channelId=%d, modelName=%s, tokenName=%s, content=%s, request_header=%s", userId, channelId, modelName, tokenName, common.LocalLogPreview(content), archiveNonEmptyRequestHeaderLogValue(other)))
 	username := c.GetString("username")
 	requestId := c.GetString(common.RequestIdKey)
 	upstreamRequestId := c.GetString(common.UpstreamRequestIdKey)
@@ -300,7 +300,18 @@ func RecordConsumeLog(c *gin.Context, userId int, params RecordConsumeLogParams)
 	}
 	params.Other = injectArchiveRequestHeader(c, params.Other)
 	params.Other = injectConsumeLogUpstreamUsage(c, params.Other)
-	logger.LogInfo(c, fmt.Sprintf("record consume log: userId=%d, params=%s", userId, common.GetJsonString(params)))
+	logger.LogInfo(c, fmt.Sprintf(
+		"record consume log: userId=%d, channelId=%d, modelName=%s, tokenName=%s, quota=%d, prompt_tokens=%d, completion_tokens=%d, upstream_usage=%s, request_header=%s",
+		userId,
+		params.ChannelId,
+		params.ModelName,
+		params.TokenName,
+		params.Quota,
+		params.PromptTokens,
+		params.CompletionTokens,
+		upstreamUsageLogValue(params.Other),
+		archiveNonEmptyRequestHeaderLogValue(params.Other),
+	))
 	username := c.GetString("username")
 	requestId := c.GetString(common.RequestIdKey)
 	upstreamRequestId := c.GetString(common.UpstreamRequestIdKey)
@@ -413,6 +424,50 @@ func archiveRequestHeaderLogValue(other map[string]interface{}) string {
 	default:
 		return ""
 	}
+}
+
+func archiveNonEmptyRequestHeaderLogValue(other map[string]interface{}) string {
+	if other == nil {
+		return ""
+	}
+	raw, ok := other["request_header"]
+	if !ok || raw == nil {
+		return ""
+	}
+	headerMap := make(map[string]string, len(common.ArchiveTrackedRequestHeaders))
+	switch typed := raw.(type) {
+	case map[string]string:
+		return common.FormatNonEmptyArchiveRequestHeaderSnapshot(typed)
+	case map[string]interface{}:
+		for _, key := range common.ArchiveTrackedRequestHeaders {
+			headerMap[key] = common.Interface2String(typed[key])
+		}
+		return common.FormatNonEmptyArchiveRequestHeaderSnapshot(headerMap)
+	default:
+		return ""
+	}
+}
+
+func upstreamUsageLogValue(other map[string]interface{}) string {
+	if other == nil {
+		return ""
+	}
+	raw, ok := other["upstream_usage"]
+	if !ok || raw == nil {
+		return ""
+	}
+	usageMap, ok := raw.(map[string]interface{})
+	if !ok {
+		return ""
+	}
+	logUsage := make(map[string]interface{}, len(usageMap))
+	for key, value := range usageMap {
+		if key == "raw" {
+			continue
+		}
+		logUsage[key] = value
+	}
+	return common.MapToJsonStr(logUsage)
 }
 
 func PatchLogOtherArchiveByRequestID(requestId string, archiveInfo map[string]interface{}) error {

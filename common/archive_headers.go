@@ -47,3 +47,18 @@ func FormatArchiveRequestHeaderSnapshot(snapshot map[string]string) string {
 	}
 	return strings.Join(parts, " ")
 }
+
+func FormatNonEmptyArchiveRequestHeaderSnapshot(snapshot map[string]string) string {
+	if len(snapshot) == 0 {
+		return ""
+	}
+	parts := make([]string, 0, len(ArchiveTrackedRequestHeaders))
+	for _, key := range ArchiveTrackedRequestHeaders {
+		value := snapshot[key]
+		if value == "" {
+			continue
+		}
+		parts = append(parts, key+"="+value)
+	}
+	return strings.Join(parts, " ")
+}
