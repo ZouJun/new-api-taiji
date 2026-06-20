@@ -129,6 +129,9 @@ func OaiResponsesToChatStreamHandler(c *gin.Context, info *relaycommon.RelayInfo
 			return true
 		}
 		if info.RelayFormat == types.RelayFormatOpenAI {
+			if chunkBytes, err := common.Marshal(chunk); err == nil {
+				common.SetConsumeLogClientUsageFromJSON(c, chunkBytes, "usage")
+			}
 			if err := helper.ObjectData(c, chunk); err != nil {
 				streamErr = types.NewOpenAIError(err, types.ErrorCodeBadResponse, http.StatusInternalServerError)
 				return false
@@ -538,7 +541,11 @@ func OaiResponsesToChatStreamHandler(c *gin.Context, info *relaycommon.RelayInfo
 		}
 	}
 	if info.RelayFormat == types.RelayFormatOpenAI && info.ShouldIncludeUsage && usage != nil {
-		if err := helper.ObjectData(c, helper.GenerateFinalUsageResponse(responseId, createAt, model, *usage)); err != nil {
+		finalChunk := helper.GenerateFinalUsageResponse(responseId, createAt, model, *usage)
+		if finalChunkBytes, err := common.Marshal(finalChunk); err == nil {
+			common.SetConsumeLogClientUsageFromJSON(c, finalChunkBytes, "usage")
+		}
+		if err := helper.ObjectData(c, finalChunk); err != nil {
 			return nil, types.NewOpenAIError(err, types.ErrorCodeBadResponse, http.StatusInternalServerError)
 		}
 	}

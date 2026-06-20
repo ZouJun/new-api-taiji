@@ -39,6 +39,7 @@ func OaiResponsesHandler(c *gin.Context, info *relaycommon.RelayInfo, resp *http
 		c.Set("image_generation_call_quality", responsesResponse.GetQuality())
 		c.Set("image_generation_call_size", responsesResponse.GetSize())
 	}
+	common.SetConsumeLogClientUsageFromJSON(c, responseBody, "usage")
 
 	// 写入新的 response body
 	service.IOCopyBytesGracefully(c, resp, responseBody)
@@ -88,6 +89,7 @@ func OaiResponsesStreamHandler(c *gin.Context, info *relaycommon.RelayInfo, resp
 			sr.Error(err)
 			return
 		}
+		common.SetConsumeLogClientUsageFromJSONString(c, data, "response.usage")
 		sendResponsesStreamData(c, streamResponse, data)
 		switch streamResponse.Type {
 		case "response.completed":
