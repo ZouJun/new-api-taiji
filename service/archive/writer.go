@@ -98,7 +98,7 @@ func (w *TeeWriter) Finish() ObjectInfo {
 		if reason == ReasonResponseSpoolFailed {
 			status = StatusFailed
 		}
-		return ObjectInfo{Status: status, Reason: reason, Bytes: w.written, ContentType: w.contentType}
+		return ObjectInfo{Status: status, Reason: reason, Bytes: w.written, ContentType: w.contentType, Stage: "client_response", Fallback: true}
 	}
 	if w.file != nil {
 		if err := w.file.Close(); err != nil {
@@ -111,6 +111,8 @@ func (w *TeeWriter) Finish() ObjectInfo {
 		Bytes:       w.written,
 		ContentType: w.contentType,
 		SHA256:      hex.EncodeToString(w.hasher.Sum(nil)),
+		Stage:       "client_response",
+		Fallback:    true,
 		SpoolPath:   w.path,
 	}
 }

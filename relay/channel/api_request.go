@@ -17,6 +17,7 @@ import (
 	"github.com/QuantumNous/new-api/relay/constant"
 	"github.com/QuantumNous/new-api/relay/helper"
 	"github.com/QuantumNous/new-api/service"
+	"github.com/QuantumNous/new-api/service/archive"
 	"github.com/QuantumNous/new-api/setting/operation_setting"
 	"github.com/QuantumNous/new-api/types"
 
@@ -578,6 +579,12 @@ func doRequest(c *gin.Context, req *http.Request, info *common.RelayInfo) (*http
 	}
 	if info.IsStream && firstByteController != nil {
 		resp.Body = firstByteController.WrapBody(resp.Body, streamFirstByteTimout)
+	}
+	if archive.Enabled() {
+		manager := archive.Current()
+		if manager != nil {
+			resp.Body = archive.WrapUpstreamResponse(c, resp.Body, resp.Header.Get("Content-Type"), manager.SpoolDir(), manager.MaxResponseBytes())
+		}
 	}
 
 	if upID := resp.Header.Get(common2.RequestIdKey); upID != "" {

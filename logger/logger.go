@@ -7,6 +7,7 @@ import (
 	"log"
 	"os"
 	"path/filepath"
+	"strings"
 	"sync"
 	"time"
 
@@ -101,6 +102,12 @@ func logHelper(ctx context.Context, level string, msg string) {
 			id = requestID
 		}
 	}
+	if level == loggerError {
+		if ginCtx, ok := ctx.(*gin.Context); ok && ginCtx != nil && ginCtx.Request != nil && !containsArchiveHeaderLog(msg) {
+			snapshot, _ := common.BuildArchiveRequestHeaderSnapshot(ginCtx.Request.Header, common.ArchiveHeaderValueMaxLength)
+			msg = fmt.Sprintf("%s request_header=%s", msg, common.FormatArchiveRequestHeaderSnapshot(snapshot))
+		}
+	}
 	now := time.Now()
 	common.LogWriterMu.RLock()
 	writer := gin.DefaultErrorWriter
@@ -117,6 +124,10 @@ func logHelper(ctx context.Context, level string, msg string) {
 			SetupLogger()
 		})
 	}
+}
+
+func containsArchiveHeaderLog(msg string) bool {
+	return strings.Contains(msg, "request_header=") || strings.Contains(msg, "request_header =")
 }
 
 func LogQuota(quota int) string {

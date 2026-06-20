@@ -24,17 +24,30 @@ func Archive(routeMode string) gin.HandlerFunc {
 
 		state := archive.NewState(c, routeMode)
 		archive.Attach(c, state)
+		headerSnapshot, headerTruncated := common.BuildArchiveRequestHeaderSnapshot(c.Request.Header, manager.HeaderValueMaxLength())
+		state.SetRequestHeader(headerSnapshot, headerTruncated)
 
-		requestInfo := archive.ObjectInfo{Status: archive.StatusPending}
+		load := archive.EvaluateLoad(manager)
+		if load.ShouldSkip {
+			state.SetSkip(load.Reason, load.Detail, load.CPUThresholdExceeded, load.MemoryThresholdExceeded, load.DiskThresholdExceeded)
+			manager.WritePlaceholder(state)
+			c.Next()
+			manifest := state.Snapshot(c.Writer.Status(), common.GetContextKeyBool(c, constant.ContextKeyIsStream))
+			manager.Enqueue(c, manifest)
+			return
+		}
+
+		requestInfo := archive.ObjectInfo{Status: archive.StatusPending, Stage: "downstream_raw"}
 		if storage, err := common.GetBodyStorage(c); err != nil {
-			requestInfo = archive.ObjectInfo{Status: archive.StatusFailed, Reason: archive.ReasonRequestSpoolFailed}
+			requestInfo = archive.ObjectInfo{Status: archive.StatusFailed, Reason: archive.ReasonRequestSpoolFailed, Stage: "downstream_raw"}
 			logger.LogWarn(c, "archive request capture failed: "+err.Error())
 		} else {
 			if _, err := storage.Seek(0, io.SeekStart); err != nil {
-				requestInfo = archive.ObjectInfo{Status: archive.StatusFailed, Reason: archive.ReasonRequestSpoolFailed}
+				requestInfo = archive.ObjectInfo{Status: archive.StatusFailed, Reason: archive.ReasonRequestSpoolFailed, Stage: "downstream_raw"}
 				logger.LogWarn(c, "archive request seek failed: "+err.Error())
 			} else {
 				requestInfo, err = manager.CaptureRequest(storage)
+				requestInfo.Stage = "downstream_raw"
 				if err != nil {
 					logger.LogWarn(c, "archive request spool failed: "+err.Error())
 				}
@@ -51,7 +64,8 @@ func Archive(routeMode string) gin.HandlerFunc {
 		c.Next()
 
 		responseInfo := tee.Finish()
-		state.SetResponse(responseInfo, c.Writer.Header().Get("Content-Type"))
+		state.SetClientResponse(responseInfo, c.Writer.Header().Get("Content-Type"))
+		state.PopulateFromContext(c)
 		manifest := state.Snapshot(c.Writer.Status(), common.GetContextKeyBool(c, constant.ContextKeyIsStream))
 		manager.Enqueue(c, manifest)
 	}

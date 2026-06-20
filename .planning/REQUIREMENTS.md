@@ -44,6 +44,13 @@ Requirements for this milestone. Each maps to exactly one roadmap phase.
 - [ ] **ARCH-05**: Archive object names include server request ID and sanitized customer trace ID.
 - [ ] **ARCH-06**: System writes per-request archive metadata including object names, hashes, byte counts, stream flag, provider/channel/model, status, and errors.
 - [ ] **ARCH-07**: `logs.other` stores archive references and metadata, not full request or response payloads.
+- [ ] **ARCH-08**: Consume and error logs store a complete whitelisted customer request-header snapshot under `logs.other.request_header`, including empty values, with oversized values truncated instead of rejecting requests.
+- [ ] **ARCH-09**: Error log output prints the whitelisted request-header snapshot at the same correlation level as server request ID.
+- [ ] **ARCH-10**: Consume logs store upstream-native usage data under `logs.other.upstream_usage` for reconciliation, including source and completeness metadata.
+- [ ] **ARCH-11**: Streaming interruptions still produce `upstream_usage` metadata by preserving received upstream usage when available or falling back to estimated usage marked as estimated/incomplete.
+- [ ] **ARCH-12**: Archive request payloads prefer original downstream request body bytes as received by the gateway before parsing or provider conversion.
+- [ ] **ARCH-13**: Archive response payloads prefer original upstream response body bytes as received from providers before gateway conversion or client adaptation.
+- [ ] **ARCH-14**: Any fallback request/response payload capture records explicit capture-stage metadata so operators can distinguish raw payloads from replayed, converted, or client-response bytes.
 
 ### Reliability and Operations
 
@@ -52,6 +59,8 @@ Requirements for this milestone. Each maps to exactly one roadmap phase.
 - [ ] **OPS-03**: Storage failures are observable through logs/metadata/metrics without hiding the original relay outcome.
 - [ ] **OPS-04**: Design includes retention, compression, size limits, redaction hooks, and security/access-control guidance.
 - [ ] **OPS-05**: All database-related changes remain compatible with SQLite, MySQL, and PostgreSQL.
+- [ ] **OPS-06**: Archive storage has configurable runtime safety thresholds for CPU, memory, and local disk space; if thresholds are exceeded, storage is skipped even when archival is enabled.
+- [ ] **OPS-07**: Default archive safety thresholds are CPU 80%, memory 80%, minimum free disk 15%, minimum free disk bytes 10GB, and check interval 5 seconds, all overridable by configuration.
 
 ### Documentation and Verification
 
@@ -120,11 +129,20 @@ Which phases cover which requirements. Updated during roadmap creation.
 | ARCH-05 | Phase 3 | Pending |
 | ARCH-06 | Phase 3 | Pending |
 | ARCH-07 | Phase 3 | Pending |
+| ARCH-08 | Phase 3 | Pending |
+| ARCH-09 | Phase 3 | Pending |
+| ARCH-10 | Phase 3 | Pending |
+| ARCH-11 | Phase 3 | Pending |
+| ARCH-12 | Phase 3 | Pending |
+| ARCH-13 | Phase 3 | Pending |
+| ARCH-14 | Phase 3 | Pending |
 | OPS-01 | Phase 3 | Pending |
 | OPS-02 | Phase 3 | Pending |
 | OPS-03 | Phase 3 | Pending |
 | OPS-04 | Phase 3 | Pending |
 | OPS-05 | Phase 3 | Pending |
+| OPS-06 | Phase 3 | Pending |
+| OPS-07 | Phase 3 | Pending |
 | DOC-01 | Phase 4 | Pending |
 | DOC-02 | Phase 4 | Pending |
 | DOC-03 | Phase 4 | Pending |
@@ -133,10 +151,10 @@ Which phases cover which requirements. Updated during roadmap creation.
 | TEST-03 | Phase 4 | Pending |
 
 **Coverage:**
-- v1 requirements: 40 total
-- Mapped to phases: 40
+- v1 requirements: 49 total
+- Mapped to phases: 49
 - Unmapped: 0
 
 ---
 *Requirements defined: 2026-06-06*
-*Last updated: 2026-06-09 after Phase 1 closeout*
+*Last updated: 2026-06-20 after Phase 3 storage requirement expansion*

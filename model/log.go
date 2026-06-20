@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"net/http"
 	"strings"
 	"time"
 
@@ -232,7 +233,8 @@ func RecordTopupLog(userId int, content string, callerIp string, paymentMethod s
 
 func RecordErrorLog(c *gin.Context, userId int, channelId int, modelName string, tokenName string, content string, tokenId int, useTimeSeconds int,
 	isStream bool, group string, other map[string]interface{}) {
-	logger.LogInfo(c, fmt.Sprintf("record error log: userId=%d, channelId=%d, modelName=%s, tokenName=%s, content=%s", userId, channelId, modelName, tokenName, common.LocalLogPreview(content)))
+	other = injectArchiveRequestHeader(c, other)
+	logger.LogInfo(c, fmt.Sprintf("record error log: userId=%d, channelId=%d, modelName=%s, tokenName=%s, content=%s, request_header=%s", userId, channelId, modelName, tokenName, common.LocalLogPreview(content), archiveRequestHeaderLogValue(other)))
 	username := c.GetString("username")
 	requestId := c.GetString(common.RequestIdKey)
 	upstreamRequestId := c.GetString(common.UpstreamRequestIdKey)
@@ -296,6 +298,8 @@ func RecordConsumeLog(c *gin.Context, userId int, params RecordConsumeLogParams)
 	if !common.LogConsumeEnabled {
 		return
 	}
+	params.Other = injectArchiveRequestHeader(c, params.Other)
+	params.Other = injectConsumeLogUpstreamUsage(c, params.Other)
 	logger.LogInfo(c, fmt.Sprintf("record consume log: userId=%d, params=%s", userId, common.GetJsonString(params)))
 	username := c.GetString("username")
 	requestId := c.GetString(common.RequestIdKey)
@@ -346,6 +350,71 @@ func RecordConsumeLog(c *gin.Context, userId int, params RecordConsumeLogParams)
 	}
 }
 
+func injectConsumeLogUpstreamUsage(c *gin.Context, other map[string]interface{}) map[string]interface{} {
+	if other == nil {
+		other = make(map[string]interface{})
+	}
+	if _, ok := other["upstream_usage"]; ok {
+		return other
+	}
+	if usage := common.GetConsumeLogUpstreamUsage(c); usage != nil {
+		other["upstream_usage"] = usage
+		return other
+	}
+	fallback := map[string]interface{}{
+		"source":   common.UpstreamUsageSourceMissing,
+		"complete": false,
+	}
+	if c != nil {
+		if provider := c.GetString("base_url"); provider != "" {
+			fallback["provider"] = provider
+		}
+		if model := c.GetString("original_model"); model != "" {
+			fallback["model"] = model
+		}
+	}
+	other["upstream_usage"] = fallback
+	return other
+}
+
+func injectArchiveRequestHeader(c *gin.Context, other map[string]interface{}) map[string]interface{} {
+	if other == nil {
+		other = make(map[string]interface{})
+	}
+	var header http.Header
+	if c != nil && c.Request != nil {
+		header = c.Request.Header
+	}
+	headerSnapshot, truncated := common.BuildArchiveRequestHeaderSnapshot(header, common.ArchiveHeaderValueMaxLength)
+	other["request_header"] = headerSnapshot
+	if truncated != nil {
+		other["request_header_truncated"] = truncated
+	}
+	return other
+}
+
+func archiveRequestHeaderLogValue(other map[string]interface{}) string {
+	if other == nil {
+		return ""
+	}
+	raw, ok := other["request_header"]
+	if !ok || raw == nil {
+		return ""
+	}
+	headerMap := make(map[string]string, len(common.ArchiveTrackedRequestHeaders))
+	switch typed := raw.(type) {
+	case map[string]string:
+		return common.FormatArchiveRequestHeaderSnapshot(typed)
+	case map[string]interface{}:
+		for _, key := range common.ArchiveTrackedRequestHeaders {
+			headerMap[key] = common.Interface2String(typed[key])
+		}
+		return common.FormatArchiveRequestHeaderSnapshot(headerMap)
+	default:
+		return ""
+	}
+}
+
 func PatchLogOtherArchiveByRequestID(requestId string, archiveInfo map[string]interface{}) error {
 	if requestId == "" {
 		return nil
@@ -361,8 +430,31 @@ func PatchLogOtherArchiveByRequestID(requestId string, archiveInfo map[string]in
 			other = parsed
 		}
 	}
-	other["archive"] = archiveInfo
+	if existing, ok := other["archive"].(map[string]interface{}); ok && existing != nil {
+		other["archive"] = mergeArchiveMaps(existing, archiveInfo)
+	} else {
+		other["archive"] = archiveInfo
+	}
 	return LOG_DB.Model(&Log{}).Where("id = ?", logRow.Id).Update("other", common.MapToJsonStr(other)).Error
+}
+
+func mergeArchiveMaps(existing map[string]interface{}, incoming map[string]interface{}) map[string]interface{} {
+	if existing == nil {
+		existing = map[string]interface{}{}
+	}
+	for key, value := range incoming {
+		switch typed := value.(type) {
+		case map[string]interface{}:
+			if current, ok := existing[key].(map[string]interface{}); ok && current != nil {
+				existing[key] = mergeArchiveMaps(current, typed)
+			} else {
+				existing[key] = typed
+			}
+		default:
+			existing[key] = value
+		}
+	}
+	return existing
 }
 
 type RecordTaskBillingLogParams struct {

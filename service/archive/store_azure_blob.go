@@ -19,6 +19,10 @@ type azureBlobBackend struct {
 	tmpDir    string
 }
 
+type segmentUploadBackend interface {
+	UploadSegmentFiles(segmentID string, dataPath string, indexPath string) (string, string, error)
+}
+
 func newAzureBlobBackend(cfg Config) Backend {
 	serviceURL := cfg.AzureAccountURL
 	if serviceURL == "" && cfg.AzureAccountName != "" {
@@ -104,6 +108,41 @@ func (b *azureBlobBackend) uploadFile(manifest Manifest, name string, localPath 
 		HTTPHeaders: &blob.HTTPHeaders{
 			BlobContentType:     &contentType,
 			BlobContentEncoding: common.GetPointer("gzip"),
+		},
+		Metadata: sanitizeAzureMetadata(metadata),
+	})
+	return err
+}
+
+func (b *azureBlobBackend) UploadSegmentFiles(segmentID string, dataPath string, indexPath string) (string, string, error) {
+	dataBlobName := path.Join("segments", segmentID+".data")
+	indexBlobName := path.Join("segments", segmentID+".index.jsonl")
+	if err := b.uploadStandaloneFile(dataBlobName, dataPath, "application/octet-stream", map[string]string{
+		"segment_id":  segmentID,
+		"object_type": "segment_data",
+	}); err != nil {
+		return "", "", err
+	}
+	if err := b.uploadStandaloneFile(indexBlobName, indexPath, "application/jsonl", map[string]string{
+		"segment_id":  segmentID,
+		"object_type": "segment_index",
+	}); err != nil {
+		return "", "", err
+	}
+	return dataBlobName, indexBlobName, nil
+}
+
+func (b *azureBlobBackend) uploadStandaloneFile(blobName string, localPath string, contentType string, metadata map[string]string) error {
+	file, err := os.Open(localPath)
+	if err != nil {
+		return err
+	}
+	defer file.Close()
+	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Minute)
+	defer cancel()
+	_, err = b.client.UploadFile(ctx, b.container, blobName, file, &azblob.UploadFileOptions{
+		HTTPHeaders: &blob.HTTPHeaders{
+			BlobContentType: &contentType,
 		},
 		Metadata: sanitizeAzureMetadata(metadata),
 	})
