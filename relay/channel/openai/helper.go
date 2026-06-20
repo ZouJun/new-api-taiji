@@ -115,7 +115,7 @@ func processCompletionsStreamResponse(streamResponse dto.CompletionsStreamRespon
 	}
 }
 
-func handleLastResponse(lastStreamData string, responseId *string, createAt *int64,
+func handleLastResponse(c *gin.Context, lastStreamData string, responseId *string, createAt *int64,
 	systemFingerprint *string, model *string, usage **dto.Usage,
 	containStreamUsage *bool, info *relaycommon.RelayInfo,
 	shouldSendLastResp *bool) error {
