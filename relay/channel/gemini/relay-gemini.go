@@ -1374,6 +1374,7 @@ func geminiStreamHandler(c *gin.Context, info *relaycommon.RelayInfo, resp *http
 			mappedUsage := buildUsageFromGeminiMetadata(geminiResponse.UsageMetadata, info.GetEstimatePromptTokens())
 			*usage = mappedUsage
 		}
+		common.SetConsumeLogClientUsageFromJSONString(c, data, "usageMetadata")
 
 		if !callback(data, &geminiResponse) {
 			sr.Stop(fmt.Errorf("gemini callback stopped"))
@@ -1560,14 +1561,17 @@ func GeminiChatHandler(c *gin.Context, info *relaycommon.RelayInfo, resp *http.R
 		if err != nil {
 			return nil, types.NewError(err, types.ErrorCodeBadResponseBody)
 		}
+		common.SetConsumeLogClientUsageFromJSON(c, responseBody, "usage")
 	case types.RelayFormatClaude:
 		claudeResp := service.ResponseOpenAI2Claude(fullTextResponse, info)
 		claudeRespStr, err := common.Marshal(claudeResp)
 		if err != nil {
 			return nil, types.NewError(err, types.ErrorCodeBadResponseBody)
 		}
+		common.SetConsumeLogClientUsageFromJSON(c, claudeRespStr, "usage")
 		responseBody = claudeRespStr
 	case types.RelayFormatGemini:
+		common.SetConsumeLogClientUsageFromJSON(c, responseBody, "usageMetadata")
 		break
 	}
 

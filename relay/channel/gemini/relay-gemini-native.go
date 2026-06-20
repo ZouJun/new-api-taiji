@@ -41,6 +41,7 @@ func GeminiTextGenerationHandler(c *gin.Context, info *relaycommon.RelayInfo, re
 
 	// 计算使用量（基于 UsageMetadata）
 	usage := buildUsageFromGeminiMetadata(geminiResponse.UsageMetadata, info.GetEstimatePromptTokens())
+	common.SetConsumeLogClientUsageFromJSON(c, responseBody, "usageMetadata")
 
 	service.IOCopyBytesGracefully(c, resp, responseBody)
 
@@ -82,6 +83,7 @@ func GeminiTextGenerationStreamHandler(c *gin.Context, info *relaycommon.RelayIn
 	helper.SetEventStreamHeaders(c)
 
 	return geminiStreamHandler(c, info, resp, func(data string, geminiResponse *dto.GeminiChatResponse) bool {
+		common.SetConsumeLogClientUsageFromJSONString(c, data, "usageMetadata")
 		err := helper.StringData(c, data)
 		if err != nil {
 			logger.LogError(c, "failed to write stream data: "+err.Error())

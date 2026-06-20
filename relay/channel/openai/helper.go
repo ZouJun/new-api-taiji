@@ -133,7 +133,7 @@ func handleLastResponse(c *gin.Context, lastStreamData string, responseId *strin
 	if service.ValidUsage(lastStreamResponse.Usage) {
 		*containStreamUsage = true
 		*usage = lastStreamResponse.Usage
-		common.SetConsumeLogClientUsage(c, lastStreamResponse.Usage)
+		common.SetConsumeLogClientUsageFromJSONString(c, lastStreamData, "usage")
 		if !info.ShouldIncludeUsage {
 			*shouldSendLastResp = lo.SomeBy(lastStreamResponse.Choices, func(choice dto.ChatCompletionsStreamResponseChoice) bool {
 				return choice.Delta.GetContentString() != "" || choice.Delta.GetReasoningContent() != ""
@@ -153,7 +153,9 @@ func HandleFinalResponse(c *gin.Context, info *relaycommon.RelayInfo, lastStream
 		if info.ShouldIncludeUsage && !containStreamUsage {
 			response := helper.GenerateFinalUsageResponse(responseId, createAt, model, *usage)
 			response.SetSystemFingerprint(systemFingerprint)
-			common.SetConsumeLogClientUsage(c, response.Usage)
+			if responseBody, err := common.Marshal(response); err == nil {
+				common.SetConsumeLogClientUsageFromJSON(c, responseBody, "usage")
+			}
 			helper.ObjectData(c, response)
 		}
 		helper.Done(c)
@@ -166,10 +168,12 @@ func HandleFinalResponse(c *gin.Context, info *relaycommon.RelayInfo, lastStream
 		}
 
 		info.ClaudeConvertInfo.Usage = usage
-		common.SetConsumeLogClientUsage(c, service.BuildClaudeUsageFromOpenAIUsageForLog(usage))
 
 		claudeResponses := service.StreamResponseOpenAI2Claude(&streamResponse, info)
 		for _, resp := range claudeResponses {
+			if respBytes, err := common.Marshal(resp); err == nil {
+				common.SetConsumeLogClientUsageFromJSON(c, respBytes, "usage", "message.usage")
+			}
 			_ = helper.ClaudeData(c, *resp)
 		}
 		info.ClaudeConvertInfo.Done = true
@@ -200,7 +204,7 @@ func HandleFinalResponse(c *gin.Context, info *relaycommon.RelayInfo, lastStream
 		}
 
 		// 发送最终的 Gemini 响应
-		common.SetConsumeLogClientUsage(c, geminiResponse.UsageMetadata)
+		common.SetConsumeLogClientUsageFromJSON(c, geminiResponseStr, "usageMetadata")
 		c.Render(-1, common.CustomEvent{Data: "data: " + string(geminiResponseStr)})
 		_ = helper.FlushWriter(c)
 	}

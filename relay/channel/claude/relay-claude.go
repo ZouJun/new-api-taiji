@@ -626,10 +626,6 @@ func buildOpenAIStyleUsageFromClaudeUsage(usage *dto.Usage) dto.Usage {
 	return clone
 }
 
-func buildClaudeUsageFromOpenAIUsageForLog(usage *dto.Usage) *dto.ClaudeUsage {
-	return service.BuildClaudeUsageFromOpenAIUsageForLog(usage)
-}
-
 func buildMessageDeltaPatchUsage(claudeResponse *dto.ClaudeResponse, claudeInfo *ClaudeResponseInfo) *dto.ClaudeUsage {
 	usage := &dto.ClaudeUsage{}
 	if claudeResponse != nil && claudeResponse.Usage != nil {
@@ -819,10 +815,8 @@ func HandleStreamResponseData(c *gin.Context, info *relaycommon.RelayInfo, claud
 			if !shouldSkipClaudeMessageDeltaUsagePatch(info) {
 				patchedUsage := buildMessageDeltaPatchUsage(&claudeResponse, claudeInfo)
 				data = patchClaudeMessageDeltaUsageData(data, patchedUsage)
-				common.SetConsumeLogClientUsage(c, patchedUsage)
-			} else if claudeResponse.Usage != nil {
-				common.SetConsumeLogClientUsage(c, claudeResponse.Usage)
 			}
+			common.SetConsumeLogClientUsageFromJSONString(c, data, "usage", "message.usage")
 		}
 		helper.ClaudeChunkData(c, claudeResponse, data)
 	} else if info.RelayFormat == types.RelayFormatOpenAI {
@@ -831,8 +825,8 @@ func HandleStreamResponseData(c *gin.Context, info *relaycommon.RelayInfo, claud
 		if !FormatClaudeResponseInfo(&claudeResponse, response, claudeInfo) {
 			return nil
 		}
-		if response.Usage != nil {
-			common.SetConsumeLogClientUsage(c, response.Usage)
+		if responseBytes, marshalErr := common.Marshal(response); marshalErr == nil {
+			common.SetConsumeLogClientUsageFromJSON(c, responseBytes, "usage")
 		}
 
 		err = helper.ObjectData(c, response)
@@ -867,12 +861,13 @@ func HandleStreamFinalResponse(c *gin.Context, info *relaycommon.RelayInfo, clau
 	}
 
 	if info.RelayFormat == types.RelayFormatClaude {
-		common.SetConsumeLogClientUsage(c, buildClaudeUsageFromOpenAIUsageForLog(claudeInfo.Usage))
 	} else if info.RelayFormat == types.RelayFormatOpenAI {
 		if info.ShouldIncludeUsage {
 			openAIUsage := buildOpenAIStyleUsageFromClaudeUsage(claudeInfo.Usage)
 			response := helper.GenerateFinalUsageResponse(claudeInfo.ResponseId, claudeInfo.Created, info.UpstreamModelName, openAIUsage)
-			common.SetConsumeLogClientUsage(c, response.Usage)
+			if responseBytes, err := common.Marshal(response); err == nil {
+				common.SetConsumeLogClientUsageFromJSON(c, responseBytes, "usage")
+			}
 			err := helper.ObjectData(c, response)
 			if err != nil {
 				common.SysLog("send final response failed: " + err.Error())
@@ -933,13 +928,13 @@ func HandleClaudeResponseData(c *gin.Context, info *relaycommon.RelayInfo, claud
 	case types.RelayFormatOpenAI:
 		openaiResponse := ResponseClaude2OpenAI(&claudeResponse)
 		openaiResponse.Usage = buildOpenAIStyleUsageFromClaudeUsage(claudeInfo.Usage)
-		common.SetConsumeLogClientUsage(c, openaiResponse.Usage)
 		responseData, err = json.Marshal(openaiResponse)
 		if err != nil {
 			return types.NewError(err, types.ErrorCodeBadResponseBody)
 		}
+		common.SetConsumeLogClientUsageFromJSON(c, responseData, "usage")
 	case types.RelayFormatClaude:
-		common.SetConsumeLogClientUsage(c, claudeResponse.Usage)
+		common.SetConsumeLogClientUsageFromJSON(c, data, "usage", "message.usage")
 		responseData = data
 	}
 
