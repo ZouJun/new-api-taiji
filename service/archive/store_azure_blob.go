@@ -10,7 +10,6 @@ import (
 
 	"github.com/Azure/azure-sdk-for-go/sdk/storage/azblob"
 	"github.com/Azure/azure-sdk-for-go/sdk/storage/azblob/blob"
-	"github.com/QuantumNous/new-api/common"
 )
 
 type azureBlobBackend struct {
@@ -51,31 +50,15 @@ func newAzureBlobBackend(cfg Config) Backend {
 	return &azureBlobBackend{client: client, container: cfg.AzureContainer, tmpDir: cfg.SpoolDir}
 }
 
-func (b *azureBlobBackend) WritePlaceholder(manifest Manifest) error {
-	manifest.Status = StatusPending
-	tmpPath, err := writeManifestTemp(b.tmpDir, manifest)
-	if err != nil {
-		return err
-	}
-	defer os.Remove(tmpPath)
-	return b.uploadFile(manifest, "manifest.json.gz", tmpPath, ObjectManifest, "application/json", map[string]string{})
-}
-
 func (b *azureBlobBackend) WriteFinal(manifest Manifest, objects []backendObject) error {
 	for _, obj := range objects {
-		if obj.LocalPath == "" {
+		if obj.LocalPath == "" && !obj.HasInlineData {
 			if obj.AllowMissing {
 				continue
 			}
 			return fmt.Errorf("missing spool path for %s", obj.ObjectType)
 		}
-		tmpPath := obj.LocalPath + ".gz"
-		if err := gzipFile(obj.LocalPath, tmpPath); err != nil {
-			return err
-		}
-		err := b.uploadFile(manifest, obj.Name, tmpPath, obj.ObjectType, obj.ContentType, obj.Metadata)
-		_ = os.Remove(tmpPath)
-		if err != nil {
+		if err := b.uploadObject(manifest, obj.Name, obj.ObjectType, obj.ContentType, obj.ContentEncoding, obj.Metadata, obj.LocalPath, obj.Data, obj.HasInlineData); err != nil {
 			return err
 		}
 	}
@@ -84,33 +67,44 @@ func (b *azureBlobBackend) WriteFinal(manifest Manifest, objects []backendObject
 		return err
 	}
 	defer os.Remove(tmpPath)
-	return b.uploadFile(manifest, "manifest.json.gz", tmpPath, ObjectManifest, "application/json", metadataFor(manifest, ObjectManifest, ObjectInfo{ContentType: "application/json"}))
+	return b.uploadObject(manifest, "manifest.json.gz", ObjectManifest, "application/json", "gzip", metadataFor(manifest, ObjectManifest, ObjectInfo{ContentType: "application/json", ContentEncoding: "gzip"}), tmpPath, nil, false)
 }
 
-func (b *azureBlobBackend) uploadFile(manifest Manifest, name string, localPath string, objectType string, contentType string, metadata map[string]string) error {
-	file, err := os.Open(localPath)
-	if err != nil {
-		return err
-	}
-	defer file.Close()
+func (b *azureBlobBackend) uploadObject(manifest Manifest, name string, objectType string, contentType string, contentEncoding string, metadata map[string]string, localPath string, data []byte, hasInlineData bool) error {
 	if metadata == nil {
 		metadata = map[string]string{}
 	}
 	if _, ok := metadata["object_type"]; !ok {
-		for k, v := range metadataFor(manifest, objectType, ObjectInfo{ContentType: contentType}) {
+		for k, v := range metadataFor(manifest, objectType, ObjectInfo{ContentType: contentType, ContentEncoding: contentEncoding}) {
 			metadata[k] = v
 		}
 	}
 	blobName := path.Join(manifest.RequestID, name)
 	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Minute)
 	defer cancel()
-	_, err = b.client.UploadFile(ctx, b.container, blobName, file, &azblob.UploadFileOptions{
-		HTTPHeaders: &blob.HTTPHeaders{
-			BlobContentType:     &contentType,
-			BlobContentEncoding: common.GetPointer("gzip"),
-		},
-		Metadata: sanitizeAzureMetadata(metadata),
-	})
+	headers := &blob.HTTPHeaders{
+		BlobContentType: &contentType,
+	}
+	if contentEncoding != "" {
+		headers.BlobContentEncoding = &contentEncoding
+	}
+	options := &azblob.UploadFileOptions{
+		HTTPHeaders: headers,
+		Metadata:    sanitizeAzureMetadata(metadata),
+	}
+	if hasInlineData {
+		_, err := b.client.UploadBuffer(ctx, b.container, blobName, data, &azblob.UploadBufferOptions{
+			HTTPHeaders: headers,
+			Metadata:    sanitizeAzureMetadata(metadata),
+		})
+		return err
+	}
+	file, err := os.Open(localPath)
+	if err != nil {
+		return err
+	}
+	defer file.Close()
+	_, err = b.client.UploadFile(ctx, b.container, blobName, file, options)
 	return err
 }
 
@@ -151,10 +145,6 @@ func (b *azureBlobBackend) uploadStandaloneFile(blobName string, localPath strin
 
 type failingBackend struct {
 	reason string
-}
-
-func (b *failingBackend) WritePlaceholder(Manifest) error {
-	return fmt.Errorf("%s", b.reason)
 }
 
 func (b *failingBackend) WriteFinal(Manifest, []backendObject) error {

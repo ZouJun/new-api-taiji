@@ -20,6 +20,8 @@ const (
 const (
 	ReasonDisabled            = "disabled"
 	ReasonQueueFull           = "queue_full"
+	ReasonHighLoad            = "high_load"
+	ReasonNoRequestBody       = "no_request_body"
 	ReasonRequestSizeLimit    = "request_size_limit"
 	ReasonResponseSizeLimit   = "response_size_limit"
 	ReasonRequestSpoolFailed  = "request_spool_failed"
@@ -33,9 +35,9 @@ type ObjectInfo struct {
 	Bytes           int64  `json:"bytes"`
 	ContentType     string `json:"content_type,omitempty"`
 	ContentEncoding string `json:"content_encoding,omitempty"`
-	SHA256          string `json:"sha256,omitempty"`
 	Stage           string `json:"stage,omitempty"`
 	Fallback        bool   `json:"fallback,omitempty"`
+	Payload         []byte `json:"-"`
 	SpoolPath       string `json:"-"`
 }
 
@@ -110,22 +112,25 @@ type Job struct {
 }
 
 type backendObject struct {
-	Name         string
-	ObjectType   string
-	LocalPath    string
-	ContentType  string
-	Metadata     map[string]string
-	AllowMissing bool
+	Name            string
+	ObjectType      string
+	LocalPath       string
+	Data            []byte
+	HasInlineData   bool
+	ContentType     string
+	ContentEncoding string
+	Metadata        map[string]string
+	AllowMissing    bool
 }
 
 type Backend interface {
-	WritePlaceholder(manifest Manifest) error
 	WriteFinal(manifest Manifest, objects []backendObject) error
 }
 
 type runtimeState struct {
 	startedAt               time.Time
-	responseFilePath        string
+	backend                 string
+	smallPayloadMaxBytes    int64
 	clientResponse          *ObjectInfo
 	upstreamResponse        *ObjectInfo
 	skipArchive             bool

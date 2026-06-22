@@ -28,7 +28,7 @@ type LoadSnapshot struct {
 }
 
 var (
-	loadSnapshotMu sync.Mutex
+	loadSnapshotMu sync.RWMutex
 	lastLoadCheck  loadSnapshot
 )
 
@@ -37,30 +37,36 @@ func evaluateLoad(cfg Config) loadSnapshot {
 		return loadSnapshot{}
 	}
 
-	loadSnapshotMu.Lock()
-	defer loadSnapshotMu.Unlock()
-
 	interval := time.Duration(cfg.LoadCheckIntervalSeconds) * time.Second
 	if interval <= 0 {
 		interval = 5 * time.Second
 	}
+	loadSnapshotMu.RLock()
+	snapshot := lastLoadCheck
+	loadSnapshotMu.RUnlock()
+	if !snapshot.checkedAt.IsZero() && time.Since(snapshot.checkedAt) < interval {
+		return snapshot
+	}
+
+	loadSnapshotMu.Lock()
+	defer loadSnapshotMu.Unlock()
 	if !lastLoadCheck.checkedAt.IsZero() && time.Since(lastLoadCheck.checkedAt) < interval {
 		return lastLoadCheck
 	}
 
 	status := common.GetSystemStatus()
 	disk := common.GetDiskSpaceInfoForPath(cfg.LocalDir)
-	snapshot := loadSnapshot{checkedAt: time.Now()}
+	snapshot = loadSnapshot{checkedAt: time.Now()}
 
 	if cfg.MaxCPUPercent > 0 && status.CPUUsage >= float64(cfg.MaxCPUPercent) {
 		snapshot.shouldSkip = true
-		snapshot.reason = "high_load"
+		snapshot.reason = ReasonHighLoad
 		snapshot.detail = fmt.Sprintf("cpu usage %.2f%% >= %d%%", status.CPUUsage, cfg.MaxCPUPercent)
 		snapshot.cpuThresholdExceeded = true
 	}
 	if cfg.MaxMemoryPercent > 0 && status.MemoryUsage >= float64(cfg.MaxMemoryPercent) {
 		snapshot.shouldSkip = true
-		snapshot.reason = "high_load"
+		snapshot.reason = ReasonHighLoad
 		snapshot.detail = appendThresholdDetail(snapshot.detail, fmt.Sprintf("memory usage %.2f%% >= %d%%", status.MemoryUsage, cfg.MaxMemoryPercent))
 		snapshot.memoryThresholdExceeded = true
 	}
@@ -68,13 +74,13 @@ func evaluateLoad(cfg Config) loadSnapshot {
 		freePercent := 100 - disk.UsedPercent
 		if cfg.MinFreeDiskPercent > 0 && freePercent <= float64(cfg.MinFreeDiskPercent) {
 			snapshot.shouldSkip = true
-			snapshot.reason = "high_load"
+			snapshot.reason = ReasonHighLoad
 			snapshot.detail = appendThresholdDetail(snapshot.detail, fmt.Sprintf("disk free %.2f%% <= %d%%", freePercent, cfg.MinFreeDiskPercent))
 			snapshot.diskThresholdExceeded = true
 		}
 		if cfg.MinFreeDiskBytes > 0 && int64(disk.Free) <= cfg.MinFreeDiskBytes {
 			snapshot.shouldSkip = true
-			snapshot.reason = "high_load"
+			snapshot.reason = ReasonHighLoad
 			snapshot.detail = appendThresholdDetail(snapshot.detail, fmt.Sprintf("disk free bytes %d <= %d", disk.Free, cfg.MinFreeDiskBytes))
 			snapshot.diskThresholdExceeded = true
 		}

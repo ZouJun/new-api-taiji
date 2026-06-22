@@ -1,8 +1,7 @@
 package archive
 
 import (
-	"crypto/sha256"
-	"encoding/hex"
+	"bytes"
 	"os"
 
 	"github.com/gin-gonic/gin"
@@ -10,40 +9,25 @@ import (
 
 type TeeWriter struct {
 	gin.ResponseWriter
-	state       *State
+	spoolDir    string
 	file        *os.File
 	path        string
+	inlineLimit int64
+	payload     bytes.Buffer
 	maxBytes    int64
 	written     int64
-	hasher      hashWriter
 	disabled    bool
 	skipReason  string
-	spoolErr    error
 	contentType string
 }
 
-type hashWriter interface {
-	Write([]byte) (int, error)
-	Sum([]byte) []byte
-}
-
-func NewTeeWriter(base gin.ResponseWriter, state *State, spoolDir string, maxBytes int64) *TeeWriter {
-	path, file, err := createSpoolFile(spoolDir, ObjectResponse)
+func NewTeeWriter(base gin.ResponseWriter, spoolDir string, maxBytes int64, inlineLimit int64) *TeeWriter {
 	tw := &TeeWriter{
 		ResponseWriter: base,
-		state:          state,
+		spoolDir:       spoolDir,
 		maxBytes:       maxBytes,
-		hasher:         sha256.New(),
+		inlineLimit:    inlineLimit,
 	}
-	if err != nil {
-		tw.disabled = true
-		tw.spoolErr = err
-		tw.skipReason = ReasonResponseSpoolFailed
-		return tw
-	}
-	tw.file = file
-	tw.path = path
-	state.runtime.responseFilePath = path
 	return tw
 }
 
@@ -77,14 +61,36 @@ func (w *TeeWriter) capture(data []byte) {
 		w.closeAndRemove()
 		return
 	}
+	if w.file == nil && w.inlineLimit > 0 && next <= w.inlineLimit {
+		_, _ = w.payload.Write(data)
+		w.written = next
+		return
+	}
+	if w.file == nil {
+		path, file, err := createSpoolFile(w.spoolDir, ObjectResponse)
+		if err != nil {
+			w.disabled = true
+			w.skipReason = ReasonResponseSpoolFailed
+			return
+		}
+		w.file = file
+		w.path = path
+		if w.payload.Len() > 0 {
+			if _, err = w.file.Write(w.payload.Bytes()); err != nil {
+				w.disabled = true
+				w.skipReason = ReasonResponseSpoolFailed
+				w.closeAndRemove()
+				return
+			}
+			w.payload.Reset()
+		}
+	}
 	if _, err := w.file.Write(data); err != nil {
 		w.disabled = true
-		w.spoolErr = err
 		w.skipReason = ReasonResponseSpoolFailed
 		w.closeAndRemove()
 		return
 	}
-	_, _ = w.hasher.Write(data)
 	w.written = next
 }
 
@@ -110,9 +116,9 @@ func (w *TeeWriter) Finish() ObjectInfo {
 		Status:      StatusPending,
 		Bytes:       w.written,
 		ContentType: w.contentType,
-		SHA256:      hex.EncodeToString(w.hasher.Sum(nil)),
 		Stage:       "client_response",
 		Fallback:    true,
+		Payload:     cloneBufferedPayload(&w.payload),
 		SpoolPath:   w.path,
 	}
 }

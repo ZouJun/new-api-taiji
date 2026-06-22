@@ -124,6 +124,7 @@ func InitEnv() {
 	ArchiveSegmentMaxRecords = GetEnvOrDefault("ARCHIVE_SEGMENT_MAX_RECORDS", 50000)
 	ArchiveSegmentShardCount = GetEnvOrDefault("ARCHIVE_SEGMENT_SHARD_COUNT", 16)
 	ArchiveHeaderValueMaxLength = GetEnvOrDefault("ARCHIVE_HEADER_VALUE_MAX_LENGTH", 512)
+	ArchiveSamplePercent = GetEnvOrDefault("ARCHIVE_SAMPLE_PERCENT", 100)
 	ArchiveSkipOnHighLoad = GetEnvOrDefaultBool("ARCHIVE_SKIP_ON_HIGH_LOAD", true)
 	ArchiveMaxCPUPercent = GetEnvOrDefault("ARCHIVE_MAX_CPU_PERCENT", 80)
 	ArchiveMaxMemoryPercent = GetEnvOrDefault("ARCHIVE_MAX_MEMORY_PERCENT", 80)

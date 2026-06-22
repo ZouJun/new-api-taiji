@@ -19,6 +19,8 @@ import (
 
 const KeyRequestBody = "key_request_body"
 const KeyBodyStorage = "key_body_storage"
+const KeyRawRequestBodyStorage = "key_raw_request_body_storage"
+const KeyRawRequestContentEncoding = "key_raw_request_content_encoding"
 
 var ErrRequestBodyTooLarge = errors.New("request body too large")
 
@@ -103,6 +105,28 @@ func CleanupBodyStorage(c *gin.Context) {
 		}
 		c.Set(KeyBodyStorage, nil)
 	}
+	if storage, exists := c.Get(KeyRawRequestBodyStorage); exists && storage != nil {
+		if bs, ok := storage.(BodyStorage); ok {
+			bs.Close()
+		}
+		c.Set(KeyRawRequestBodyStorage, nil)
+	}
+}
+
+func GetArchiveRequestBodyStorage(c *gin.Context) (BodyStorage, bool, error) {
+	if storage, exists := c.Get(KeyRawRequestBodyStorage); exists && storage != nil {
+		if bs, ok := storage.(BodyStorage); ok {
+			if _, err := bs.Seek(0, io.SeekStart); err != nil {
+				return nil, false, fmt.Errorf("failed to seek raw body storage: %w", err)
+			}
+			return bs, true, nil
+		}
+	}
+	bs, err := GetBodyStorage(c)
+	if err != nil {
+		return nil, false, err
+	}
+	return bs, false, nil
 }
 
 func UnmarshalBodyReusable(c *gin.Context, v any) error {

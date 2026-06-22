@@ -280,6 +280,21 @@ func CreateBodyStorageFromReader(reader io.Reader, contentLength int64, maxBytes
 		return storage, nil
 	}
 
+	// 当内容长度未知时，优先直接流式落盘，避免整包读入内存造成峰值。
+	if IsDiskCacheEnabled() &&
+		contentLength <= 0 &&
+		IsDiskCacheAvailable(maxBytes) {
+		storage, err := newDiskStorageFromReader(reader, maxBytes, GetDiskCachePath())
+		if err != nil {
+			if IsRequestBodyTooLargeError(err) {
+				return nil, err
+			}
+			return nil, fmt.Errorf("disk storage creation failed: %w", err)
+		}
+		IncrementDiskCacheHits()
+		return storage, nil
+	}
+
 	// 使用内存读取
 	data, err := io.ReadAll(io.LimitReader(reader, maxBytes+1))
 	if err != nil {

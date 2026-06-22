@@ -21,10 +21,11 @@ var (
 )
 
 type Manager struct {
-	cfg       Config
-	backend   Backend
-	queue     chan Job
-	segmenter *segmentStore
+	cfg        Config
+	backend    Backend
+	queue      chan Job
+	patchQueue chan Manifest
+	segmenter  *segmentStore
 }
 
 type State struct {
@@ -108,13 +109,17 @@ func Init() {
 		return
 	}
 	m := &Manager{
-		cfg:       cfg,
-		backend:   backend,
-		queue:     make(chan Job, cfg.QueueSize),
-		segmenter: segmenter,
+		cfg:        cfg,
+		backend:    backend,
+		queue:      make(chan Job, cfg.QueueSize),
+		patchQueue: make(chan Manifest, cfg.QueueSize),
+		segmenter:  segmenter,
 	}
 	for i := 0; i < cfg.WorkerCount; i++ {
 		go m.worker()
+	}
+	for i := 0; i < patchWorkerCount(cfg.WorkerCount); i++ {
+		go m.patchWorker()
 	}
 	go m.cleanupLoop()
 	setManager(m)
@@ -137,10 +142,6 @@ func Current() *Manager {
 	return currentManager()
 }
 
-func Enabled() bool {
-	return currentManager() != nil
-}
-
 func (m *Manager) SpoolDir() string {
 	return m.cfg.SpoolDir
 }
@@ -149,12 +150,16 @@ func (m *Manager) MaxResponseBytes() int64 {
 	return m.cfg.MaxResponseBytes
 }
 
+func (m *Manager) SmallPayloadMaxBytes() int64 {
+	return m.cfg.SmallPayloadMaxBytes
+}
+
 func (m *Manager) HeaderValueMaxLength() int {
 	return m.cfg.HeaderValueMaxLength
 }
 
 func (m *Manager) CaptureRequest(src io.Reader) (ObjectInfo, error) {
-	return copyToSpool(m.cfg.SpoolDir, ObjectRequest, src, m.cfg.MaxRequestBytes)
+	return captureObject(m.cfg.SpoolDir, ObjectRequest, src, m.cfg.MaxRequestBytes, m.cfg.SmallPayloadMaxBytes)
 }
 
 func Attach(c *gin.Context, state *State) {
@@ -170,26 +175,36 @@ func FromContext(c *gin.Context) (*State, bool) {
 	return state, ok
 }
 
-func NewState(c *gin.Context, routeMode string) *State {
+func NewState(c *gin.Context, routeMode string, manager *Manager) *State {
 	now := time.Now()
 	requestID := c.GetString(common.RequestIdKey)
 	path := ""
 	if c.Request != nil && c.Request.URL != nil {
 		path = c.Request.URL.Path
 	}
+	backend := ""
+	smallPayloadMaxBytes := int64(0)
+	if manager != nil {
+		backend = manager.cfg.Backend
+		smallPayloadMaxBytes = manager.cfg.SmallPayloadMaxBytes
+	}
 	return &State{
 		Manifest: Manifest{
 			RequestID:   requestID,
 			Method:      c.Request.Method,
 			Path:        path,
-			Backend:     currentManager().cfg.Backend,
+			Backend:     backend,
 			StorageMode: routeMode,
 			Status:      StatusPending,
 			CreatedAt:   now.UTC().Format(time.RFC3339Nano),
 			Request:     ObjectInfo{Status: StatusPending},
 			Response:    ObjectInfo{Status: StatusPending},
 		},
-		runtime: runtimeState{startedAt: now},
+		runtime: runtimeState{
+			startedAt:            now,
+			backend:              backend,
+			smallPayloadMaxBytes: smallPayloadMaxBytes,
+		},
 	}
 }
 
@@ -290,7 +305,7 @@ func (s *State) Snapshot(statusCode int, isStream bool) Manifest {
 		s.Manifest.SkipDetail = s.runtime.skipDetail
 		return s.Manifest
 	}
-	if shouldUseSegmentStrategy(s.Manifest, currentManager().cfg.Backend, currentManager().cfg.SmallPayloadMaxBytes) {
+	if shouldUseSegmentStrategy(s.Manifest, s.runtime.backend, s.runtime.smallPayloadMaxBytes) {
 		s.Manifest.Strategy = "segmented"
 	} else {
 		s.Manifest.Strategy = "per_request"
@@ -299,24 +314,17 @@ func (s *State) Snapshot(statusCode int, isStream bool) Manifest {
 	return s.Manifest
 }
 
-func (m *Manager) WritePlaceholder(state *State) {
-	if state == nil {
+func (m *Manager) Enqueue(c *gin.Context, manifest Manifest) {
+	if !requiresArchiveProcessing(manifest) {
+		m.enqueuePatch(manifest)
 		return
 	}
-	manifest := state.Snapshot(0, false)
-	if err := m.backend.WritePlaceholder(manifest); err != nil {
-		logArchiveEvent(nil, manifest, StatusFailed, ReasonBackendWriteFailed, err.Error())
-	}
-}
-
-func (m *Manager) Enqueue(c *gin.Context, manifest Manifest) {
 	queued, manifest := m.tryEnqueue(manifest)
 	if queued {
-		patchArchive(c, manifest)
 		return
 	}
 	logArchiveEvent(c, manifest, StatusSkipped, ReasonQueueFull, "archive queue is full")
-	patchArchive(c, manifest)
+	m.enqueuePatch(manifest)
 }
 
 func (m *Manager) tryEnqueue(manifest Manifest) (bool, Manifest) {
@@ -336,6 +344,12 @@ func (m *Manager) worker() {
 	}
 }
 
+func (m *Manager) patchWorker() {
+	for manifest := range m.patchQueue {
+		patchArchive(nil, manifest)
+	}
+}
+
 func (m *Manager) process(job Job) {
 	manifest := job.Manifest
 	if manifest.Strategy == "segmented" && m.segmenter != nil {
@@ -344,7 +358,7 @@ func (m *Manager) process(job Job) {
 			manifest.Status = StatusFailed
 			manifest.Reason = ReasonBackendWriteFailed
 			logArchiveEvent(nil, manifest, StatusFailed, ReasonBackendWriteFailed, err.Error())
-			patchArchive(nil, manifest)
+			m.enqueuePatch(manifest)
 			return
 		}
 		manifest = updatedManifest
@@ -352,42 +366,48 @@ func (m *Manager) process(job Job) {
 			manifest.Status = StatusFailed
 			manifest.Reason = ReasonBackendWriteFailed
 			logArchiveEvent(nil, manifest, StatusFailed, ReasonBackendWriteFailed, err.Error())
-			patchArchive(nil, manifest)
+			m.enqueuePatch(manifest)
 			return
 		}
 		removeIfPresent(manifest.Request.SpoolPath)
 		removeIfPresent(manifest.Response.SpoolPath)
-		patchArchive(nil, manifest)
+		m.enqueuePatch(manifest)
 		return
 	}
 	objects := []backendObject{
 		{
-			Name:         "request.data.gz",
-			ObjectType:   ObjectRequest,
-			LocalPath:    manifest.Request.SpoolPath,
-			ContentType:  manifest.Request.ContentType,
-			Metadata:     metadataFor(manifest, ObjectRequest, manifest.Request),
-			AllowMissing: manifest.Request.Status == StatusSkipped,
+			Name:            "request.data",
+			ObjectType:      ObjectRequest,
+			LocalPath:       manifest.Request.SpoolPath,
+			Data:            manifest.Request.Payload,
+			HasInlineData:   manifest.Request.Payload != nil,
+			ContentType:     manifest.Request.ContentType,
+			ContentEncoding: manifest.Request.ContentEncoding,
+			Metadata:        metadataFor(manifest, ObjectRequest, manifest.Request),
+			AllowMissing:    manifest.Request.Status == StatusSkipped,
 		},
 		{
-			Name:         "response.data.gz",
-			ObjectType:   ObjectResponse,
-			LocalPath:    manifest.Response.SpoolPath,
-			ContentType:  manifest.Response.ContentType,
-			Metadata:     metadataFor(manifest, ObjectResponse, manifest.Response),
-			AllowMissing: manifest.Response.Status == StatusSkipped,
+			Name:            "response.data",
+			ObjectType:      ObjectResponse,
+			LocalPath:       manifest.Response.SpoolPath,
+			Data:            manifest.Response.Payload,
+			HasInlineData:   manifest.Response.Payload != nil,
+			ContentType:     manifest.Response.ContentType,
+			ContentEncoding: manifest.Response.ContentEncoding,
+			Metadata:        metadataFor(manifest, ObjectResponse, manifest.Response),
+			AllowMissing:    manifest.Response.Status == StatusSkipped,
 		},
 	}
 	if err := m.backend.WriteFinal(manifest, objects); err != nil {
 		manifest.Status = StatusFailed
 		manifest.Reason = ReasonBackendWriteFailed
 		logArchiveEvent(nil, manifest, StatusFailed, ReasonBackendWriteFailed, err.Error())
-		patchArchive(nil, manifest)
+		m.enqueuePatch(manifest)
 		return
 	}
 	removeIfPresent(manifest.Request.SpoolPath)
 	removeIfPresent(manifest.Response.SpoolPath)
-	patchArchive(nil, manifest)
+	m.enqueuePatch(manifest)
 	if manifest.Request.Status == StatusSkipped {
 		logArchiveEvent(nil, manifest, StatusSkipped, manifest.Request.Reason, "request object skipped")
 	}
@@ -398,15 +418,59 @@ func (m *Manager) process(job Job) {
 
 func (m *Manager) cleanupLoop() {
 	ttl := time.Duration(m.cfg.SpoolTTLHours) * time.Hour
-	ticker := time.NewTicker(time.Hour)
+	ticker := time.NewTicker(segmentFlushInterval(m.cfg))
 	defer ticker.Stop()
 	for {
+		<-ticker.C
 		cleanupExpiredSpoolFiles(m.cfg.SpoolDir, ttl)
 		if m.segmenter != nil {
 			m.segmenter.FlushExpired()
 		}
-		<-ticker.C
 	}
+}
+
+func segmentFlushInterval(cfg Config) time.Duration {
+	if cfg.SegmentMaxAgeSeconds <= 0 {
+		return time.Minute
+	}
+	interval := time.Duration(cfg.SegmentMaxAgeSeconds) * time.Second / 2
+	if interval < time.Second {
+		return time.Second
+	}
+	if interval > time.Minute {
+		return time.Minute
+	}
+	return interval
+}
+
+func (m *Manager) enqueuePatch(manifest Manifest) {
+	if m == nil || m.patchQueue == nil {
+		go patchArchive(nil, manifest)
+		return
+	}
+	select {
+	case m.patchQueue <- manifest:
+	default:
+		common.SysError(fmt.Sprintf("archive patch queue full: request_id=%s", manifest.RequestID))
+		go patchArchive(nil, manifest)
+	}
+}
+
+func patchWorkerCount(workerCount int) int {
+	if workerCount <= 4 {
+		return 1
+	}
+	if workerCount <= 16 {
+		return 2
+	}
+	if workerCount <= 32 {
+		return 4
+	}
+	return 8
+}
+
+func requiresArchiveProcessing(manifest Manifest) bool {
+	return !(manifest.Status == StatusSkipped && manifest.Reason == ReasonHighLoad)
 }
 
 func summarizeStatus(request ObjectInfo, response ObjectInfo) (string, string) {
@@ -426,15 +490,18 @@ func summarizeStatus(request ObjectInfo, response ObjectInfo) (string, string) {
 }
 
 func metadataFor(manifest Manifest, objectType string, object ObjectInfo) map[string]string {
-	return map[string]string{
-		"request_id":       manifest.RequestID,
-		"object_type":      objectType,
-		"is_stream":        fmt.Sprintf("%t", manifest.IsStream),
-		"storage_mode":     manifest.StorageMode,
-		"content_encoding": "gzip",
-		"content_type":     object.ContentType,
-		"created_at":       manifest.CreatedAt,
+	metadata := map[string]string{
+		"request_id":   manifest.RequestID,
+		"object_type":  objectType,
+		"is_stream":    fmt.Sprintf("%t", manifest.IsStream),
+		"storage_mode": manifest.StorageMode,
+		"content_type": object.ContentType,
+		"created_at":   manifest.CreatedAt,
 	}
+	if object.ContentEncoding != "" {
+		metadata["content_encoding"] = object.ContentEncoding
+	}
+	return metadata
 }
 
 func patchArchive(c *gin.Context, manifest Manifest) {
@@ -453,7 +520,6 @@ func patchArchive(c *gin.Context, manifest Manifest) {
 			"status":   manifest.Request.Status,
 			"reason":   manifest.Request.Reason,
 			"bytes":    manifest.Request.Bytes,
-			"sha256":   manifest.Request.SHA256,
 			"stage":    manifest.Request.Stage,
 			"fallback": manifest.Request.Fallback,
 		},
@@ -461,7 +527,6 @@ func patchArchive(c *gin.Context, manifest Manifest) {
 			"status":   manifest.Response.Status,
 			"reason":   manifest.Response.Reason,
 			"bytes":    manifest.Response.Bytes,
-			"sha256":   manifest.Response.SHA256,
 			"stage":    manifest.Response.Stage,
 			"fallback": manifest.Response.Fallback,
 		},

@@ -25,6 +25,7 @@ type Config struct {
 	SegmentMaxRecords        int
 	SegmentShardCount        int
 	HeaderValueMaxLength     int
+	SamplePercent            int
 	SkipOnHighLoad           bool
 	MaxCPUPercent            int
 	MaxMemoryPercent         int
@@ -64,6 +65,7 @@ func loadConfig() Config {
 		SegmentMaxRecords:        common.ArchiveSegmentMaxRecords,
 		SegmentShardCount:        common.ArchiveSegmentShardCount,
 		HeaderValueMaxLength:     common.ArchiveHeaderValueMaxLength,
+		SamplePercent:            common.ArchiveSamplePercent,
 		SkipOnHighLoad:           common.ArchiveSkipOnHighLoad,
 		MaxCPUPercent:            common.ArchiveMaxCPUPercent,
 		MaxMemoryPercent:         common.ArchiveMaxMemoryPercent,

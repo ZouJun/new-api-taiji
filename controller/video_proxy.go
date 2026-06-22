@@ -15,6 +15,7 @@ import (
 	"github.com/QuantumNous/new-api/logger"
 	"github.com/QuantumNous/new-api/model"
 	"github.com/QuantumNous/new-api/service"
+	"github.com/QuantumNous/new-api/service/archive"
 	"github.com/QuantumNous/new-api/setting/system_setting"
 
 	"github.com/gin-gonic/gin"
@@ -150,8 +151,12 @@ func VideoProxy(c *gin.Context) {
 		return
 	}
 	defer resp.Body.Close()
+	if manager := archive.Current(); manager != nil {
+		resp.Body = archive.WrapUpstreamResponse(c, resp.Body, resp.Header.Get("Content-Type"), manager.SpoolDir(), manager.MaxResponseBytes(), manager.SmallPayloadMaxBytes())
+	}
 
 	if resp.StatusCode != http.StatusOK {
+		_, _ = io.Copy(io.Discard, resp.Body)
 		logger.LogError(c.Request.Context(), fmt.Sprintf("Upstream returned status %d for %s", resp.StatusCode, videoURL))
 		videoProxyError(c, http.StatusBadGateway, "server_error",
 			fmt.Sprintf("Upstream service returned status %d", resp.StatusCode))

@@ -11,9 +11,10 @@ import (
 	"time"
 
 	"github.com/gin-gonic/gin"
+	"github.com/stretchr/testify/require"
 )
 
-func TestLocalBackendWritesGzipObjects(t *testing.T) {
+func TestLocalBackendWritesObjects(t *testing.T) {
 	dir := t.TempDir()
 	spoolDir := filepath.Join(dir, "spool")
 	objectsDir := filepath.Join(dir, "objects")
@@ -41,19 +42,42 @@ func TestLocalBackendWritesGzipObjects(t *testing.T) {
 	}
 
 	err := backend.WriteFinal(manifest, []backendObject{
-		{Name: "request.data.gz", ObjectType: ObjectRequest, LocalPath: reqPath, ContentType: "application/json"},
-		{Name: "response.data.gz", ObjectType: ObjectResponse, LocalPath: respPath, ContentType: "application/json"},
+		{Name: "request.data", ObjectType: ObjectRequest, LocalPath: reqPath, ContentType: "application/json"},
+		{Name: "response.data", ObjectType: ObjectResponse, LocalPath: respPath, ContentType: "application/json"},
 	})
-	if err != nil {
-		t.Fatal(err)
-	}
+	require.NoError(t, err)
 
-	assertGzipText(t, filepath.Join(objectsDir, "req-local", "request.data.gz"), "request-body")
-	assertGzipText(t, filepath.Join(objectsDir, "req-local", "response.data.gz"), "response-body")
+	assertText(t, filepath.Join(objectsDir, "req-local", "request.data"), "request-body")
+	assertText(t, filepath.Join(objectsDir, "req-local", "response.data"), "response-body")
 	manifestText := readGzipText(t, filepath.Join(objectsDir, "req-local", "manifest.json.gz"))
 	if !strings.Contains(manifestText, `"request_id":"req-local"`) {
 		t.Fatalf("manifest missing request_id: %s", manifestText)
 	}
+}
+
+func TestLocalBackendWritesInlinePayloadObjects(t *testing.T) {
+	dir := t.TempDir()
+	objectsDir := filepath.Join(dir, "objects")
+
+	backend := newLocalBackend(Config{ObjectsDir: objectsDir})
+	manifest := Manifest{
+		RequestID:   "req-inline",
+		Backend:     "local",
+		StorageMode: "relay",
+		Status:      StatusSucceeded,
+		CreatedAt:   time.Now().UTC().Format(time.RFC3339Nano),
+		Request:     ObjectInfo{Status: StatusPending, Bytes: 12, Payload: []byte("request-body"), ContentType: "application/json"},
+		Response:    ObjectInfo{Status: StatusPending, Bytes: 13, Payload: []byte("response-body"), ContentType: "application/json"},
+	}
+
+	err := backend.WriteFinal(manifest, []backendObject{
+		{Name: "request.data", ObjectType: ObjectRequest, Data: []byte("request-body"), HasInlineData: true, ContentType: "application/json"},
+		{Name: "response.data", ObjectType: ObjectResponse, Data: []byte("response-body"), HasInlineData: true, ContentType: "application/json"},
+	})
+	require.NoError(t, err)
+
+	assertText(t, filepath.Join(objectsDir, "req-inline", "request.data"), "request-body")
+	assertText(t, filepath.Join(objectsDir, "req-inline", "response.data"), "response-body")
 }
 
 func TestTeeWriterSkipsOversizeWithoutTruncatingObject(t *testing.T) {
@@ -61,8 +85,7 @@ func TestTeeWriterSkipsOversizeWithoutTruncatingObject(t *testing.T) {
 	gin.SetMode(gin.TestMode)
 	rec := httptest.NewRecorder()
 	ctx, _ := gin.CreateTestContext(rec)
-	state := &State{}
-	writer := NewTeeWriter(ctx.Writer, state, dir, 4)
+	writer := NewTeeWriter(ctx.Writer, dir, 4, 2)
 	ctx.Writer = writer
 
 	if _, err := ctx.Writer.Write([]byte("123")); err != nil {
@@ -89,8 +112,7 @@ func TestTeeWriterCapturesStreamingChunksInOrder(t *testing.T) {
 	gin.SetMode(gin.TestMode)
 	rec := httptest.NewRecorder()
 	ctx, _ := gin.CreateTestContext(rec)
-	state := &State{}
-	writer := NewTeeWriter(ctx.Writer, state, dir, 128)
+	writer := NewTeeWriter(ctx.Writer, dir, 128, 4)
 	ctx.Writer = writer
 
 	chunks := []string{"data: one\n\n", "data: two\n\n", "data: [DONE]\n\n"}
@@ -147,6 +169,78 @@ func TestCaptureRequestSkipsOversizeWithoutSpoolPath(t *testing.T) {
 	}
 }
 
+func TestCaptureRequestStoresSmallPayloadInline(t *testing.T) {
+	dir := t.TempDir()
+	manager := &Manager{
+		cfg: Config{
+			SpoolDir:             dir,
+			MaxRequestBytes:      128,
+			SmallPayloadMaxBytes: 64,
+		},
+	}
+
+	info, err := manager.CaptureRequest(strings.NewReader("small-body"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	if info.Status != StatusPending {
+		t.Fatalf("expected pending, got %s", info.Status)
+	}
+	if info.SpoolPath != "" {
+		t.Fatalf("small request should not create spool path")
+	}
+	if string(info.Payload) != "small-body" {
+		t.Fatalf("unexpected inline payload: %q", string(info.Payload))
+	}
+}
+
+func TestTeeWriterKeepsSmallPayloadInline(t *testing.T) {
+	dir := t.TempDir()
+	gin.SetMode(gin.TestMode)
+	rec := httptest.NewRecorder()
+	ctx, _ := gin.CreateTestContext(rec)
+	writer := NewTeeWriter(ctx.Writer, dir, 128, 64)
+	ctx.Writer = writer
+
+	_, err := ctx.Writer.Write([]byte("tiny-response"))
+	require.NoError(t, err)
+
+	info := writer.Finish()
+	require.Equal(t, StatusPending, info.Status)
+	require.Empty(t, info.SpoolPath)
+	require.Equal(t, []byte("tiny-response"), info.Payload)
+}
+
+func TestAppendObjectContentsSupportsInlinePayload(t *testing.T) {
+	dir := t.TempDir()
+	dstPath := filepath.Join(dir, "segment.data")
+	dst, err := os.OpenFile(dstPath, os.O_CREATE|os.O_RDWR|os.O_TRUNC, 0600)
+	require.NoError(t, err)
+	defer dst.Close()
+
+	offset, written, err := appendObjectContents(ObjectInfo{
+		Status:  StatusPending,
+		Bytes:   7,
+		Payload: []byte("inline1"),
+	}, dst)
+	require.NoError(t, err)
+	require.EqualValues(t, 0, offset)
+	require.EqualValues(t, 7, written)
+
+	offset, written, err = appendObjectContents(ObjectInfo{
+		Status:  StatusPending,
+		Bytes:   0,
+		Payload: []byte{},
+	}, dst)
+	require.NoError(t, err)
+	require.EqualValues(t, 7, offset)
+	require.EqualValues(t, 0, written)
+
+	data, err := os.ReadFile(dstPath)
+	require.NoError(t, err)
+	require.Equal(t, "inline1", string(data))
+}
+
 func TestTryEnqueueMarksQueueFull(t *testing.T) {
 	manager := &Manager{queue: make(chan Job, 1)}
 	first := Manifest{RequestID: "req-1", Status: StatusSucceeded}
@@ -192,6 +286,17 @@ func assertGzipText(t *testing.T, path string, expected string) {
 	actual := readGzipText(t, path)
 	if actual != expected {
 		t.Fatalf("unexpected gzip text for %s: %q", path, actual)
+	}
+}
+
+func assertText(t *testing.T, path string, expected string) {
+	t.Helper()
+	data, err := os.ReadFile(path)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if string(data) != expected {
+		t.Fatalf("unexpected text for %s: %q", path, string(data))
 	}
 }
 

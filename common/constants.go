@@ -195,6 +195,7 @@ var ArchiveSegmentMaxAgeSeconds int
 var ArchiveSegmentMaxRecords int
 var ArchiveSegmentShardCount int
 var ArchiveHeaderValueMaxLength int
+var ArchiveSamplePercent int
 var ArchiveSkipOnHighLoad bool
 var ArchiveMaxCPUPercent int
 var ArchiveMaxMemoryPercent int

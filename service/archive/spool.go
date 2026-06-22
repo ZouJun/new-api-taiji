@@ -1,8 +1,7 @@
 package archive
 
 import (
-	"crypto/sha256"
-	"encoding/hex"
+	"bytes"
 	"fmt"
 	"io"
 	"os"
@@ -30,31 +29,115 @@ func createSpoolFile(dir string, objectType string) (string, *os.File, error) {
 }
 
 func copyToSpool(dir string, objectType string, src io.Reader, limit int64) (ObjectInfo, error) {
-	path, file, err := createSpoolFile(dir, objectType)
-	if err != nil {
-		return ObjectInfo{Status: StatusFailed, Reason: ReasonRequestSpoolFailed}, err
-	}
-	defer file.Close()
+	return captureObject(dir, objectType, src, limit, 0)
+}
 
-	hasher := sha256.New()
-	written, err := io.Copy(io.MultiWriter(file, hasher), io.LimitReader(src, limit+1))
-	if err != nil {
-		_ = os.Remove(path)
-		return ObjectInfo{Status: StatusFailed, Reason: ReasonRequestSpoolFailed}, err
+func cloneBufferedPayload(buf *bytes.Buffer) []byte {
+	if buf == nil {
+		return nil
 	}
-	if written > limit {
-		_ = os.Remove(path)
-		reason := ReasonRequestSizeLimit
-		if objectType == ObjectResponse {
-			reason = ReasonResponseSizeLimit
+	payload := make([]byte, buf.Len())
+	copy(payload, buf.Bytes())
+	return payload
+}
+
+func captureObject(dir string, objectType string, src io.Reader, limit int64, inlineLimit int64) (ObjectInfo, error) {
+	if inlineLimit > 0 && inlineLimit > limit {
+		inlineLimit = limit
+	}
+	var (
+		written   int64
+		buffered  bytes.Buffer
+		useInline = inlineLimit > 0
+		path      string
+		file      *os.File
+		err       error
+	)
+	closeAndRemove := func() {
+		if file != nil {
+			_ = file.Close()
+			file = nil
 		}
-		return ObjectInfo{Status: StatusSkipped, Reason: reason, Bytes: written}, nil
+		if path != "" {
+			_ = os.Remove(path)
+			path = ""
+		}
+	}
+	ensureSpoolFile := func() error {
+		if file != nil {
+			return nil
+		}
+		var err error
+		path, file, err = createSpoolFile(dir, objectType)
+		if err != nil {
+			return err
+		}
+		return nil
+	}
+	limited := io.LimitReader(src, limit+1)
+	chunk := make([]byte, 32<<10)
+	for {
+		n, readErr := limited.Read(chunk)
+		if n > 0 {
+			nextWritten := written + int64(n)
+			if nextWritten > limit {
+				closeAndRemove()
+				reason := ReasonRequestSizeLimit
+				if objectType == ObjectResponse {
+					reason = ReasonResponseSizeLimit
+				}
+				return ObjectInfo{Status: StatusSkipped, Reason: reason, Bytes: nextWritten}, nil
+			}
+			if useInline && nextWritten <= inlineLimit {
+				if _, err = buffered.Write(chunk[:n]); err != nil {
+					closeAndRemove()
+					return ObjectInfo{Status: StatusFailed, Reason: ReasonRequestSpoolFailed}, err
+				}
+			} else {
+				if useInline {
+					useInline = false
+					if err = ensureSpoolFile(); err != nil {
+						return ObjectInfo{Status: StatusFailed, Reason: ReasonRequestSpoolFailed}, err
+					}
+					if _, err = file.Write(buffered.Bytes()); err != nil {
+						closeAndRemove()
+						return ObjectInfo{Status: StatusFailed, Reason: ReasonRequestSpoolFailed}, err
+					}
+					buffered.Reset()
+				}
+				if err = ensureSpoolFile(); err != nil {
+					return ObjectInfo{Status: StatusFailed, Reason: ReasonRequestSpoolFailed}, err
+				}
+				if _, err = file.Write(chunk[:n]); err != nil {
+					closeAndRemove()
+					return ObjectInfo{Status: StatusFailed, Reason: ReasonRequestSpoolFailed}, err
+				}
+			}
+			written = nextWritten
+		}
+		if readErr != nil {
+			if readErr == io.EOF {
+				break
+			}
+			closeAndRemove()
+			return ObjectInfo{Status: StatusFailed, Reason: ReasonRequestSpoolFailed}, readErr
+		}
 	}
 
+	if useInline {
+		return ObjectInfo{
+			Status:  StatusPending,
+			Bytes:   written,
+			Payload: cloneBufferedPayload(&buffered),
+		}, nil
+	}
+	if err = file.Close(); err != nil {
+		_ = os.Remove(path)
+		return ObjectInfo{Status: StatusFailed, Reason: ReasonRequestSpoolFailed}, err
+	}
 	return ObjectInfo{
 		Status:    StatusPending,
 		Bytes:     written,
-		SHA256:    hex.EncodeToString(hasher.Sum(nil)),
 		SpoolPath: path,
 	}, nil
 }

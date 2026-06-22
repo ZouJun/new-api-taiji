@@ -90,11 +90,11 @@ func (s *segmentShard) append(manifest Manifest) (Manifest, error) {
 		}
 	}
 
-	requestOffset, requestLength, err := appendFileContents(manifest.Request.SpoolPath, s.active.dataFile)
+	requestOffset, requestLength, err := appendObjectContents(manifest.Request, s.active.dataFile)
 	if err != nil {
 		return manifest, err
 	}
-	responseOffset, responseLength, err := appendFileContents(manifest.Response.SpoolPath, s.active.dataFile)
+	responseOffset, responseLength, err := appendObjectContents(manifest.Response, s.active.dataFile)
 	if err != nil {
 		return manifest, err
 	}
@@ -109,8 +109,6 @@ func (s *segmentShard) append(manifest Manifest) (Manifest, error) {
 		"request_length":  requestLength,
 		"response_offset": responseOffset,
 		"response_length": responseLength,
-		"request_sha256":  manifest.Request.SHA256,
-		"response_sha256": manifest.Response.SHA256,
 		"request_header":  manifest.RequestHeader,
 		"upstream_usage":  manifest.UpstreamUsage,
 		"payload_capture": manifest.PayloadCapture,
@@ -131,12 +129,6 @@ func (s *segmentShard) append(manifest Manifest) (Manifest, error) {
 		return manifest, err
 	}
 	if err = s.active.indexBuf.Flush(); err != nil {
-		return manifest, err
-	}
-	if err = s.active.dataFile.Sync(); err != nil {
-		return manifest, err
-	}
-	if err = s.active.indexFile.Sync(); err != nil {
 		return manifest, err
 	}
 
@@ -279,4 +271,26 @@ func appendFileContents(srcPath string, dst *os.File) (int64, int64, error) {
 		return 0, 0, err
 	}
 	return offset, written, nil
+}
+
+func appendObjectContents(info ObjectInfo, dst *os.File) (int64, int64, error) {
+	if info.Payload != nil {
+		offset, err := dst.Seek(0, io.SeekEnd)
+		if err != nil {
+			return 0, 0, err
+		}
+		written, err := dst.Write(info.Payload)
+		if err != nil {
+			return 0, 0, err
+		}
+		return offset, int64(written), nil
+	}
+	if info.SpoolPath == "" {
+		offset, err := dst.Seek(0, io.SeekEnd)
+		if err != nil {
+			return 0, 0, err
+		}
+		return offset, 0, nil
+	}
+	return appendFileContents(info.SpoolPath, dst)
 }

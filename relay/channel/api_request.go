@@ -597,11 +597,8 @@ func doRequest(c *gin.Context, req *http.Request, info *common.RelayInfo) (*http
 	if info.IsStream && firstByteController != nil {
 		resp.Body = firstByteController.WrapBody(resp.Body, streamFirstByteTimeoutSeconds)
 	}
-	if archive.Enabled() {
-		manager := archive.Current()
-		if manager != nil {
-			resp.Body = archive.WrapUpstreamResponse(c, resp.Body, resp.Header.Get("Content-Type"), manager.SpoolDir(), manager.MaxResponseBytes())
-		}
+	if manager := archive.Current(); manager != nil {
+		resp.Body = archive.WrapUpstreamResponse(c, resp.Body, resp.Header.Get("Content-Type"), manager.SpoolDir(), manager.MaxResponseBytes(), manager.SmallPayloadMaxBytes())
 	}
 
 	if upID := resp.Header.Get(common2.RequestIdKey); upID != "" {

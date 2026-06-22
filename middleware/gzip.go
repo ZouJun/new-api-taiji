@@ -5,7 +5,9 @@ import (
 	"io"
 	"net/http"
 
+	"github.com/QuantumNous/new-api/common"
 	"github.com/QuantumNous/new-api/constant"
+	"github.com/QuantumNous/new-api/service/archive"
 	"github.com/andybalholm/brotli"
 	"github.com/gin-gonic/gin"
 )
@@ -38,12 +40,41 @@ func DecompressRequestMiddleware() gin.HandlerFunc {
 		wrapMaxBytes := func(body io.ReadCloser) io.ReadCloser {
 			return http.MaxBytesReader(c.Writer, body, maxBytes)
 		}
+		shouldPreserveRawForArchive := false
+		if manager := archive.Current(); manager != nil && archive.ShouldSample(c, manager) {
+			shouldPreserveRawForArchive = true
+		}
 
 		switch c.GetHeader("Content-Encoding") {
 		case "gzip":
-			gzipReader, err := gzip.NewReader(origBody)
+			if !shouldPreserveRawForArchive {
+				gzipReader, err := gzip.NewReader(origBody)
+				if err != nil {
+					_ = origBody.Close()
+					c.AbortWithStatus(http.StatusBadRequest)
+					return
+				}
+				c.Request.Body = wrapMaxBytes(&readCloser{
+					Reader: gzipReader,
+					closeFn: func() error {
+						_ = gzipReader.Close()
+						return origBody.Close()
+					},
+				})
+				c.Request.Header.Del("Content-Encoding")
+				c.Next()
+				return
+			}
+			rawStorage, err := common.CreateBodyStorageFromReader(origBody, c.Request.ContentLength, maxBytes)
+			_ = origBody.Close()
 			if err != nil {
-				_ = origBody.Close()
+				c.AbortWithStatus(http.StatusBadRequest)
+				return
+			}
+			c.Set(common.KeyRawRequestBodyStorage, rawStorage)
+			c.Set(common.KeyRawRequestContentEncoding, "gzip")
+			gzipReader, err := gzip.NewReader(rawStorage)
+			if err != nil {
 				c.AbortWithStatus(http.StatusBadRequest)
 				return
 			}
@@ -51,17 +82,36 @@ func DecompressRequestMiddleware() gin.HandlerFunc {
 			c.Request.Body = wrapMaxBytes(&readCloser{
 				Reader: gzipReader,
 				closeFn: func() error {
-					_ = gzipReader.Close()
-					return origBody.Close()
+					return gzipReader.Close()
 				},
 			})
 			c.Request.Header.Del("Content-Encoding")
 		case "br":
-			reader := brotli.NewReader(origBody)
+			if !shouldPreserveRawForArchive {
+				reader := brotli.NewReader(origBody)
+				c.Request.Body = wrapMaxBytes(&readCloser{
+					Reader: reader,
+					closeFn: func() error {
+						return origBody.Close()
+					},
+				})
+				c.Request.Header.Del("Content-Encoding")
+				c.Next()
+				return
+			}
+			rawStorage, err := common.CreateBodyStorageFromReader(origBody, c.Request.ContentLength, maxBytes)
+			_ = origBody.Close()
+			if err != nil {
+				c.AbortWithStatus(http.StatusBadRequest)
+				return
+			}
+			c.Set(common.KeyRawRequestBodyStorage, rawStorage)
+			c.Set(common.KeyRawRequestContentEncoding, "br")
+			reader := brotli.NewReader(rawStorage)
 			c.Request.Body = wrapMaxBytes(&readCloser{
 				Reader: reader,
 				closeFn: func() error {
-					return origBody.Close()
+					return nil
 				},
 			})
 			c.Request.Header.Del("Content-Encoding")
