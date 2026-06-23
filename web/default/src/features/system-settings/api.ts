@@ -23,6 +23,7 @@ import type {
   FetchUpstreamRatiosRequest,
   SystemOptionsResponse,
   UpdateOptionRequest,
+  UpdateOptionsBulkRequest,
   UpdateOptionResponse,
   UpstreamChannelsResponse,
   UpstreamRatiosResponse,
@@ -35,6 +36,13 @@ export async function getSystemOptions() {
 
 export async function updateSystemOption(request: UpdateOptionRequest) {
   const res = await api.put<UpdateOptionResponse>('/api/option/', request)
+  return res.data
+}
+
+export async function updateSystemOptionsBulk(
+  request: UpdateOptionsBulkRequest
+) {
+  const res = await api.put<UpdateOptionResponse>('/api/option/bulk', request)
   return res.data
 }
 

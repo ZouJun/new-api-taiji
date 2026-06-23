@@ -20,6 +20,8 @@ type Option struct {
 	Value string `json:"value"`
 }
 
+var OptionPostUpdateHook func(key string, changed bool)
+
 func AllOption() ([]*Option, error) {
 	var options []*Option
 	var err error
@@ -74,6 +76,32 @@ func InitOptionMap() {
 	common.OptionMap["WorkerUrl"] = system_setting.WorkerUrl
 	common.OptionMap["WorkerValidKey"] = system_setting.WorkerValidKey
 	common.OptionMap["WorkerAllowHttpImageRequestEnabled"] = strconv.FormatBool(system_setting.WorkerAllowHttpImageRequestEnabled)
+	common.OptionMap["ArchiveEnabled"] = strconv.FormatBool(common.ArchiveEnabled)
+	common.OptionMap["ArchiveBackend"] = common.ArchiveBackend
+	common.OptionMap["ArchiveLocalDir"] = common.ArchiveLocalDir
+	common.OptionMap["ArchiveSpoolDir"] = common.ArchiveSpoolDir
+	common.OptionMap["ArchiveQueueSize"] = strconv.Itoa(common.ArchiveQueueSize)
+	common.OptionMap["ArchiveWorkerCount"] = strconv.Itoa(common.ArchiveWorkerCount)
+	common.OptionMap["ArchiveMaxRequestMB"] = strconv.FormatInt(common.ArchiveMaxRequestBytes>>20, 10)
+	common.OptionMap["ArchiveMaxResponseMB"] = strconv.FormatInt(common.ArchiveMaxResponseBytes>>20, 10)
+	common.OptionMap["ArchiveSpoolTTLHours"] = strconv.Itoa(common.ArchiveSpoolTTLHours)
+	common.OptionMap["ArchiveSmallPayloadMaxKB"] = strconv.FormatInt(common.ArchiveSmallPayloadMaxBytes>>10, 10)
+	common.OptionMap["ArchiveSegmentMaxMB"] = strconv.FormatInt(common.ArchiveSegmentMaxBytes>>20, 10)
+	common.OptionMap["ArchiveSegmentMaxAgeSeconds"] = strconv.Itoa(common.ArchiveSegmentMaxAgeSeconds)
+	common.OptionMap["ArchiveSegmentMaxRecords"] = strconv.Itoa(common.ArchiveSegmentMaxRecords)
+	common.OptionMap["ArchiveSegmentShardCount"] = strconv.Itoa(common.ArchiveSegmentShardCount)
+	common.OptionMap["ArchiveHeaderValueMaxLength"] = strconv.Itoa(common.ArchiveHeaderValueMaxLength)
+	common.OptionMap["ArchiveSamplePercent"] = strconv.Itoa(common.ArchiveSamplePercent)
+	common.OptionMap["ArchiveSkipOnHighLoad"] = strconv.FormatBool(common.ArchiveSkipOnHighLoad)
+	common.OptionMap["ArchiveMaxCPUPercent"] = strconv.Itoa(common.ArchiveMaxCPUPercent)
+	common.OptionMap["ArchiveMaxMemoryPercent"] = strconv.Itoa(common.ArchiveMaxMemoryPercent)
+	common.OptionMap["ArchiveMinFreeDiskPercent"] = strconv.Itoa(common.ArchiveMinFreeDiskPercent)
+	common.OptionMap["ArchiveMinFreeDiskGB"] = strconv.FormatInt(common.ArchiveMinFreeDiskBytes>>30, 10)
+	common.OptionMap["ArchiveLoadCheckIntervalSeconds"] = strconv.Itoa(common.ArchiveLoadCheckIntervalSeconds)
+	common.OptionMap["ArchiveAzureAccountURL"] = common.ArchiveAzureAccountURL
+	common.OptionMap["ArchiveAzureContainer"] = common.ArchiveAzureContainer
+	common.OptionMap["ArchiveAzureAccountName"] = common.ArchiveAzureAccountName
+	common.OptionMap["ArchiveAzureAccountKey"] = common.ArchiveAzureAccountKey
 	common.OptionMap["PayAddress"] = ""
 	common.OptionMap["CustomCallbackAddress"] = ""
 	common.OptionMap["EpayId"] = ""
@@ -255,6 +283,11 @@ func UpdateOptionsBulk(values map[string]string) error {
 }
 
 func updateOptionMap(key string, value string) (err error) {
+	common.OptionMapRWMutex.RLock()
+	previousValue, existed := common.OptionMap[key]
+	common.OptionMapRWMutex.RUnlock()
+	changed := !existed || previousValue != value
+
 	common.OptionMapRWMutex.Lock()
 	common.OptionMap[key] = value
 	common.OptionMapRWMutex.Unlock()
@@ -361,6 +394,10 @@ func updateOptionMap(key string, value string) (err error) {
 			setting.DefaultUseAutoGroup = boolValue
 		case "ExposeRatioEnabled":
 			ratio_setting.SetExposeRatioEnabled(boolValue)
+		case "ArchiveEnabled":
+			common.ArchiveEnabled = boolValue
+		case "ArchiveSkipOnHighLoad":
+			common.ArchiveSkipOnHighLoad = boolValue
 		}
 	}
 	switch key {
@@ -383,6 +420,69 @@ func updateOptionMap(key string, value string) (err error) {
 		system_setting.WorkerUrl = value
 	case "WorkerValidKey":
 		system_setting.WorkerValidKey = value
+	case "ArchiveBackend":
+		common.ArchiveBackend = strings.TrimSpace(value)
+	case "ArchiveLocalDir":
+		common.ArchiveLocalDir = strings.TrimSpace(value)
+	case "ArchiveSpoolDir":
+		common.ArchiveSpoolDir = strings.TrimSpace(value)
+	case "ArchiveQueueSize":
+		common.ArchiveQueueSize, _ = strconv.Atoi(value)
+	case "ArchiveWorkerCount":
+		common.ArchiveWorkerCount, _ = strconv.Atoi(value)
+	case "ArchiveMaxRequestMB":
+		mb, convErr := strconv.ParseInt(strings.TrimSpace(value), 10, 64)
+		if convErr == nil {
+			common.ArchiveMaxRequestBytes = mb << 20
+		}
+	case "ArchiveMaxResponseMB":
+		mb, convErr := strconv.ParseInt(strings.TrimSpace(value), 10, 64)
+		if convErr == nil {
+			common.ArchiveMaxResponseBytes = mb << 20
+		}
+	case "ArchiveSpoolTTLHours":
+		common.ArchiveSpoolTTLHours, _ = strconv.Atoi(value)
+	case "ArchiveSmallPayloadMaxKB":
+		kb, convErr := strconv.ParseInt(strings.TrimSpace(value), 10, 64)
+		if convErr == nil {
+			common.ArchiveSmallPayloadMaxBytes = kb << 10
+		}
+	case "ArchiveSegmentMaxMB":
+		mb, convErr := strconv.ParseInt(strings.TrimSpace(value), 10, 64)
+		if convErr == nil {
+			common.ArchiveSegmentMaxBytes = mb << 20
+		}
+	case "ArchiveSegmentMaxAgeSeconds":
+		common.ArchiveSegmentMaxAgeSeconds, _ = strconv.Atoi(value)
+	case "ArchiveSegmentMaxRecords":
+		common.ArchiveSegmentMaxRecords, _ = strconv.Atoi(value)
+	case "ArchiveSegmentShardCount":
+		common.ArchiveSegmentShardCount, _ = strconv.Atoi(value)
+	case "ArchiveHeaderValueMaxLength":
+		common.ArchiveHeaderValueMaxLength, _ = strconv.Atoi(value)
+	case "ArchiveSamplePercent":
+		common.ArchiveSamplePercent, _ = strconv.Atoi(value)
+	case "ArchiveMaxCPUPercent":
+		common.ArchiveMaxCPUPercent, _ = strconv.Atoi(value)
+	case "ArchiveMaxMemoryPercent":
+		common.ArchiveMaxMemoryPercent, _ = strconv.Atoi(value)
+	case "ArchiveMinFreeDiskPercent":
+		common.ArchiveMinFreeDiskPercent, _ = strconv.Atoi(value)
+	case "ArchiveMinFreeDiskGB":
+		gb, convErr := strconv.ParseInt(strings.TrimSpace(value), 10, 64)
+		if convErr == nil {
+			common.ArchiveMinFreeDiskBytes = gb << 30
+		}
+	case "ArchiveLoadCheckIntervalSeconds":
+		common.ArchiveLoadCheckIntervalSeconds, _ = strconv.Atoi(value)
+	case "ArchiveAzureAccountURL":
+		common.ArchiveAzureAccountURL = strings.TrimSpace(value)
+	case "ArchiveAzureContainer":
+		common.ArchiveAzureContainer = strings.TrimSpace(value)
+	case "ArchiveAzureAccountName":
+		common.ArchiveAzureAccountName = strings.TrimSpace(value)
+	case "ArchiveAzureAccountKey":
+		common.ArchiveAzureAccountKey = strings.TrimSpace(value)
 	case "PayAddress":
 		operation_setting.PayAddress = value
 	case "Chats":
@@ -575,6 +675,9 @@ func updateOptionMap(key string, value string) (err error) {
 		// WaffoPayMethods is read directly from OptionMap via setting.GetWaffoPayMethods().
 		// The value is already stored in OptionMap at the top of this function (line: common.OptionMap[key] = value).
 		// No additional in-memory variable to update.
+	}
+	if OptionPostUpdateHook != nil {
+		OptionPostUpdateHook(key, changed)
 	}
 	return err
 }

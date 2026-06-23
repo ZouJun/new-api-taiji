@@ -4457,6 +4457,7 @@
     "Updated daily": "Updated daily",
     "Updated successfully": "Updated successfully",
     "Updated system setting {{key}}": "Updated system setting {{key}}",
+    "Updated {{count}} system settings": "Updated {{count}} system settings",
     "Updated user {{username}} (ID: {{id}})": "Updated user {{username}} (ID: {{id}})",
     "Updating all channel balances. This may take a while. Please refresh to see results.": "Updating all channel balances. This may take a while. Please refresh to see results.",
     "Upgrade Group": "Upgrade Group",
@@ -4794,6 +4795,19 @@
     "Zero retention": "Zero retention",
     "Zhipu": "Zhipu",
     "Zhipu V4": "Zhipu V4",
-    "Zoom": "Zoom"
+    "Zoom": "Zoom",
+    "Storage Settings": "Storage Settings",
+    "Suggested setting:": "Suggested setting:",
+    "Storage location": "Storage location",
+    "AzureBlob": "AzureBlob",
+    "Azure account URL is required when Azure Blob is enabled": "Azure account URL is required when Azure Blob is enabled",
+    "Azure container is required when Azure Blob is enabled": "Azure container is required when Azure Blob is enabled",
+    "Save storage settings": "Save storage settings",
+    "Storage settings saved successfully": "Storage settings saved successfully",
+    "No storage settings were changed": "No storage settings were changed",
+    "Enable archive storage": "Enable archive storage",
+    "Capture raw request and response payloads for the phase3 archive pipeline.": "Capture raw request and response payloads for the phase3 archive pipeline.",
+    "Backend mode": "Backend mode",
+    "Local keeps final objects on the current node. Azure Blob uploads finalized objects while still using local spool and segment files during processing.": "Local keeps final objects on the current node. Azure Blob uploads finalized objects while still using local spool and segment files during processing."
   }
 }

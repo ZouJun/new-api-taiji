@@ -18,6 +18,7 @@ For commercial licensing, please contact support@quantumnous.com
 */
 import { FrontendThemeSection } from './frontend-theme-section'
 import { StrategySettingsSection } from './strategy-settings-section'
+import { StorageSettingsSection } from './storage-settings-section'
 import { SystemBehaviorSection } from '../general/system-behavior-section'
 import { EmailSettingsSection } from '../integrations/email-settings-section'
 import { MonitoringSettingsSection } from '../integrations/monitoring-settings-section'
@@ -108,6 +109,13 @@ const OPERATIONS_SECTIONS = [
             settings.WorkerAllowHttpImageRequestEnabled,
         }}
       />
+    ),
+  },
+  {
+    id: 'storage',
+    titleKey: 'Storage Settings',
+    build: (settings: OperationsSettings) => (
+      <StorageSettingsSection defaultValues={settings} />
     ),
   },
   {

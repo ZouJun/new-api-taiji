@@ -4462,6 +4462,7 @@
     "Updated daily": "毎日更新",
     "Updated successfully": "正常に更新されました",
     "Updated system setting {{key}}": "システム設定 {{key}} を更新しました",
+    "Updated {{count}} system settings": "{{count}} 件のシステム設定を更新しました",
     "Updated user {{username}} (ID: {{id}})": "ユーザー {{username}} を更新しました（ID: {{id}}）",
     "Updating all channel balances. This may take a while. Please refresh to see results.": "すべてのチャネル残高を更新中です。これには少し時間がかかる場合があります。結果を確認するには更新してください。",
     "Upgrade Group": "グループをアップグレード",
@@ -4799,6 +4800,10 @@
     "Zero retention": "データ保持なし",
     "Zhipu": "Zhipu",
     "Zhipu V4": "Zhipu V 4",
-    "Zoom": "ズーム"
+    "Zoom": "ズーム",
+    "Storage Settings": "Storage Settings",
+    "Suggested setting:": "推奨設定:",
+    "Storage location": "保存先",
+    "AzureBlob": "AzureBlob"
   }
 }

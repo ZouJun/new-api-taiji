@@ -4457,6 +4457,7 @@
     "Updated daily": "Cập nhật hàng ngày",
     "Updated successfully": "Cập nhật thành công",
     "Updated system setting {{key}}": "Đã cập nhật cài đặt hệ thống {{key}}",
+    "Updated {{count}} system settings": "Đã cập nhật {{count}} cài đặt hệ thống",
     "Updated user {{username}} (ID: {{id}})": "Đã cập nhật người dùng {{username}} (ID: {{id}})",
     "Updating all channel balances. This may take a while. Please refresh to see results.": "Đang cập nhật tất cả số dư kênh. Quá trình này có thể mất một chút thời gian. Vui lòng làm mới để xem kết quả.",
     "Upgrade Group": "Nhóm nâng cấp",
@@ -4794,6 +4795,10 @@
     "Zero retention": "Không lưu dữ liệu",
     "Zhipu": "Zhipu",
     "Zhipu V4": "Zhipu V4",
-    "Zoom": "Zoom"
+    "Zoom": "Zoom",
+    "Storage Settings": "Storage Settings",
+    "Suggested setting:": "Cấu hình đề xuất:",
+    "Storage location": "Vị trí lưu trữ",
+    "AzureBlob": "AzureBlob"
   }
 }

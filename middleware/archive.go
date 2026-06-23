@@ -18,6 +18,9 @@ func Archive(routeMode string) gin.HandlerFunc {
 			c.Next()
 			return
 		}
+		manager.Retain()
+		defer manager.Release()
+		archive.BindManager(c, manager)
 		if !archive.ShouldSample(c, manager) {
 			c.Next()
 			return

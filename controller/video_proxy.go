@@ -151,7 +151,7 @@ func VideoProxy(c *gin.Context) {
 		return
 	}
 	defer resp.Body.Close()
-	if manager := archive.Current(); manager != nil {
+	if manager := archive.ManagerForContext(c); manager != nil {
 		resp.Body = archive.WrapUpstreamResponse(c, resp.Body, resp.Header.Get("Content-Type"), manager.SpoolDir(), manager.MaxResponseBytes(), manager.SmallPayloadMaxBytes())
 	}
 

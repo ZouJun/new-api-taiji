@@ -26,6 +26,7 @@ import SettingsSidebarModulesAdmin from '../../pages/Setting/Operation/SettingsS
 import SettingsSensitiveWords from '../../pages/Setting/Operation/SettingsSensitiveWords';
 import SettingsLog from '../../pages/Setting/Operation/SettingsLog';
 import SettingsMonitoring from '../../pages/Setting/Operation/SettingsMonitoring';
+import SettingsStorage from '../../pages/Setting/Operation/SettingsStorage';
 import SettingsCreditLimit from '../../pages/Setting/Operation/SettingsCreditLimit';
 import SettingsCheckin from '../../pages/Setting/Operation/SettingsCheckin';
 import { API, showError, toBoolean } from '../../helpers';
@@ -52,6 +53,32 @@ const OperationSetting = () => {
     SelfUseModeEnabled: false,
     GroupRatio: '',
     group_strategy_settings: '',
+    ArchiveEnabled: false,
+    ArchiveBackend: 'local',
+    ArchiveLocalDir: './data/archive',
+    ArchiveSpoolDir: '',
+    ArchiveQueueSize: 50000,
+    ArchiveWorkerCount: 32,
+    ArchiveMaxRequestMB: 128,
+    ArchiveMaxResponseMB: 128,
+    ArchiveSpoolTTLHours: 24,
+    ArchiveSmallPayloadMaxKB: 64,
+    ArchiveSegmentMaxMB: 256,
+    ArchiveSegmentMaxAgeSeconds: 60,
+    ArchiveSegmentMaxRecords: 50000,
+    ArchiveSegmentShardCount: 16,
+    ArchiveHeaderValueMaxLength: 512,
+    ArchiveSamplePercent: 100,
+    ArchiveSkipOnHighLoad: true,
+    ArchiveMaxCPUPercent: 80,
+    ArchiveMaxMemoryPercent: 80,
+    ArchiveMinFreeDiskPercent: 15,
+    ArchiveMinFreeDiskGB: 10,
+    ArchiveLoadCheckIntervalSeconds: 5,
+    ArchiveAzureAccountURL: '',
+    ArchiveAzureContainer: '',
+    ArchiveAzureAccountName: '',
+    ArchiveAzureAccountKey: '',
     ClientTimeoutResponseHttpStatus: '',
     ClientTimeoutResponseErrorMessage: '',
 
@@ -150,6 +177,10 @@ const OperationSetting = () => {
         {/* 日志设置 */}
         <Card style={{ marginTop: '10px' }}>
           <SettingsLog options={inputs} refresh={onRefresh} />
+        </Card>
+        {/* 存储设置 */}
+        <Card style={{ marginTop: '10px' }}>
+          <SettingsStorage options={inputs} refresh={onRefresh} />
         </Card>
         {/* 监控设置 */}
         <Card style={{ marginTop: '10px' }}>

@@ -5,6 +5,7 @@ import (
 	"io"
 	"os"
 	"sync"
+	"sync/atomic"
 	"time"
 
 	"github.com/QuantumNous/new-api/common"
@@ -14,6 +15,8 @@ import (
 )
 
 const contextKey = "archive_state"
+const managerContextKey = "archive_manager"
+const retiredManagerShutdownDelay = 30 * time.Second
 
 var (
 	managerMu sync.RWMutex
@@ -26,6 +29,10 @@ type Manager struct {
 	queue      chan Job
 	patchQueue chan Manifest
 	segmenter  *segmentStore
+	stopCh     chan struct{}
+	stopOnce   sync.Once
+	retired    atomic.Bool
+	refs       atomic.Int64
 }
 
 type State struct {
@@ -37,7 +44,7 @@ type State struct {
 func Init() {
 	cfg := loadConfig()
 	if !cfg.Enabled {
-		setManager(nil)
+		retireManager(setManager(nil))
 		return
 	}
 	if cfg.QueueSize <= 0 {
@@ -80,32 +87,32 @@ func Init() {
 		backend = newAzureBlobBackend(cfg)
 	default:
 		common.SysError("archive disabled: unsupported ARCHIVE_BACKEND=" + cfg.Backend)
-		setManager(nil)
+		retireManager(setManager(nil))
 		return
 	}
 
 	if err := ensureDir(cfg.SpoolDir); err != nil {
 		common.SysError("archive disabled: failed to create spool dir: " + err.Error())
-		setManager(nil)
+		retireManager(setManager(nil))
 		return
 	}
 	if cfg.Backend == "local" {
 		if err := ensureDir(cfg.ObjectsDir); err != nil {
 			common.SysError("archive disabled: failed to create objects dir: " + err.Error())
-			setManager(nil)
+			retireManager(setManager(nil))
 			return
 		}
 	}
 	if err := ensureDir(cfg.SegmentsDir); err != nil {
 		common.SysError("archive disabled: failed to create segments dir: " + err.Error())
-		setManager(nil)
+		retireManager(setManager(nil))
 		return
 	}
 
 	segmenter, err := newSegmentStore(cfg, backend)
 	if err != nil {
 		common.SysError("archive disabled: failed to initialize segment store: " + err.Error())
-		setManager(nil)
+		retireManager(setManager(nil))
 		return
 	}
 	m := &Manager{
@@ -114,6 +121,7 @@ func Init() {
 		queue:      make(chan Job, cfg.QueueSize),
 		patchQueue: make(chan Manifest, cfg.QueueSize),
 		segmenter:  segmenter,
+		stopCh:     make(chan struct{}),
 	}
 	for i := 0; i < cfg.WorkerCount; i++ {
 		go m.worker()
@@ -122,14 +130,79 @@ func Init() {
 		go m.patchWorker()
 	}
 	go m.cleanupLoop()
-	setManager(m)
+	retireManager(setManager(m))
 	common.SysLog(fmt.Sprintf("archive initialized: backend=%s queue_size=%d worker_count=%d spool=%s", cfg.Backend, cfg.QueueSize, cfg.WorkerCount, cfg.SpoolDir))
 }
 
-func setManager(m *Manager) {
+func setManager(m *Manager) *Manager {
 	managerMu.Lock()
-	defer managerMu.Unlock()
+	previous := manager
 	manager = m
+	managerMu.Unlock()
+	return previous
+}
+
+func retireManager(m *Manager) {
+	if m == nil {
+		return
+	}
+	m.retired.Store(true)
+	if m.refs.Load() == 0 {
+		go func(retired *Manager) {
+			time.Sleep(retiredManagerShutdownDelay)
+			if retired.refs.Load() == 0 {
+				retired.stop()
+			}
+		}(m)
+	}
+}
+
+func (m *Manager) stop() {
+	if m == nil {
+		return
+	}
+	m.stopOnce.Do(func() {
+		close(m.stopCh)
+	})
+}
+
+func (m *Manager) Retain() {
+	if m == nil {
+		return
+	}
+	m.refs.Add(1)
+}
+
+func (m *Manager) Release() {
+	if m == nil {
+		return
+	}
+	remaining := m.refs.Add(-1)
+	if remaining <= 0 && m.retired.Load() {
+		go func(retired *Manager) {
+			time.Sleep(retiredManagerShutdownDelay)
+			if retired.refs.Load() == 0 {
+				retired.stop()
+			}
+		}(m)
+	}
+}
+
+func BindManager(c *gin.Context, m *Manager) {
+	if c != nil && m != nil {
+		c.Set(managerContextKey, m)
+	}
+}
+
+func ManagerForContext(c *gin.Context) *Manager {
+	if c != nil {
+		if value, ok := c.Get(managerContextKey); ok {
+			if m, ok := value.(*Manager); ok && m != nil {
+				return m
+			}
+		}
+	}
+	return Current()
 }
 
 func currentManager() *Manager {
@@ -339,14 +412,24 @@ func (m *Manager) tryEnqueue(manifest Manifest) (bool, Manifest) {
 }
 
 func (m *Manager) worker() {
-	for job := range m.queue {
-		m.process(job)
+	for {
+		select {
+		case <-m.stopCh:
+			return
+		case job := <-m.queue:
+			m.process(job)
+		}
 	}
 }
 
 func (m *Manager) patchWorker() {
-	for manifest := range m.patchQueue {
-		patchArchive(nil, manifest)
+	for {
+		select {
+		case <-m.stopCh:
+			return
+		case manifest := <-m.patchQueue:
+			patchArchive(nil, manifest)
+		}
 	}
 }
 
@@ -421,10 +504,14 @@ func (m *Manager) cleanupLoop() {
 	ticker := time.NewTicker(segmentFlushInterval(m.cfg))
 	defer ticker.Stop()
 	for {
-		<-ticker.C
-		cleanupExpiredSpoolFiles(m.cfg.SpoolDir, ttl)
-		if m.segmenter != nil {
-			m.segmenter.FlushExpired()
+		select {
+		case <-m.stopCh:
+			return
+		case <-ticker.C:
+			cleanupExpiredSpoolFiles(m.cfg.SpoolDir, ttl)
+			if m.segmenter != nil {
+				m.segmenter.FlushExpired()
+			}
 		}
 	}
 }

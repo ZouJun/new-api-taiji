@@ -34,6 +34,10 @@ export type UpdateOptionRequest = {
   value: string | boolean | number
 }
 
+export type UpdateOptionsBulkRequest = {
+  options: UpdateOptionRequest[]
+}
+
 export type UpdateOptionResponse = {
   success: boolean
   message: string
@@ -297,6 +301,32 @@ export type OperationsSettings = {
   WorkerUrl: string
   WorkerValidKey: string
   WorkerAllowHttpImageRequestEnabled: boolean
+  ArchiveEnabled: boolean
+  ArchiveBackend: string
+  ArchiveLocalDir: string
+  ArchiveSpoolDir: string
+  ArchiveQueueSize: number
+  ArchiveWorkerCount: number
+  ArchiveMaxRequestMB: number
+  ArchiveMaxResponseMB: number
+  ArchiveSpoolTTLHours: number
+  ArchiveSmallPayloadMaxKB: number
+  ArchiveSegmentMaxMB: number
+  ArchiveSegmentMaxAgeSeconds: number
+  ArchiveSegmentMaxRecords: number
+  ArchiveSegmentShardCount: number
+  ArchiveHeaderValueMaxLength: number
+  ArchiveSamplePercent: number
+  ArchiveSkipOnHighLoad: boolean
+  ArchiveMaxCPUPercent: number
+  ArchiveMaxMemoryPercent: number
+  ArchiveMinFreeDiskPercent: number
+  ArchiveMinFreeDiskGB: number
+  ArchiveLoadCheckIntervalSeconds: number
+  ArchiveAzureAccountURL: string
+  ArchiveAzureContainer: string
+  ArchiveAzureAccountName: string
+  ArchiveAzureAccountKey: string
   LogConsumeEnabled: boolean
   'performance_setting.disk_cache_enabled': boolean
   'performance_setting.disk_cache_threshold_mb': number
