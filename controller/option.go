@@ -2,7 +2,9 @@ package controller
 
 import (
 	"fmt"
+	"math"
 	"net/http"
+	"net/url"
 	"strconv"
 	"strings"
 
@@ -78,9 +80,13 @@ func buildCompletionRatioMetaValue(optionValues map[string]string) string {
 func GetOptions(c *gin.Context) {
 	var options []*model.Option
 	optionValues := make(map[string]string)
+	billAccessTokenConfigured := false
 	common.OptionMapRWMutex.Lock()
 	for k, v := range common.OptionMap {
 		value := common.Interface2String(v)
+		if k == model.BillAccessTokenOptionKey {
+			billAccessTokenConfigured = strings.TrimSpace(value) != ""
+		}
 		isSensitiveKey := strings.HasSuffix(k, "Token") ||
 			strings.HasSuffix(k, "Secret") ||
 			strings.HasSuffix(k, "Key") ||
@@ -101,6 +107,10 @@ func GetOptions(c *gin.Context) {
 		}
 	}
 	common.OptionMapRWMutex.Unlock()
+	options = append(options, &model.Option{
+		Key:   "BillAccessTokenConfigured",
+		Value: strconv.FormatBool(billAccessTokenConfigured),
+	})
 	options = append(options, &model.Option{
 		Key:   "CompletionRatioMeta",
 		Value: buildCompletionRatioMetaValue(optionValues),
@@ -223,6 +233,55 @@ func UpdateOption(c *gin.Context) {
 			})
 			return
 		}
+	case model.BillSupplierNameOptionKey:
+		value := strings.TrimSpace(option.Value.(string))
+		if len(value) > 128 {
+			common.ApiErrorMsg(c, "供应商名称不能超过 128 个字符")
+			return
+		}
+		option.Value = value
+	case model.BillSiteURLOptionKey:
+		value := strings.TrimSpace(option.Value.(string))
+		if value != "" {
+			if len(value) > 255 {
+				common.ApiErrorMsg(c, "账单站点地址不能超过 255 个字符")
+				return
+			}
+			parsedURL, parseErr := url.ParseRequestURI(value)
+			if parseErr != nil || parsedURL.Host == "" || (parsedURL.Scheme != "http" && parsedURL.Scheme != "https") {
+				common.ApiErrorMsg(c, "账单站点地址必须是有效的 HTTP 或 HTTPS URL")
+				return
+			}
+			value = strings.TrimRight(value, "/")
+		}
+		option.Value = value
+	case model.BillAccessTokenOptionKey:
+		value := strings.TrimSpace(option.Value.(string))
+		if len(value) > 512 {
+			common.ApiErrorMsg(c, "账单认证 Token 不能超过 512 个字符")
+			return
+		}
+		option.Value = value
+	case model.BillDiscountOptionKey:
+		value, parseErr := strconv.ParseFloat(strings.TrimSpace(option.Value.(string)), 64)
+		if parseErr != nil || math.IsNaN(value) || math.IsInf(value, 0) || value <= 0 || value > 1 {
+			common.ApiErrorMsg(c, "账单折扣必须大于 0 且不超过 1")
+			return
+		}
+		option.Value = strconv.FormatFloat(value, 'f', -1, 64)
+	case model.BillPricingCurrencyOptionKey:
+		value := strings.ToUpper(strings.TrimSpace(option.Value.(string)))
+		if len(value) != 3 {
+			common.ApiErrorMsg(c, "账单计价币种必须是 3 位英文字母")
+			return
+		}
+		for _, char := range value {
+			if char < 'A' || char > 'Z' {
+				common.ApiErrorMsg(c, "账单计价币种必须是 3 位英文字母")
+				return
+			}
+		}
+		option.Value = value
 	case "GroupRatio":
 		err = ratio_setting.CheckGroupRatio(option.Value.(string))
 		if err != nil {

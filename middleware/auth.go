@@ -1,12 +1,14 @@
 package middleware
 
 import (
+	"crypto/subtle"
 	"errors"
 	"fmt"
 	"net"
 	"net/http"
 	"strconv"
 	"strings"
+	"time"
 
 	"github.com/QuantumNous/new-api/common"
 	"github.com/QuantumNous/new-api/constant"
@@ -231,6 +233,31 @@ func TokenOrUserAuth() func(c *gin.Context) {
 		}
 		// Fall back to token auth (API clients)
 		TokenAuth()(c)
+	}
+}
+
+func BillAccessTokenAuth() func(c *gin.Context) {
+	return func(c *gin.Context) {
+		providedToken := strings.TrimSpace(c.GetHeader("X-Access-Token"))
+
+		common.OptionMapRWMutex.RLock()
+		configuredToken := strings.TrimSpace(common.OptionMap[model.BillAccessTokenOptionKey])
+		common.OptionMapRWMutex.RUnlock()
+
+		if configuredToken == "" ||
+			providedToken == "" ||
+			subtle.ConstantTimeCompare([]byte(providedToken), []byte(configuredToken)) != 1 {
+			c.JSON(http.StatusOK, gin.H{
+				"code":      http.StatusUnauthorized,
+				"message":   "未授权访问",
+				"data":      nil,
+				"timestamp": time.Now().UnixMilli(),
+			})
+			c.Abort()
+			return
+		}
+
+		c.Next()
 	}
 }
 

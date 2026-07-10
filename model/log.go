@@ -387,6 +387,7 @@ func RecordConsumeLog(c *gin.Context, userId int, params RecordConsumeLogParams)
 	if err != nil {
 		logger.LogError(c, "failed to record log: "+err.Error())
 	}
+	recordBillFromConsumeLog(userId, username, createdAt, requestId, params, c.GetHeader(ClientRequestIDHeader))
 	if common.DataExportEnabled {
 		LogQuotaData(QuotaDataLogParams{
 			UserID:    userId,

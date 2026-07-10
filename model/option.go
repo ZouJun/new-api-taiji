@@ -73,6 +73,11 @@ func InitOptionMap() {
 	common.OptionMap["SystemName"] = common.SystemName
 	common.OptionMap["Logo"] = common.Logo
 	common.OptionMap["ServerAddress"] = ""
+	common.OptionMap[BillSupplierNameOptionKey] = ""
+	common.OptionMap[BillSiteURLOptionKey] = ""
+	common.OptionMap[BillAccessTokenOptionKey] = ""
+	common.OptionMap[BillDiscountOptionKey] = "1"
+	common.OptionMap[BillPricingCurrencyOptionKey] = "USD"
 	common.OptionMap["WorkerUrl"] = system_setting.WorkerUrl
 	common.OptionMap["WorkerValidKey"] = system_setting.WorkerValidKey
 	common.OptionMap["WorkerAllowHttpImageRequestEnabled"] = strconv.FormatBool(system_setting.WorkerAllowHttpImageRequestEnabled)

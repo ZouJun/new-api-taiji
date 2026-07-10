@@ -25,6 +25,7 @@ import { PaymentSettingsSection } from '../integrations/payment-settings-section
 import { RatioSettingsCard } from '../models/ratio-settings-card'
 import type { BillingSettings } from '../types'
 import { createSectionRegistry } from '../utils/section-registry'
+import { ExternalBillingSettingsSection } from './external-billing-settings-section'
 
 const getModelDefaults = (settings: BillingSettings) => ({
   ModelPrice: settings.ModelPrice,
@@ -98,6 +99,22 @@ const BILLING_SECTIONS = [
               settings['general_setting.custom_currency_exchange_rate'] ?? 1,
           },
         }}
+      />
+    ),
+  },
+  {
+    id: 'external-billing',
+    titleKey: 'External Billing',
+    build: (settings: BillingSettings) => (
+      <ExternalBillingSettingsSection
+        defaultValues={{
+          BillSupplierName: settings.BillSupplierName,
+          BillSiteURL: settings.BillSiteURL,
+          BillAccessToken: settings.BillAccessToken,
+          BillDiscount: settings.BillDiscount,
+          BillPricingCurrency: settings.BillPricingCurrency,
+        }}
+        accessTokenConfigured={settings.BillAccessTokenConfigured}
       />
     ),
   },

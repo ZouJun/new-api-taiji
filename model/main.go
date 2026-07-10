@@ -280,6 +280,7 @@ func migrateDB() error {
 		&Midjourney{},
 		&TopUp{},
 		&QuotaData{},
+		&BillRecord{},
 		&Task{},
 		&Model{},
 		&Vendor{},
@@ -312,7 +313,7 @@ func migrateDB() error {
 			return err
 		}
 	}
-	return nil
+	return ensureBillRecordTableComment()
 }
 
 func migrateDBFast() error {
@@ -334,6 +335,7 @@ func migrateDBFast() error {
 		{&Midjourney{}, "Midjourney"},
 		{&TopUp{}, "TopUp"},
 		{&QuotaData{}, "QuotaData"},
+		{&BillRecord{}, "BillRecord"},
 		{&Task{}, "Task"},
 		{&Model{}, "Model"},
 		{&Vendor{}, "Vendor"},
@@ -375,6 +377,9 @@ func migrateDBFast() error {
 			return err
 		}
 	}
+	if err := ensureBillRecordTableComment(); err != nil {
+		return err
+	}
 	if common.UsingMainDatabase(common.DatabaseTypeSQLite) {
 		if err := ensureSubscriptionPlanTableSQLite(); err != nil {
 			return err
@@ -386,6 +391,36 @@ func migrateDBFast() error {
 	}
 	common.SysLog("database migrated")
 	return nil
+}
+
+func ensureBillRecordTableComment() error {
+	switch {
+	case common.UsingMainDatabase(common.DatabaseTypeMySQL):
+		var currentComment string
+		err := DB.Raw(
+			"SELECT COALESCE(table_comment, '') FROM information_schema.tables WHERE table_schema = DATABASE() AND table_name = ?",
+			"bill_records",
+		).Scan(&currentComment).Error
+		if err != nil || currentComment == billRecordTableComment {
+			return err
+		}
+		return DB.Exec(
+			"ALTER TABLE `bill_records` COMMENT = '对外账单调用明细表：成功调用并产生计费日志时平铺固化计量与定价快照，用于按天账单汇总和逐笔调用明细查询'",
+		).Error
+	case common.UsingMainDatabase(common.DatabaseTypePostgreSQL):
+		var currentComment string
+		err := DB.Raw(
+			"SELECT COALESCE(obj_description('bill_records'::regclass), '')",
+		).Scan(&currentComment).Error
+		if err != nil || currentComment == billRecordTableComment {
+			return err
+		}
+		return DB.Exec(
+			`COMMENT ON TABLE "bill_records" IS '对外账单调用明细表：成功调用并产生计费日志时平铺固化计量与定价快照，用于按天账单汇总和逐笔调用明细查询'`,
+		).Error
+	default:
+		return nil
+	}
 }
 
 func migrateLOGDB() error {

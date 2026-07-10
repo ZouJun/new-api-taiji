@@ -183,6 +183,14 @@ func SetApiRouter(router *gin.Engine) {
 		apiRouter.GET("/subscription/epay/notify", controller.SubscriptionEpayNotify)
 		apiRouter.GET("/subscription/epay/return", controller.SubscriptionEpayReturn)
 		apiRouter.POST("/subscription/epay/return", anonymousRequestBodyLimit, controller.SubscriptionEpayReturn)
+
+		billRoute := apiRouter.Group("/bill/ali")
+		billRoute.Use(middleware.BillAccessTokenAuth())
+		{
+			billRoute.GET("/dayList", controller.GetBillAliDayList)
+			billRoute.GET("/detailList", controller.GetBillAliDetailList)
+		}
+
 		optionRoute := apiRouter.Group("/option")
 		optionRoute.Use(middleware.RootAuth())
 		{
