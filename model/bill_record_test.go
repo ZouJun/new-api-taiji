@@ -2,9 +2,11 @@ package model
 
 import (
 	"encoding/base64"
+	"net/http/httptest"
 	"testing"
 
 	"github.com/QuantumNous/new-api/common"
+	"github.com/gin-gonic/gin"
 	"github.com/glebarez/sqlite"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -27,7 +29,8 @@ func TestParseBillDetailRangeRejectsTooLong(t *testing.T) {
 func TestComputeBillPricesTokenBased(t *testing.T) {
 	record := &BillRecord{
 		PromptTokens:          1_000_000,
-		CacheTokens:           100_000,
+		ActualInputTokens:     825_000,
+		CachedInputTokens:     100_000,
 		CacheCreationTokens:   50_000,
 		CacheCreation1hTokens: 25_000,
 		AudioInputTokens:      20_000,
@@ -47,9 +50,10 @@ func TestComputeBillPricesTokenBased(t *testing.T) {
 	assert.Equal(t, 2.5, prices.InputPublishedPrice)
 	assert.Equal(t, 10.0, prices.OutputPublishedPrice)
 	assert.Equal(t, 0.625, prices.CachedInputPublishedPrice)
-	assert.Equal(t, 8.34375, prices.ConsumeCost)
-	assert.Equal(t, 7.509375, prices.SettleCost)
-	assert.Equal(t, 7.9599375, prices.FinalSettleCost)
+	assert.Equal(t, 0.625, prices.CacheReadPublishedPrice)
+	assert.Equal(t, 7.90625, prices.ConsumeCost)
+	assert.Equal(t, 7.115625, prices.SettleCost)
+	assert.Equal(t, 7.5425625, prices.FinalSettleCost)
 }
 
 func TestComputeBillPricesTimeBased(t *testing.T) {
@@ -72,8 +76,9 @@ func TestComputeBillPricesTimeBased(t *testing.T) {
 
 func TestComputeBillPricesPreservesSmallCosts(t *testing.T) {
 	record := &BillRecord{
-		PromptTokens:     12,
-		CompletionTokens: 126,
+		PromptTokens:      12,
+		ActualInputTokens: 12,
+		CompletionTokens:  126,
 	}
 	pricingContext := billPricingContext{
 		ModelRatio:      0.005,
@@ -85,6 +90,106 @@ func TestComputeBillPricesPreservesSmallCosts(t *testing.T) {
 	assert.Equal(t, 0.00000138, prices.ConsumeCost)
 	assert.Equal(t, 0.00000138, prices.SettleCost)
 	assert.Equal(t, 0.0000014628, prices.FinalSettleCost)
+}
+
+func TestBuildBillUsageSnapshotOpenAI(t *testing.T) {
+	snapshot := buildBillUsageSnapshot(1_000, map[string]interface{}{
+		"usage_semantic":           "openai",
+		"cache_tokens":             200,
+		"cache_creation_tokens":    150,
+		"cache_creation_tokens_5m": 100,
+		"cache_creation_tokens_1h": 50,
+	})
+
+	assert.Equal(t, 650, snapshot.ActualInputTokens)
+	assert.Equal(t, 200, snapshot.CachedInputTokens)
+	assert.Zero(t, snapshot.CacheReadTokens)
+	assert.Equal(t, 100, snapshot.CacheCreationTokens)
+	assert.Equal(t, 50, snapshot.CacheCreation1hTokens)
+}
+
+func TestBuildBillUsageSnapshotAnthropic(t *testing.T) {
+	snapshot := buildBillUsageSnapshot(1_000, map[string]interface{}{
+		"usage_semantic":           "anthropic",
+		"cache_tokens":             200,
+		"cache_creation_tokens":    150,
+		"cache_creation_tokens_5m": 100,
+		"cache_creation_tokens_1h": 50,
+	})
+
+	assert.Equal(t, 1_000, snapshot.ActualInputTokens)
+	assert.Zero(t, snapshot.CachedInputTokens)
+	assert.Equal(t, 200, snapshot.CacheReadTokens)
+	assert.Equal(t, 100, snapshot.CacheCreationTokens)
+	assert.Equal(t, 50, snapshot.CacheCreation1hTokens)
+}
+
+func TestComputeBillPricesTiered(t *testing.T) {
+	record := &BillRecord{ActualInputTokens: 1000, CompletionTokens: 500}
+	pricingContext := billPricingContext{
+		BillingMode:              "tiered_expr",
+		TieredConsumeCost:        0.01,
+		TieredInputPrice:         3,
+		TieredOutputPrice:        15,
+		TieredCacheReadPrice:     0.3,
+		TieredCacheCreatePrice:   3.75,
+		TieredCacheCreate1hPrice: 6,
+		TieredInputAudioPrice:    10,
+	}
+
+	prices := computeBillPrices(record, pricingContext, 0.9)
+
+	assert.Equal(t, 3.0, prices.InputPublishedPrice)
+	assert.Equal(t, 15.0, prices.OutputPublishedPrice)
+	assert.Equal(t, 0.3, prices.CacheReadPublishedPrice)
+	assert.Equal(t, 0.01, prices.ConsumeCost)
+	assert.Equal(t, 0.009, prices.SettleCost)
+	assert.Equal(t, 0.00954, prices.FinalSettleCost)
+}
+
+func TestComputeBillPricesFixedPriceCallIgnoresReportedTokens(t *testing.T) {
+	record := &BillRecord{
+		PromptTokens:      100,
+		ActualInputTokens: 100,
+		CompletionTokens:  20,
+		Number:            1,
+	}
+	pricingContext := billPricingContext{ModelPrice: 0.5}
+
+	prices := computeBillPrices(record, pricingContext, 1)
+
+	assert.Equal(t, "次", prices.PricingUnit)
+	assert.Equal(t, 0.5, prices.NumberPublishedPrice)
+	assert.Equal(t, 0.5, prices.ConsumeCost)
+}
+
+func TestIsBillNumberPricedCall(t *testing.T) {
+	assert.True(t, isBillNumberPricedCall(
+		&BillRecord{ActualInputTokens: 100, CompletionTokens: 20},
+		billPricingContext{ModelPrice: 0.5},
+	))
+	assert.False(t, isBillNumberPricedCall(
+		&BillRecord{ActualInputTokens: 100, CompletionTokens: 20},
+		billPricingContext{ModelRatio: 1},
+	))
+	assert.False(t, isBillNumberPricedCall(
+		&BillRecord{},
+		billPricingContext{BillingMode: "tiered_expr"},
+	))
+	assert.False(t, isBillNumberPricedCall(
+		&BillRecord{MediaDurationMs: 1_000},
+		billPricingContext{ModelPrice: 0.5},
+	))
+}
+
+func TestBuildBillUsageSnapshotExcludesSeparatelyPricedAudio(t *testing.T) {
+	snapshot := buildBillUsageSnapshot(1_000, map[string]interface{}{
+		"usage_semantic":          "openai",
+		"audio_input_token_count": 200,
+		"audio_input_price":       3.5,
+	})
+
+	assert.Equal(t, 800, snapshot.ActualInputTokens)
 }
 
 func TestMapDurationMilliseconds(t *testing.T) {
@@ -175,7 +280,14 @@ func TestBillRecordMigrationSupportsSQLite(t *testing.T) {
 	assert.True(t, db.Migrator().HasColumn(&BillRecord{}, "input_published_price"))
 	assert.True(t, db.Migrator().HasColumn(&BillRecord{}, "final_settle_cost"))
 	assert.True(t, db.Migrator().HasColumn(&BillRecord{}, "media_duration_ms"))
+	assert.True(t, db.Migrator().HasColumn(&BillRecord{}, "actual_input_tokens"))
+	assert.True(t, db.Migrator().HasColumn(&BillRecord{}, "cached_input_tokens"))
+	assert.True(t, db.Migrator().HasColumn(&BillRecord{}, "cache_read_tokens"))
+	assert.True(t, db.Migrator().HasColumn(&BillRecord{}, "cache_read_published_price"))
+	assert.True(t, db.Migrator().HasColumn(&BillRecord{}, "billing_mode"))
+	assert.True(t, db.Migrator().HasColumn(&BillRecord{}, "matched_tier"))
 	assert.False(t, db.Migrator().HasColumn(&BillRecord{}, "media_duration"))
+	assert.False(t, db.Migrator().HasColumn(&BillRecord{}, "cache_tokens"))
 	assert.False(t, db.Migrator().HasColumn(&BillRecord{}, "model_ratio"))
 	assert.False(t, db.Migrator().HasColumn(&BillRecord{}, "completion_ratio"))
 	assert.False(t, db.Migrator().HasColumn(&BillRecord{}, "other_ratios"))
@@ -219,6 +331,7 @@ func TestGetBillAliDayListUsesStoredPricingSnapshot(t *testing.T) {
 		PricingCurrency:               "USD",
 		Discount:                      0.9,
 		PromptTokens:                  1_000_000,
+		ActualInputTokens:             1_000_000,
 		MediaDurationMs:               1234,
 		Number:                        1,
 		InputPublishedPrice:           2.5,
@@ -227,9 +340,9 @@ func TestGetBillAliDayListUsesStoredPricingSnapshot(t *testing.T) {
 		CacheCreatePublishedPrice:     3.13,
 		CacheCreateHourPublishedPrice: 5,
 		InputAudioPublishedPrice:      25,
-		ConsumeCost:                   2.5,
-		SettleCost:                    2.25,
-		FinalSettleCost:               2.39,
+		ConsumeCost:                   2.505,
+		SettleCost:                    2.254,
+		FinalSettleCost:               2.394,
 		PricingContext:                `{"model_ratio":1.25}`,
 	}
 	require.NoError(t, db.Create(record).Error)
@@ -241,8 +354,70 @@ func TestGetBillAliDayListUsesStoredPricingSnapshot(t *testing.T) {
 	assert.Equal(t, "USD", item.PricingCurrency)
 	assert.Equal(t, 0.9, item.Discount)
 	assert.Equal(t, 2.5, item.InputPublishedPrice)
-	assert.Equal(t, 2.5, item.ConsumeCost)
+	assert.Equal(t, 2.51, item.ConsumeCost)
 	assert.Equal(t, 2.25, item.SettleCost)
 	assert.Equal(t, 2.39, item.FinalSettleCost)
-	assert.Equal(t, int64(1234), item.Time)
+	assert.Equal(t, int64(1), item.Time)
+	assert.Zero(t, item.Number)
+}
+
+func TestRecordConsumeLogWritesBillWhenConsumeLogsDisabled(t *testing.T) {
+	db, err := gorm.Open(
+		sqlite.Open("file:bill_record_log_disabled_test?mode=memory&cache=shared"),
+		&gorm.Config{},
+	)
+	require.NoError(t, err)
+	require.NoError(t, db.AutoMigrate(&BillRecord{}))
+
+	originalDB := DB
+	originalLogConsumeEnabled := common.LogConsumeEnabled
+	DB = db
+	common.LogConsumeEnabled = false
+	t.Cleanup(func() {
+		DB = originalDB
+		common.LogConsumeEnabled = originalLogConsumeEnabled
+	})
+
+	context, _ := gin.CreateTestContext(httptest.NewRecorder())
+	context.Request = httptest.NewRequest("POST", "/v1/chat/completions", nil)
+	context.Request.Header.Set(ClientRequestIDHeader, "client-request")
+	context.Set("username", "billing-user")
+	context.Set(common.RequestIdKey, "request-id")
+
+	RecordConsumeLog(context, 1, RecordConsumeLogParams{
+		PromptTokens:     10,
+		CompletionTokens: 20,
+		ModelName:        "example-model",
+		Quota:            1,
+		Other: map[string]interface{}{
+			"model_ratio":      1,
+			"completion_ratio": 1,
+		},
+	})
+
+	var record BillRecord
+	require.NoError(t, db.First(&record).Error)
+	assert.Equal(t, "request-id", record.RequestId)
+	assert.Equal(t, "client-request", record.ClientRequestId)
+	assert.Equal(t, "ratio", record.BillingMode)
+	assert.Empty(t, record.MatchedTier)
+	assert.Zero(t, record.Number)
+
+	context.Set(common.RequestIdKey, "tiered-request-id")
+	RecordConsumeLog(context, 1, RecordConsumeLogParams{
+		PromptTokens:     10,
+		CompletionTokens: 20,
+		ModelName:        "tiered-model",
+		Quota:            1,
+		Other: map[string]interface{}{
+			"billing_mode": "tiered_expr",
+			"matched_tier": "standard",
+		},
+	})
+
+	var tieredRecord BillRecord
+	require.NoError(t, db.Where("request_id = ?", "tiered-request-id").First(&tieredRecord).Error)
+	assert.Equal(t, "tiered_expr", tieredRecord.BillingMode)
+	assert.Equal(t, "standard", tieredRecord.MatchedTier)
+	assert.Zero(t, tieredRecord.Number)
 }

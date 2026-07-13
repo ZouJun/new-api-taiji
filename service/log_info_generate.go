@@ -315,5 +315,12 @@ func InjectTieredBillingInfo(other map[string]interface{}, relayInfo *relaycommo
 	other["expr_b64"] = base64.StdEncoding.EncodeToString([]byte(snap.ExprString))
 	if result != nil {
 		other["matched_tier"] = result.MatchedTier
+		other["tiered_consume_cost"] = result.ActualCost
+		other["tiered_input_published_price"] = result.PublishedPrices.Input
+		other["tiered_output_published_price"] = result.PublishedPrices.Output
+		other["tiered_cache_read_published_price"] = result.PublishedPrices.CacheRead
+		other["tiered_cache_create_published_price"] = result.PublishedPrices.CacheCreate
+		other["tiered_cache_create_1h_published_price"] = result.PublishedPrices.CacheCreate1h
+		other["tiered_input_audio_published_price"] = result.PublishedPrices.InputAudio
 	}
 }
