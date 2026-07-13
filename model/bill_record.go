@@ -26,18 +26,18 @@ const (
 var shanghaiLocation = time.FixedZone("CST", 8*3600)
 
 type BillRecord struct {
-	Id                            int     `json:"id" gorm:"comment:账单记录主键"`
-	CreatedAt                     int64   `json:"created_at" gorm:"bigint;index;comment:调用完成并生成账单记录的时间戳（秒），用于时间范围过滤和排序"`
-	Day                           string  `json:"day" gorm:"type:varchar(16);index;comment:账单归属日期（Asia/Shanghai，格式 YYYY-MM-DD），用于按天汇总"`
-	SiteURL                       string  `json:"site_url" gorm:"type:varchar(255);index;default:'';comment:记账时固化的对外账单站点地址，用于标识账单归属站点"`
-	UserId                        int     `json:"user_id" gorm:"index;comment:发起调用的用户 ID，用于用户维度查询和数据隔离"`
-	Username                      string  `json:"username" gorm:"type:varchar(64);index;default:'';comment:记账时固化的用户名，用于账单展示和汇总"`
-	ChannelId                     int     `json:"channel_id" gorm:"index;comment:实际承载调用的渠道 ID，用于渠道维度追踪"`
+	Id                            int     `json:"id" gorm:"index:idx_bill_record_created_at_id,priority:2;comment:账单记录主键"`
+	CreatedAt                     int64   `json:"created_at" gorm:"bigint;index:idx_bill_record_created_at_id,priority:1;comment:调用完成并生成账单记录的时间戳（秒），用于时间范围过滤和排序"`
+	Day                           string  `json:"day" gorm:"type:varchar(16);index:idx_bill_record_day_model,priority:1;comment:账单归属日期（Asia/Shanghai，格式 YYYY-MM-DD），用于按天汇总"`
+	SiteURL                       string  `json:"site_url" gorm:"type:varchar(255);default:'';comment:记账时固化的对外账单站点地址，用于标识账单归属站点"`
+	UserId                        int     `json:"user_id" gorm:"comment:发起调用的用户 ID，用于用户维度查询和数据隔离"`
+	Username                      string  `json:"username" gorm:"type:varchar(64);default:'';comment:记账时固化的用户名，用于账单展示和汇总"`
+	ChannelId                     int     `json:"channel_id" gorm:"comment:实际承载调用的渠道 ID，用于渠道维度追踪"`
 	ChannelName                   string  `json:"channel_name" gorm:"type:varchar(128);default:'';comment:记账时固化的渠道名称，避免渠道改名影响历史账单"`
-	ModelName                     string  `json:"model_name" gorm:"type:varchar(128);index;default:'';comment:实际计费模型名称，用于模型维度汇总和筛选"`
+	ModelName                     string  `json:"model_name" gorm:"type:varchar(128);index:idx_bill_record_day_model,priority:2;default:'';comment:实际计费模型名称，用于模型维度汇总和筛选"`
 	TokenName                     string  `json:"token_name" gorm:"type:varchar(128);default:'';comment:调用所用令牌名称，用于逐笔明细展示"`
-	TokenId                       int     `json:"token_id" gorm:"index;comment:调用所用令牌 ID，用于令牌维度追踪"`
-	UseGroup                      string  `json:"use_group" gorm:"column:use_group;type:varchar(64);index;default:'';comment:本次调用采用的计费分组，用于还原分组定价上下文"`
+	TokenId                       int     `json:"token_id" gorm:"comment:调用所用令牌 ID，用于令牌维度追踪"`
+	UseGroup                      string  `json:"use_group" gorm:"column:use_group;type:varchar(64);default:'';comment:本次调用采用的计费分组，用于还原分组定价上下文"`
 	RequestId                     string  `json:"request_id" gorm:"type:varchar(64);index;default:'';comment:系统生成的请求 ID，用于日志与账单记录关联"`
 	ClientRequestId               string  `json:"client_request_id" gorm:"type:varchar(128);index;default:'';comment:客户端通过 X-Client-Request-Id 传入的请求标识，用于客户侧对账"`
 	PromptTokens                  int     `json:"prompt_tokens" gorm:"default:0;comment:输入 Token 数量，用于输入费用计算"`
@@ -54,10 +54,10 @@ type BillRecord struct {
 	IsStream                      bool    `json:"is_stream" gorm:"comment:是否为流式调用，用于逐笔调用类型展示"`
 	IsTask                        bool    `json:"is_task" gorm:"comment:是否为异步任务调用，用于区分任务类账单"`
 	Number                        int     `json:"number" gorm:"comment:成功且产生计费的调用数量，按次计费时用于费用计算"`
-	PricingSpec                   string  `json:"pricing_spec" gorm:"type:varchar(255);index;default:'';comment:记账时固化的价格适用规格，例如 input_tokens<=200k 或 time=8000ms"`
+	PricingSpec                   string  `json:"pricing_spec" gorm:"type:varchar(255);default:'';comment:记账时固化的价格适用规格，例如 input_tokens<=200k 或 time=8000ms"`
 	PricingUnit                   string  `json:"pricing_unit" gorm:"type:varchar(32);default:'';comment:记账时固化的计价单位，例如百万 tokens、次或秒"`
 	PricingCurrency               string  `json:"pricing_currency" gorm:"type:varchar(16);default:'';comment:记账时固化的价格币种，避免配置变化影响历史账单"`
-	BillingMode                   string  `json:"billing_mode" gorm:"type:varchar(32);index;default:'ratio';comment:记账时固化的计费模式，ratio 表示倍率计费，tiered_expr 表示阶梯表达式计费"`
+	BillingMode                   string  `json:"billing_mode" gorm:"type:varchar(32);default:'ratio';comment:记账时固化的计费模式，ratio 表示倍率计费，tiered_expr 表示阶梯表达式计费"`
 	MatchedTier                   string  `json:"matched_tier" gorm:"type:varchar(255);default:'';comment:阶梯表达式计费实际命中的阶梯名称或规格，倍率计费时为空"`
 	Discount                      float64 `json:"discount" gorm:"default:0;comment:记账时固化的结算折扣，用于展示本次账单采用的折扣"`
 	InputPublishedPrice           float64 `json:"input_published_price" gorm:"default:0;comment:记账时由倍率推导并固化的官方输入价格"`
@@ -723,7 +723,11 @@ func GetBillAliDetailList(startAt, endAt int64, modelPrefix string, siteURL stri
 
 func GetBillAliDayList(startAt, endAt int64, modelPrefix string) ([]*BillAliDayListItem, error) {
 	config := getBillConfig()
-	query := DB.Model(&BillRecord{}).Where("created_at >= ? AND created_at <= ?", startAt, endAt)
+	query := DB.Model(&BillRecord{}).Where(
+		"day >= ? AND day <= ?",
+		billDayFromTimestamp(startAt),
+		billDayFromTimestamp(endAt),
+	)
 	if strings.TrimSpace(modelPrefix) != "" {
 		query = query.Where("model_name LIKE ?", strings.TrimSpace(modelPrefix)+"%")
 	}

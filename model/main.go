@@ -313,6 +313,9 @@ func migrateDB() error {
 			return err
 		}
 	}
+	if err := ensureBillRecordIndexes(); err != nil {
+		return err
+	}
 	return ensureBillRecordTableComment()
 }
 
@@ -377,6 +380,9 @@ func migrateDBFast() error {
 			return err
 		}
 	}
+	if err := ensureBillRecordIndexes(); err != nil {
+		return err
+	}
 	if err := ensureBillRecordTableComment(); err != nil {
 		return err
 	}
@@ -421,6 +427,32 @@ func ensureBillRecordTableComment() error {
 	default:
 		return nil
 	}
+}
+
+func ensureBillRecordIndexes() error {
+	indexesToRemove := []string{
+		"idx_bill_records_channel_id",
+		"idx_bill_records_token_id",
+		"idx_bill_records_use_group",
+		"idx_bill_records_day",
+		"idx_bill_records_user_id",
+		"idx_bill_records_model_name",
+		"idx_bill_records_pricing_spec",
+		"idx_bill_records_created_at",
+		"idx_bill_records_site_url",
+		"idx_bill_records_username",
+		"idx_bill_records_billing_mode",
+	}
+	migrator := DB.Migrator()
+	for _, indexName := range indexesToRemove {
+		if !migrator.HasIndex(&BillRecord{}, indexName) {
+			continue
+		}
+		if err := migrator.DropIndex(&BillRecord{}, indexName); err != nil {
+			return fmt.Errorf("failed to drop redundant bill_records index %s: %w", indexName, err)
+		}
+	}
+	return nil
 }
 
 func migrateLOGDB() error {

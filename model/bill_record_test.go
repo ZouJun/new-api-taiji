@@ -286,11 +286,42 @@ func TestBillRecordMigrationSupportsSQLite(t *testing.T) {
 	assert.True(t, db.Migrator().HasColumn(&BillRecord{}, "cache_read_published_price"))
 	assert.True(t, db.Migrator().HasColumn(&BillRecord{}, "billing_mode"))
 	assert.True(t, db.Migrator().HasColumn(&BillRecord{}, "matched_tier"))
+	assert.True(t, db.Migrator().HasIndex(&BillRecord{}, "idx_bill_record_created_at_id"))
+	assert.True(t, db.Migrator().HasIndex(&BillRecord{}, "idx_bill_record_day_model"))
+	assert.True(t, db.Migrator().HasIndex(&BillRecord{}, "idx_bill_records_request_id"))
+	assert.True(t, db.Migrator().HasIndex(&BillRecord{}, "idx_bill_records_client_request_id"))
+	assert.False(t, db.Migrator().HasIndex(&BillRecord{}, "idx_bill_records_channel_id"))
+	assert.False(t, db.Migrator().HasIndex(&BillRecord{}, "idx_bill_records_created_at"))
 	assert.False(t, db.Migrator().HasColumn(&BillRecord{}, "media_duration"))
 	assert.False(t, db.Migrator().HasColumn(&BillRecord{}, "cache_tokens"))
 	assert.False(t, db.Migrator().HasColumn(&BillRecord{}, "model_ratio"))
 	assert.False(t, db.Migrator().HasColumn(&BillRecord{}, "completion_ratio"))
 	assert.False(t, db.Migrator().HasColumn(&BillRecord{}, "other_ratios"))
+}
+
+func TestEnsureBillRecordIndexesRemovesRedundantIndexes(t *testing.T) {
+	db, err := gorm.Open(
+		sqlite.Open("file:bill_record_index_cleanup_test?mode=memory&cache=shared"),
+		&gorm.Config{},
+	)
+	require.NoError(t, err)
+	require.NoError(t, db.AutoMigrate(&BillRecord{}))
+	require.NoError(t, db.Exec(
+		"CREATE INDEX idx_bill_records_channel_id ON bill_records (channel_id)",
+	).Error)
+
+	originalDB := DB
+	DB = db
+	t.Cleanup(func() {
+		DB = originalDB
+	})
+
+	require.NoError(t, ensureBillRecordIndexes())
+	assert.False(t, db.Migrator().HasIndex(&BillRecord{}, "idx_bill_records_channel_id"))
+	assert.True(t, db.Migrator().HasIndex(&BillRecord{}, "idx_bill_record_created_at_id"))
+	assert.True(t, db.Migrator().HasIndex(&BillRecord{}, "idx_bill_record_day_model"))
+	assert.True(t, db.Migrator().HasIndex(&BillRecord{}, "idx_bill_records_request_id"))
+	assert.True(t, db.Migrator().HasIndex(&BillRecord{}, "idx_bill_records_client_request_id"))
 }
 
 func TestGetBillAliDayListUsesStoredPricingSnapshot(t *testing.T) {
