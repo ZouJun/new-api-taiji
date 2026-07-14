@@ -16,19 +16,15 @@ import (
 )
 
 var (
-	httpClient          *http.Client
-	baseTransport       *http.Transport
-	defaultClientLock   sync.Mutex
-	defaultClients      = make(map[int]*http.Client)
-	proxyClientLock     sync.Mutex
-	proxyClients        = make(map[string]*http.Client)
-	proxyTransportCache = make(map[string]*http.Transport)
+	httpClient              *http.Client
+	ssrfProtectedHTTPClient *http.Client
+	proxyClientLock         sync.Mutex
+	proxyClients            = make(map[string]*http.Client)
 )
 
 func checkRedirect(req *http.Request, via []*http.Request) error {
-	fetchSetting := system_setting.GetFetchSetting()
 	urlStr := req.URL.String()
-	if err := common.ValidateURLWithFetchSetting(urlStr, fetchSetting.EnableSSRFProtection, fetchSetting.AllowPrivateIp, fetchSetting.DomainFilterMode, fetchSetting.IpFilterMode, fetchSetting.DomainList, fetchSetting.IpList, fetchSetting.AllowedPorts, fetchSetting.ApplyIPFilterForDomain); err != nil {
+	if err := validateURLWithCurrentFetchSetting(urlStr, true); err != nil {
 		return fmt.Errorf("redirect to %s blocked: %v", urlStr, err)
 	}
 	if len(via) >= 10 {
@@ -37,8 +33,28 @@ func checkRedirect(req *http.Request, via []*http.Request) error {
 	return nil
 }
 
+func checkProtectedFetchRedirect(req *http.Request, via []*http.Request) error {
+	urlStr := req.URL.String()
+	if err := ValidateSSRFProtectedFetchURL(urlStr); err != nil {
+		return fmt.Errorf("redirect to %s blocked: %v", urlStr, err)
+	}
+	if len(via) >= 10 {
+		return fmt.Errorf("stopped after 10 redirects")
+	}
+	return nil
+}
+
+func validateURLWithCurrentFetchSetting(urlStr string, applyDomainIPFilter bool) error {
+	fetchSetting := system_setting.GetFetchSetting()
+	return common.ValidateURLWithFetchSetting(urlStr, fetchSetting.EnableSSRFProtection, fetchSetting.AllowPrivateIp, fetchSetting.DomainFilterMode, fetchSetting.IpFilterMode, fetchSetting.DomainList, fetchSetting.IpList, fetchSetting.AllowedPorts, applyDomainIPFilter && fetchSetting.ApplyIPFilterForDomain)
+}
+
+func ValidateSSRFProtectedFetchURL(urlStr string) error {
+	return validateURLWithCurrentFetchSetting(urlStr, true)
+}
+
 func InitHttpClient() {
-	baseTransport = &http.Transport{
+	transport := &http.Transport{
 		MaxIdleConns:        common.RelayMaxIdleConns,
 		MaxIdleConnsPerHost: common.RelayMaxIdleConnsPerHost,
 		IdleConnTimeout:     time.Duration(common.RelayIdleConnTimeout) * time.Second,
@@ -46,47 +62,42 @@ func InitHttpClient() {
 		Proxy:               http.ProxyFromEnvironment, // Support HTTP_PROXY, HTTPS_PROXY, NO_PROXY env vars
 	}
 	if common.TLSInsecureSkipVerify {
-		baseTransport.TLSClientConfig = common.InsecureTLSConfig
+		transport.TLSClientConfig = common.InsecureTLSConfig
 	}
 
-	httpClient = buildHTTPClient(baseTransport, common.RelayTimeout)
-	defaultClientLock.Lock()
-	defaultClients = map[int]*http.Client{
-		common.RelayTimeout: httpClient,
+	if common.RelayTimeout == 0 {
+		httpClient = &http.Client{
+			Transport:     transport,
+			CheckRedirect: checkRedirect,
+		}
+	} else {
+		httpClient = &http.Client{
+			Transport:     transport,
+			Timeout:       time.Duration(common.RelayTimeout) * time.Second,
+			CheckRedirect: checkRedirect,
+		}
 	}
-	defaultClientLock.Unlock()
+	ssrfProtectedHTTPClient = newProtectedFetchHTTPClient()
 }
 
+// GetHttpClient returns the general outbound client used by relay/provider
+// integrations. Do not attach the SSRF-protected dialer here: provider base URLs
+// are root/operator-managed deployment targets, not arbitrary user-controlled
+// input, and may legitimately point at private networks, private-link endpoints,
+// self-hosted services, or local proxies. Code paths that fetch arbitrary
+// user-controlled URLs must use GetSSRFProtectedHTTPClient or
+// ValidateSSRFProtectedFetchURL instead.
 func GetHttpClient() *http.Client {
 	return httpClient
 }
 
-func buildHTTPClient(transport http.RoundTripper, timeoutSeconds int) *http.Client {
-	client := &http.Client{
-		Transport:     transport,
-		CheckRedirect: checkRedirect,
+// GetSSRFProtectedHTTPClient 返回带拨号时 SSRF 校验的客户端。
+// ssrfProtectedHTTPClient 由 InitHttpClient 在启动时初始化，运行期只读。
+func GetSSRFProtectedHTTPClient() *http.Client {
+	if fetchSetting := system_setting.GetFetchSetting(); fetchSetting != nil && !fetchSetting.EnableSSRFProtection {
+		return GetHttpClient()
 	}
-	if timeoutSeconds > 0 {
-		client.Timeout = time.Duration(timeoutSeconds) * time.Second
-	}
-	return client
-}
-
-func GetHttpClientByTimeout(timeoutSeconds int) *http.Client {
-	if timeoutSeconds < 0 {
-		timeoutSeconds = 0
-	}
-	if baseTransport == nil {
-		InitHttpClient()
-	}
-	defaultClientLock.Lock()
-	defer defaultClientLock.Unlock()
-	if client, ok := defaultClients[timeoutSeconds]; ok {
-		return client
-	}
-	client := buildHTTPClient(baseTransport, timeoutSeconds)
-	defaultClients[timeoutSeconds] = client
-	return client
+	return ssrfProtectedHTTPClient
 }
 
 // GetHttpClientWithProxy returns the default client or a proxy-enabled one when proxyURL is provided.
@@ -95,13 +106,6 @@ func GetHttpClientWithProxy(proxyURL string) (*http.Client, error) {
 		return GetHttpClient(), nil
 	}
 	return NewProxyHttpClient(proxyURL)
-}
-
-func GetHttpClientWithProxyAndTimeout(proxyURL string, timeoutSeconds int) (*http.Client, error) {
-	if proxyURL == "" {
-		return GetHttpClientByTimeout(timeoutSeconds), nil
-	}
-	return NewProxyHttpClient(proxyURL, timeoutSeconds)
 }
 
 // ResetProxyClientCache 清空代理客户端缓存，确保下次使用时重新初始化
@@ -114,25 +118,19 @@ func ResetProxyClientCache() {
 		}
 	}
 	proxyClients = make(map[string]*http.Client)
-	proxyTransportCache = make(map[string]*http.Transport)
 }
 
 // NewProxyHttpClient 创建支持代理的 HTTP 客户端
-func NewProxyHttpClient(proxyURL string, timeoutSeconds ...int) (*http.Client, error) {
-	resolvedTimeout := common.RelayTimeout
-	if len(timeoutSeconds) > 0 && timeoutSeconds[0] >= 0 {
-		resolvedTimeout = timeoutSeconds[0]
-	}
+func NewProxyHttpClient(proxyURL string) (*http.Client, error) {
 	if proxyURL == "" {
-		if client := GetHttpClientByTimeout(resolvedTimeout); client != nil {
+		if client := GetHttpClient(); client != nil {
 			return client, nil
 		}
 		return http.DefaultClient, nil
 	}
 
-	cacheKey := fmt.Sprintf("%s|%d", proxyURL, resolvedTimeout)
 	proxyClientLock.Lock()
-	if client, ok := proxyClients[cacheKey]; ok {
+	if client, ok := proxyClients[proxyURL]; ok {
 		proxyClientLock.Unlock()
 		return client, nil
 	}
@@ -145,26 +143,23 @@ func NewProxyHttpClient(proxyURL string, timeoutSeconds ...int) (*http.Client, e
 
 	switch parsedURL.Scheme {
 	case "http", "https":
-		proxyClientLock.Lock()
-		transport, ok := proxyTransportCache[proxyURL]
-		if !ok {
-			transport = &http.Transport{
-				MaxIdleConns:        common.RelayMaxIdleConns,
-				MaxIdleConnsPerHost: common.RelayMaxIdleConnsPerHost,
-				IdleConnTimeout:     time.Duration(common.RelayIdleConnTimeout) * time.Second,
-				ForceAttemptHTTP2:   true,
-				Proxy:               http.ProxyURL(parsedURL),
-			}
-			if common.TLSInsecureSkipVerify {
-				transport.TLSClientConfig = common.InsecureTLSConfig
-			}
-			proxyTransportCache[proxyURL] = transport
+		transport := &http.Transport{
+			MaxIdleConns:        common.RelayMaxIdleConns,
+			MaxIdleConnsPerHost: common.RelayMaxIdleConnsPerHost,
+			IdleConnTimeout:     time.Duration(common.RelayIdleConnTimeout) * time.Second,
+			ForceAttemptHTTP2:   true,
+			Proxy:               http.ProxyURL(parsedURL),
 		}
-		proxyClientLock.Unlock()
-
-		client := buildHTTPClient(transport, resolvedTimeout)
+		if common.TLSInsecureSkipVerify {
+			transport.TLSClientConfig = common.InsecureTLSConfig
+		}
+		client := &http.Client{
+			Transport:     transport,
+			CheckRedirect: checkRedirect,
+		}
+		client.Timeout = time.Duration(common.RelayTimeout) * time.Second
 		proxyClientLock.Lock()
-		proxyClients[cacheKey] = client
+		proxyClients[proxyURL] = client
 		proxyClientLock.Unlock()
 		return client, nil
 
@@ -188,28 +183,23 @@ func NewProxyHttpClient(proxyURL string, timeoutSeconds ...int) (*http.Client, e
 			return nil, err
 		}
 
-		proxyClientLock.Lock()
-		transport, ok := proxyTransportCache[proxyURL]
-		if !ok {
-			transport = &http.Transport{
-				MaxIdleConns:        common.RelayMaxIdleConns,
-				MaxIdleConnsPerHost: common.RelayMaxIdleConnsPerHost,
-				IdleConnTimeout:     time.Duration(common.RelayIdleConnTimeout) * time.Second,
-				ForceAttemptHTTP2:   true,
-				DialContext: func(ctx context.Context, network, addr string) (net.Conn, error) {
-					return dialer.Dial(network, addr)
-				},
-			}
-			if common.TLSInsecureSkipVerify {
-				transport.TLSClientConfig = common.InsecureTLSConfig
-			}
-			proxyTransportCache[proxyURL] = transport
+		transport := &http.Transport{
+			MaxIdleConns:        common.RelayMaxIdleConns,
+			MaxIdleConnsPerHost: common.RelayMaxIdleConnsPerHost,
+			IdleConnTimeout:     time.Duration(common.RelayIdleConnTimeout) * time.Second,
+			ForceAttemptHTTP2:   true,
+			DialContext: func(ctx context.Context, network, addr string) (net.Conn, error) {
+				return dialer.Dial(network, addr)
+			},
 		}
-		proxyClientLock.Unlock()
+		if common.TLSInsecureSkipVerify {
+			transport.TLSClientConfig = common.InsecureTLSConfig
+		}
 
-		client := buildHTTPClient(transport, resolvedTimeout)
+		client := &http.Client{Transport: transport, CheckRedirect: checkRedirect}
+		client.Timeout = time.Duration(common.RelayTimeout) * time.Second
 		proxyClientLock.Lock()
-		proxyClients[cacheKey] = client
+		proxyClients[proxyURL] = client
 		proxyClientLock.Unlock()
 		return client, nil
 
